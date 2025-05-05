@@ -3,7 +3,6 @@ __pycache__/
 *.pyo
 *.pyd
 venv/
-resources/
 *.sqlite3
 *.db
 .ipynb_checkpoints/

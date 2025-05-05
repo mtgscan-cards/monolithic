@@ -18,10 +18,13 @@ from routes.collections_routes import collections_bp
 from routes.collection_value_routes import collection_value_bp
 from db.postgres_pool import pg_pool
 from scryfall_update.update import main as update_main
-
+from werkzeug.middleware.proxy_fix import ProxyFix
 import config
 
 app = Flask(__name__)
+
+# Tell Flask to trust proxy headers like X-Forwarded-Proto
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # load your other config values first…
 app.config.from_object('config')    # or however you load your base config

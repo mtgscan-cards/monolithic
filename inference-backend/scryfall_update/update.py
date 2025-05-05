@@ -168,7 +168,20 @@ def download_latest_json(json_file):
     os.utime(json_file, (server_updated_at.timestamp(), server_updated_at.timestamp()))
     print(f"Downloaded and saved {json_file}")
 
+def is_card_table_populated():
+    conn = pg_pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM cards")
+            return cur.fetchone()[0] > 0
+    finally:
+        pg_pool.putconn(conn)
+
 def main():
+    if is_card_table_populated():
+        print("Cards already exist in the database. Skipping import.")
+        return
+
     json_file = f"scryfall-{BULK_DATA_TYPE}.json"
     download_latest_json(json_file)
     batch_size = 10000
@@ -202,4 +215,3 @@ if __name__ == "__main__":
             main()
     except Timeout:
         print("Another process is already importing data. Skipping.")
-
