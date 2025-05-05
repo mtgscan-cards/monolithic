@@ -30,12 +30,20 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config.from_object('config')    # or however you load your base config
 
 # ─── HERE is where you add all the JWT-Extended settings ────────────────
-app.config['JWT_SECRET_KEY']         = app.config['JWT_SECRET']
-app.config['JWT_TOKEN_LOCATION']     = ['headers', 'cookies']
-app.config['JWT_IDENTITY_CLAIM']     = 'user_id'
-app.config['JWT_ACCESS_COOKIE_NAME'] = 'access_token'
-app.config['JWT_REFRESH_COOKIE_NAME']= 'refresh_token'
-app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+# ─── HERE is where you add all the JWT-Extended settings ────────────────
+app.config['JWT_SECRET_KEY']           = app.config['JWT_SECRET']
+app.config['JWT_TOKEN_LOCATION']       = ['headers', 'cookies']
+app.config['JWT_IDENTITY_CLAIM']       = 'user_id'
+app.config['JWT_ACCESS_COOKIE_NAME']   = 'access_token'
+app.config['JWT_REFRESH_COOKIE_NAME']  = 'refresh_token'
+app.config['JWT_COOKIE_CSRF_PROTECT']  = False
+
+# ─── Required for cross-site cookie usage ────────────────
+is_production = os.environ.get("FLASK_ENV") == "production"
+
+app.config['JWT_COOKIE_SAMESITE'] = 'None' if is_production else 'Lax'
+app.config['JWT_COOKIE_SECURE']   = True if is_production else False
+
 
 # now initialize the JWT extension
 jwt = JWTManager(app)

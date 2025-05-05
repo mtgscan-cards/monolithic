@@ -33,31 +33,57 @@ const AccountSetupPage: React.FC = () => {
 
   // 1) On first render: grab access_token & temp-username from URL and persist
   useEffect(() => {
+    if (user?.username) {
+      console.log('[SetupPage] ✅ User context already set — skipping setup')
+      return
+    }
+
     const params = new URLSearchParams(window.location.search)
     const access = params.get('access_token')
     const tempUser = params.get('username')
 
     if (!access || !tempUser) {
+      console.warn('[SetupPage] 🚫 Missing token or username — redirecting')
       navigate('/login', { replace: true })
       return
     }
 
+    console.log('[SetupPage] 🧩 Seeding user context from URL params')
+
+    // ✅ Persist access token *first*
     localStorage.setItem('access_token', access)
     api.defaults.headers.common['Authorization'] = `Bearer ${access}`
-    setUser({ ...user!, username: tempUser })
 
+    // ✅ Also seed display_name and other required fields into localStorage
+    localStorage.setItem('username', tempUser)
+    localStorage.setItem('avatar_url', '')
+    localStorage.setItem('display_name', tempUser)
+    localStorage.setItem('google_linked', 'false')
+    localStorage.setItem('github_linked', 'false')
+    localStorage.setItem('has_password', 'false')
+
+    setUser({
+      username: tempUser,
+      avatar_url: '',
+      display_name: tempUser,
+      google_linked: false,
+      github_linked: false,
+      has_password: false,
+    })
+
+    // ✅ Clean up the URL
     window.history.replaceState({}, '', window.location.pathname)
   }, [navigate, setUser, user])
 
   // ──────────── Local form state ────────────────────────────────────
-  const [username, setUsername]               = useState(user?.username || '')
-  const [nameError, setNameError]             = useState<string>('')
+  const [username, setUsername] = useState(user?.username || '')
+  const [nameError, setNameError] = useState<string>('')
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
-  const [checking, setChecking]               = useState(false)
-  const [password, setPassword]               = useState('')
-  const [captchaToken, setCaptchaToken]       = useState('')
-  const [loading, setLoading]                 = useState(false)
-  const [error, setError]                     = useState<string | null>(null)
+  const [checking, setChecking] = useState(false)
+  const [password, setPassword] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // ── username availability & format debounce ──────────────────────
   useEffect(() => {
@@ -72,15 +98,11 @@ const AccountSetupPage: React.FC = () => {
       return
     }
 
-    // Enforce format first
     if (!USERNAME_REGEX.test(trimmed)) {
-      setNameError(
-        'Must be 3–30 characters, and cannot include "/", "?", "#", or spaces'
-      )
+      setNameError('Must be 3–30 characters, and cannot include "/", "?", "#", or spaces')
       return
     }
 
-    // Fire availability check
     setChecking(true)
     debounceRef.current = window.setTimeout(async () => {
       try {
@@ -129,16 +151,21 @@ const AccountSetupPage: React.FC = () => {
 
     setLoading(true)
     try {
-      // 1) Set username on backend
       const { data: setName } = await api.post<{ access_token: string }>(
         '/auth/set_username',
         { username: trimmed }
       )
       localStorage.setItem('access_token', setName.access_token)
       api.defaults.headers.common['Authorization'] = `Bearer ${setName.access_token}`
-      setUser({ ...user!, username: trimmed })
+      setUser({
+        username: trimmed,
+        avatar_url: user?.avatar_url || '',
+        display_name: user?.display_name || trimmed,
+        google_linked: user?.google_linked || false,
+        github_linked: user?.github_linked || false,
+        has_password: user?.has_password || false,
+      })
 
-      // 2) Then set password
       const { data: pwData } = await api.post<{ access_token: string }>(
         '/auth/set_password',
         { new_password: password, hcaptcha_token: captchaToken }
@@ -146,7 +173,6 @@ const AccountSetupPage: React.FC = () => {
       localStorage.setItem('access_token', pwData.access_token)
       api.defaults.headers.common['Authorization'] = `Bearer ${pwData.access_token}`
 
-      // 3) Finally enter the app
       navigate('/', { replace: true })
     } catch {
       setError('Setup failed – please try again.')
@@ -174,7 +200,7 @@ const AccountSetupPage: React.FC = () => {
             onChange={e => setUsername(e.target.value)}
             error={!!nameError}
             helperText={nameError || ' '}
-            color={usernameAvailable ? 'success' : 'primary'}  // ← green when available
+            color={usernameAvailable ? 'success' : 'primary'}
             InputProps={{
               endAdornment: username ? (
                 <InputAdornment position="end">

@@ -1,6 +1,6 @@
 // src/api/cards.ts
 
-const API_URL = 'https://api.mtgscan.cards';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.mtgscan.cards'
 
 
 export async function getAlternatePrintings(cardId: string) {

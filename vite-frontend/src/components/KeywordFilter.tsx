@@ -43,7 +43,8 @@ const KeywordFilter: React.FC<KeywordFilterProps> = ({ selectedKeywords = [], on
         setLoading(false);
       } else {
         try {
-          const response = await axios.get('https://api.mtgscan.cards/api/tags');
+          const API_URL = import.meta.env.VITE_API_URL || 'https://api.mtgscan.cards';
+          const response = await axios.get(`${API_URL}/api/tags`);
           const tags: Tag[] = Array.isArray(response.data.tags) ? response.data.tags : [];
           cachedTags = tags;
           setAvailableTags(tags);

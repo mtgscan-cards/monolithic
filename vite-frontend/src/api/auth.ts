@@ -1,7 +1,7 @@
 // src/api/auth.ts
 import axios from 'axios';
 
-const API_URL = 'https://api.mtgscan.cards/auth'; // Your Flask backend URL
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.mtgscan.cards'
 
 export interface LoginResponse {
   message: string;

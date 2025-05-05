@@ -13,40 +13,6 @@ def me():
     tags:
       - Authentication
     summary: Get current user profile
-    description: |
-      Returns profile information for the authenticated user,
-      including display name, avatar URL, and linked account flags.
-    parameters:
-      - in: header
-        name: Authorization
-        required: true
-        type: string
-        description: Bearer access token
-    responses:
-      200:
-        description: User profile returned successfully
-        schema:
-          type: object
-          properties:
-            display_name:
-              type: string
-            avatar_url:
-              type: string
-            google_linked:
-              type: boolean
-            github_linked:
-              type: boolean
-            has_password:
-              type: boolean
-            username:
-              type: string
-      401:
-        description: Missing or invalid token
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
     """
     user_id = request.user["user_id"]
     conn = pg_pool.getconn()
@@ -66,7 +32,11 @@ def me():
             """,
             (user_id,),
         )
-        display_name, avatar_url, google_linked, github_linked, has_password, username = cur.fetchone()
+        result = cur.fetchone()
+        if result is None:
+            return jsonify({"message": "User not found"}), 404
+
+        display_name, avatar_url, google_linked, github_linked, has_password, username = result
 
         return jsonify({
             "display_name":  display_name,
@@ -78,6 +48,7 @@ def me():
         }), 200
     finally:
         pg_pool.putconn(conn)
+
 
 @auth_bp.route("/username_available", methods=["GET"])
 def username_available():

@@ -54,9 +54,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (hasFiredRef.current) return
     hasFiredRef.current = true
 
-    console.log('[AuthContext] effect firing for path:', pathname)
+    console.log('[AuthContext] 🔄 Initializing for path:', pathname)
 
-    // 1) Handle OAuth /login callback
     const qs = (search.startsWith('?') ? search.slice(1) : '') ||
                (hash   .startsWith('#') ? hash  .slice(1) : '')
     if (qs) {
@@ -69,6 +68,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const google_linked = params.get('google_linked') === 'true'
         const github_linked = params.get('github_linked') === 'true'
         const has_password  = params.get('has_password') === 'true'
+
+        console.log('[AuthContext] ✅ Detected OAuth redirect with token')
 
         localStorage.setItem('access_token', at)
         localStorage.setItem('username', username)
@@ -99,14 +100,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     }
 
-    // 2) If there's a stored token, refresh via /auth/me
+    // 2) Try to refresh from local access token
     const stored = localStorage.getItem('access_token')
-    console.log('[AuthContext] stored access_token =', stored)
+    console.log('[AuthContext] 🗝 Stored token:', stored)
+
     if (stored) {
       api.defaults.headers.common['Authorization'] = `Bearer ${stored}`
       api.get<User>('/auth/me')
         .then(res => {
-          console.log('[AuthContext] /auth/me succeeded:', res.data)
+          console.log('[AuthContext] ✅ /auth/me success:', res.data)
 
           localStorage.setItem('username',       res.data.username)
           localStorage.setItem('avatar_url',     res.data.avatar_url)
@@ -116,29 +118,49 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           localStorage.setItem('has_password',   String(res.data.has_password))
 
           setUser(res.data)
+
+          if (!res.data.has_password) {
+            console.log('[AuthContext] 🔐 User needs password – redirecting to /setup')
+            navigate('/setup', { replace: true })
+          }
         })
         .catch(err => {
-          console.warn('[AuthContext] /auth/me failed:', err)
+          console.warn('[AuthContext] ❌ /auth/me failed:', err)
         })
     }
 
-    // 3) Decide whether to auto-redirect to /login
+    // 3) Check for illegal access and redirect if necessary
     const hasToken = !!stored
     const isPublicCollectionRoute = !!matchPath(
       { path: '/:username/collection/:user_collection_id/*', end: false },
       pathname
     )
-    const publicAuthPages = ['/login', '/register', '/setup']
+
+    const isSetupRoute = pathname === '/setup'
+    const isEligibleForSetup =
+      hasToken &&
+      localStorage.getItem('has_password') === 'false'
+
+    const publicAuthPages = ['/login', '/register']
     const isOnPublicAuthPage = publicAuthPages.some(p => pathname.startsWith(p))
 
-    console.log(
-      '[AuthContext] hasToken=', hasToken,
-      'isPublicCollectionRoute=', isPublicCollectionRoute,
-      'isOnAuthPage=', isOnPublicAuthPage
-    )
+    console.log('[AuthContext] Routing check —', {
+      hasToken,
+      pathname,
+      isPublicCollectionRoute,
+      isSetupRoute,
+      isEligibleForSetup,
+      isOnPublicAuthPage,
+    })
 
-    if (!hasToken && !isPublicCollectionRoute && !isOnPublicAuthPage) {
-      console.log('[AuthContext] no session & not a public page → redirecting')
+    const shouldRedirectToLogin =
+      !hasToken &&
+      !isPublicCollectionRoute &&
+      !isOnPublicAuthPage &&
+      !(isSetupRoute && isEligibleForSetup)
+
+    if (shouldRedirectToLogin) {
+      console.warn('[AuthContext] ⛔ Redirecting to /login due to invalid session')
       setTimeout(() => {
         navigate('/login', { replace: true })
       }, 500)

@@ -1,6 +1,7 @@
 # routes/auth/handlers/oauth_google.py
 
-from flask import request, jsonify, session, make_response, current_app
+from flask import redirect, request, jsonify, session, make_response, current_app
+import urllib
 from jwt_helpers import jwt_required
 from .. import auth_bp
 from ..utils import verify_google_token
@@ -115,7 +116,18 @@ def google_login():
         }
 
         # set the refresh token in an HttpOnly cookie
-        resp = make_response(jsonify(payload), 200)
+        params = {
+            "access_token":  tokens["access_token"],
+            "username":      username,
+            "display_name":  full_name or username,
+            "avatar_url":    picture or "",
+            "google_linked": "true",
+            "github_linked": "false",
+            "has_password":  str(bool(pw_hash)).lower(),
+        }
+        qs = urllib.parse.urlencode(params)
+        base = f"{current_app.config['FRONTEND_URL']}/setup" if not pw_hash else f"{current_app.config['FRONTEND_URL']}/"
+        resp = make_response(redirect(f"{base}?{qs}"))
         set_refresh_cookie(resp, tokens["refresh_token"])
         return resp
 
@@ -146,6 +158,11 @@ def link_google():
         return jsonify({"message": "Invalid Google token", "error": str(exc)}), 400
 
     google_sub = payload["sub"]
+    full_name  = payload.get("name")
+    picture    = payload.get("picture")
+    locale     = payload.get("locale")
+    email      = payload.get("email")
+
     user_id    = request.user["user_id"]
 
     conn = pg_pool.getconn()
@@ -155,12 +172,53 @@ def link_google():
         if cur.fetchone():
             return jsonify({"message": "Google account already linked"}), 409
 
+        # Update current user with Google info
         cur.execute(
-            "UPDATE users SET google_sub = %s WHERE id = %s;",
-            (google_sub, user_id),
+            """
+            UPDATE users
+               SET google_sub   = %s,
+                   full_name    = %s,
+                   picture_url  = %s,
+                   email        = %s,
+                   locale       = %s
+             WHERE id = %s;
+            """,
+            (google_sub, full_name, picture, email, locale, user_id),
         )
+
+        # Retrieve updated info for token generation
+        cur.execute("SELECT username, password_hash FROM users WHERE id = %s;", (user_id,))
+        username, pw_hash = cur.fetchone()
+
+        tokens = issue_tokens(
+            cur,
+            user_id=user_id,
+            username=username,
+            google_linked=True,
+            github_linked=False,
+            has_password=bool(pw_hash),
+            display_name=full_name or username,
+            avatar_url=picture or "",
+        )
+
         conn.commit()
-        return jsonify({"message": "Google account linked"}), 200
+
+        # Redirect to frontend with token and updated info
+        import urllib.parse
+        qs = urllib.parse.urlencode({
+            "access_token":  tokens["access_token"],
+            "username":      username,
+            "display_name":  full_name or username,
+            "avatar_url":    picture or "",
+            "google_linked": "true",
+            "github_linked": "false",
+            "has_password":  str(bool(pw_hash)).lower(),
+        })
+
+        base = f"{current_app.config['FRONTEND_URL']}/setup" if not pw_hash else f"{current_app.config['FRONTEND_URL']}/"
+        resp = make_response(redirect(f"{base}?{qs}"))
+        set_refresh_cookie(resp, tokens["refresh_token"])
+        return resp
 
     except Exception as exc:
         conn.rollback()
