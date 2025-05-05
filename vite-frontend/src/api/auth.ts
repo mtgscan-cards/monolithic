@@ -1,7 +1,7 @@
 // src/api/auth.ts
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/auth'; // Your Flask backend URL
+const API_URL = 'https://api.mtgscan.cards/auth'; // Your Flask backend URL
 
 export interface LoginResponse {
   message: string;

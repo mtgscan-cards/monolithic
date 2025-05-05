@@ -50,7 +50,7 @@ const RegisterPage: React.FC = () => {
     const id = window.setTimeout(async () => {
       try {
         const { data } = await axios.get<{ exists: boolean }>(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/auth/user_exists`,
+          `${import.meta.env.VITE_API_URL || 'https://api.mtgscan.cards'}/auth/user_exists`,
           { params: { email }, withCredentials: true }
         )
         setEmailError(data.exists ? 'This email is already registered' : '')

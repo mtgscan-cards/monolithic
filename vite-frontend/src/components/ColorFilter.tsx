@@ -24,7 +24,7 @@ const colorOptions: ColorOption[] = [
 
 const ColorFilter: React.FC<ColorFilterProps> = ({ selectedColors, onChange }) => {
   const handleColorChange = (
-    event: React.MouseEvent<HTMLElement>,
+    _: React.MouseEvent<HTMLElement>, // renamed to _
     newColors: string[]
   ) => {
     if (newColors !== null) {

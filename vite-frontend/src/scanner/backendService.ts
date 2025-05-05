@@ -32,7 +32,7 @@ export const sendROIToBackend = async (dataUrl: string): Promise<InferenceResult
   const formData = new FormData();
   formData.append('roi_image', blob, 'roi.png');
 
-  const response = await fetch('http://localhost:5000/infer', {
+  const response = await fetch('https://api.mtgscan.cards/infer', {
     method: 'POST',
     body: formData,
   });

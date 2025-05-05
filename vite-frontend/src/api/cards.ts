@@ -1,6 +1,6 @@
 // src/api/cards.ts
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'https://api.mtgscan.cards';
 
 
 export async function getAlternatePrintings(cardId: string) {

@@ -27,7 +27,7 @@ JWT_ALGORITHM = "HS256"
 
 GITHUB_APP_CLIENT_ID     = os.getenv("GITHUB_APP_CLIENT_ID")
 GITHUB_APP_CLIENT_SECRET = os.getenv("GITHUB_APP_CLIENT_SECRET")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://mtgscan.cards")
 REFRESH_TOKEN_EXPIRE_DAYS = os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 30)  # days
 
 

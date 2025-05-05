@@ -60,7 +60,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onSearch }) => {
     console.log('Active filters:', activeFilters);
   }, [activeFilters]);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
+  const handleTabChange = (_: React.SyntheticEvent, newValue: string) => {
     setTabValue(newValue);
   };
 

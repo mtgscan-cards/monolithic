@@ -17,7 +17,9 @@ import CardList from '../components/CardList';
 import DebugInfo from '../components/DebugInfo';
 import LastScannedCard from '../components/LastScannedCard';
 import AlternatePrintingsDialog, { Card as AltCard } from '../components/AlternatePrintingsDialog';
-import useFrameProcessor, { InferenceResult, ScannedCard } from '../hooks/useFrameProcessor';
+import useFrameProcessor from '../hooks/useFrameProcessor';
+import { InferenceResult } from '../scanner/backendService';
+import type { ScannedCard } from '../hooks/useFrameProcessor';
 import { getAlternatePrintings } from '../api/cards';
 import './ScanPage.css';
 
