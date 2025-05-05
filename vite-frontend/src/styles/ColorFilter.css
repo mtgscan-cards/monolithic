@@ -1,0 +1,96 @@
+/* ========================================================================
+   Color Filter Section (Reusable Component)
+======================================================================== */
+.color-filter.filter-section {
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-surface);
+}
+
+.color-filter h3 {
+  margin-bottom: 0.5rem;
+}
+
+.selected-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.color-bubble {
+  background: var(--color-primary);
+  color: var(--color-surface);
+  border-radius: 20px;
+  padding: 0.3rem 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.remove-color-button {
+  background: transparent;
+  border: none;
+  margin-left: 0.3rem;
+  cursor: pointer;
+  color: var(--color-surface);
+  font-size: 1rem;
+}
+
+.color-dropdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+/* Updated .color-button styles */
+.color-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  outline: none;
+}
+
+/* Maintain same dimensions on hover/focus to prevent shift */
+.color-button:hover,
+.color-button:focus {
+  background-color: var(--color-hover);
+  outline: none;
+}
+
+.color-button.selected {
+  background-color: var(--color-primary);
+  color: var(--color-surface);
+}
+
+/* Pagination styles remain unchanged */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pagination button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

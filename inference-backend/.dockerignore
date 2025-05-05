@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+resources/
+*.sqlite3
+*.db
+.ipynb_checkpoints/
+.DS_Store
+.idea/
+.vscode/
+tests/
+scryfall-all_prints.json

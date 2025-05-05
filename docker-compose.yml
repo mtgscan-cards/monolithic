@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  mtg-db:
+    build:
+      context: ./postgres-docker-backend/mtg-database
+    container_name: mtg-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mtguser
+      POSTGRES_PASSWORD: mtgpass
+      POSTGRES_DB: mtgdb
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - backend-net
+
+  inference-api:
+    build:
+      context: ./inference-backend
+    container_name: inference-api
+    restart: unless-stopped
+    depends_on:
+      - mtg-db
+    env_file:
+      - ./inference-backend/.env
+    ports:
+      - "5000:5000"
+    networks:
+      - backend-net
+
+volumes:
+  pg_data:
+
+networks:
+  backend-net:
+    driver: bridge

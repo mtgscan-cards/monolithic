@@ -1,0 +1,17 @@
+Flask
+flask_cors
+numpy
+pandas
+faiss-cpu
+h5py
+psycopg2
+dotenv
+flask_apscheduler
+ijson
+google-auth
+flask_jwt_extended
+flasgger
+opencv-python
+requests
+tqdm
+filelock
