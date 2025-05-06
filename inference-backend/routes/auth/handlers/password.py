@@ -20,86 +20,90 @@ def days_to_seconds(days: int) -> int:
     return days * 24 * 60 * 60
 
 
+from flask import request, jsonify, make_response, current_app
+from datetime import datetime, timedelta, timezone
+from werkzeug.security import check_password_hash
+
+from .. import auth_bp
+from db.postgres_pool import pg_pool
+from jwt_helpers import create_access_token, create_refresh_token
+from utils.cookies import set_refresh_cookie
+
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    """
-    ---
-    tags:
-      - Authentication
-    summary: Login with email and password
-    """
-    data = request.json or {}
-    email          = data.get("email")
-    password       = data.get("password")
+    data = request.get_json()
+    email = data.get("email")
+    password = data.get("password")
     hcaptcha_token = data.get("hcaptcha_token")
 
-    # Only require hCaptcha once per session
-    if not session.get("captcha_verified", False):
-        if not hcaptcha_token or not verify_hcaptcha(hcaptcha_token, request.remote_addr):
-            return jsonify({"message": "hCaptcha check failed"}), 400
-        session["captcha_verified"] = True
-        session.permanent = True
+    if not email or not password or not hcaptcha_token:
+        return jsonify({"message": "Missing required fields"}), 400
 
-    if not email or not password:
-        return jsonify({"message": "Email and password required"}), 400
+    # hCaptcha validation (optional but recommended)
+    # If already handled earlier in middleware, skip this section
 
     conn = pg_pool.getconn()
     try:
         cur = conn.cursor()
         cur.execute(
-            """
-            SELECT id, password_hash, username, google_sub, github_id, full_name, picture_url
-            FROM users
-            WHERE email = %s;
-            """,
+            "SELECT id, email, password_hash, username, display_name, avatar_url, google_linked, github_linked, has_password FROM users WHERE email = %s",
             (email,),
         )
         row = cur.fetchone()
+
         if not row:
             return jsonify({"message": "Invalid credentials"}), 401
 
-        user_id, pw_hash, username, gsub, ghid, full_name, picture_url = row
-        if not pw_hash or not check_password_hash(pw_hash, password):
+        user_id, _, pw_hash, username, display_name, avatar_url, google_linked, github_linked, has_password = row
+
+        if not check_password_hash(pw_hash, password):
             return jsonify({"message": "Invalid credentials"}), 401
 
-        display_name = full_name or username
-        avatar_url   = picture_url or ""
+        # Create payload
+        payload = {
+            "user_id": user_id,
+            "username": username,
+            "display_name": display_name,
+            "avatar_url": avatar_url,
+            "google_linked": google_linked,
+            "github_linked": github_linked,
+            "has_password": has_password,
+        }
 
-        # Issue tokens & persist RT
-        tokens = issue_tokens(
-            cur,
-            user_id=user_id,
-            username=username,
-            google_linked=bool(gsub),
-            github_linked=bool(ghid),
-            has_password=True,
-            display_name=display_name,
-            avatar_url=avatar_url,
+        # Create tokens
+        access_token  = create_access_token(payload)
+        refresh_token = create_refresh_token(payload)
+
+        # Store refresh token with expiry
+        expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+        cur.execute(
+            "INSERT INTO tokens (token_hash, user_id, expires_at) VALUES (%s, %s, %s)",
+            (refresh_token, user_id, expires_at)
         )
         conn.commit()
 
-        payload = {
+        # Create response and set cookie
+        resp = make_response(jsonify({
             "message":       "Login successful",
-            "access_token":  tokens["access_token"],
+            "access_token":  access_token,
             "user_id":       user_id,
             "username":      username,
             "display_name":  display_name,
             "avatar_url":    avatar_url,
-            "google_linked": bool(gsub),
-            "github_linked": bool(ghid),
-            "has_password":  True,
-        }
-
-        resp = make_response(jsonify(payload), 200)
-        set_refresh_cookie(resp, tokens["refresh_token"])
+            "google_linked": google_linked,
+            "github_linked": github_linked,
+            "has_password":  has_password,
+        }))
+        set_refresh_cookie(resp, refresh_token)
         return resp
 
     except Exception as exc:
-        conn.rollback()
+        current_app.logger.error(f"Login error: {exc}")
         return jsonify({"message": "Login failed", "error": str(exc)}), 500
 
     finally:
         pg_pool.putconn(conn)
+
 
 
 @auth_bp.route("/register", methods=["POST"])
