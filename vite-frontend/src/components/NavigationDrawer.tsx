@@ -54,7 +54,6 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
     } catch {
       // ignore logout errors
     }
-    // clear only local access data
     localStorage.removeItem('access_token');
     localStorage.removeItem('username');
     setUser(null);
@@ -81,6 +80,8 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             color: 'text.primary',
             boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
             borderRight: 'none',
+            display: 'flex',
+            flexDirection: 'column',
           },
         }}
       >
@@ -95,37 +96,41 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            MTG Search UI
+            mtgscan.cards
           </Typography>
         </Box>
 
         {/* Navigation items */}
-        <List disablePadding>
-          {navItems.map(item => (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton
-                component={Link}
-                to={item.path}
-                onClick={onClose}
-                sx={{
-                  borderRadius: 2,
-                  mx: 1,
-                  my: 0.5,
-                  transition: 'background-color 0.3s ease',
-                  '&:hover': { backgroundColor: 'primary.dark' },
-                }}
-              >
-                <ListItemIcon sx={{ color: 'text.primary', minWidth: 40 }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
+        <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
+          <List disablePadding>
+            {navItems.map(item => (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  onClick={onClose}
+                  sx={{
+                    borderRadius: 2,
+                    mx: 1,
+                    my: 0.5,
+                    transition: 'background-color 0.3s ease',
+                    '&:hover': { backgroundColor: 'primary.dark' },
+                  }}
+                >
+                  <ListItemIcon sx={{ color: 'text.primary', minWidth: 40 }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
 
-        {/* User info + Logout + Link icon */}
-        <Divider sx={{ my: 1, borderColor: 'divider' }} />
+        {/* Divider to separate nav from user info */}
+        <Divider sx={{ borderColor: 'divider' }} />
+
+        {/* User info section, bottom-aligned */}
         <Box
           sx={{
             px: 2,
@@ -136,19 +141,21 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Box
-  component="img"
-  src={avatarUrl}
-  referrerPolicy="no-referrer"
-  alt={displayName}
-  sx={{
-    width: 32,
-    height: 32,
-    borderRadius: '50%',
-    objectFit: 'cover',
-    mr: 1,
-  }}
-/>
+            {signedIn && (
+              <Box
+                component="img"
+                src={avatarUrl}
+                referrerPolicy="no-referrer"
+                alt={displayName}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  mr: 1,
+                }}
+              />
+            )}
             <Box>
               <Typography variant="body1" sx={{ lineHeight: 1 }}>
                 {signedIn ? displayName : 'Not signed in'}
@@ -177,16 +184,6 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
               <SettingsIcon fontSize="small" />
             </IconButton>
           )}
-        </Box>
-
-        {/* Fill space */}
-        <Box sx={{ flexGrow: 1 }} />
-
-        {/* Footer */}
-        <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-          <Typography variant="caption" align="center" display="block">
-            Powered by MTG Search UI
-          </Typography>
         </Box>
       </Drawer>
 

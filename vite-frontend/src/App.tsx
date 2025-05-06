@@ -12,9 +12,9 @@ import {
   IconButton,
 } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
-import HomeIcon from '@mui/icons-material/Home'
 import SearchIcon from '@mui/icons-material/Search'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import { Routes, Route } from 'react-router-dom'
 
 import NavigationDrawer, { NavItem } from './components/NavigationDrawer'
@@ -75,11 +75,10 @@ const modernTheme = createTheme({
 })
 
 const navItems: NavItem[] = [
-  { text: 'Home', icon: <HomeIcon />, path: '/' },
   { text: 'Search', icon: <SearchIcon />, path: '/' },
-  { text: 'Collections', icon: <HomeIcon />, path: '/collections' },
+  { text: 'Collections', icon: <MenuIcon />, path: '/collections' },
   { text: 'Portfolio', icon: <TrendingUpIcon />, path: '/portfolio' },
-  { text: 'Scan', icon: <SearchIcon />, path: '/scan' },
+  { text: 'Scan', icon: <PhotoCameraIcon />, path: '/scan' },
 ]
 
 const App: React.FC = () => {
@@ -141,7 +140,7 @@ const App: React.FC = () => {
             <IconButton color="inherit" onClick={toggleDrawer(true)}>
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6">MTG Search UI</Typography>
+            <Typography variant="h6">mtgscan.cards</Typography>
           </Toolbar>
         </AppBar>
 
