@@ -1,0 +1,43 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm merging main to prod and trigger deploy'
+        required: true
+        default: ""
+
+jobs:
+  deploy:
+    if: ${{ github.event.inputs.confirm == 'deploy' }}
+    runs-on: [self-hosted, prod-runner]
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v3
+        with:
+          ref: main
+          token: ${{ secrets.PAT_FOR_ACTIONS }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge main → prod
+        run: |
+          git fetch origin
+          git checkout prod
+          git merge origin/main --ff-only || {
+            echo "::error ::Merge failed — not a fast-forward. Resolve manually."
+            exit 1
+          }
+          git push origin prod
+
+      - name: Deploy updated prod
+        run: |
+          cd /root/monolithic
+          git pull origin prod
+          docker compose down
+          docker compose up -d --build
