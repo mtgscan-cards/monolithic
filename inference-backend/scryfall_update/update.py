@@ -1,3 +1,4 @@
+import logging
 import os
 import decimal
 import time
@@ -12,9 +13,20 @@ from filelock import FileLock, Timeout
 from db.postgres_pool import pg_pool
 
 # ---------------------------
+# LOGGING CONFIGURATION
+# ---------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+# ---------------------------
 # CONFIGURATION
 # ---------------------------
 BULK_DATA_TYPE = "all_prints"
+DATA_DIR = os.getenv("SCRYFALL_DATA_DIR", "data")
+os.makedirs(DATA_DIR, exist_ok=True)
 
 ALLOWED_LAYOUTS = {
     'normal', 'split', 'flip', 'transform', 'modal_dfc', 'meld', 'leveler',
@@ -61,7 +73,7 @@ def convert_decimals(obj):
 def process_card(card):
     layout = card.get("layout")
     if layout not in ALLOWED_LAYOUTS:
-        print(f"Warning: Unexpected layout '{layout}' for card {card.get('name')}")
+        logger.warning(f"Unexpected layout '{layout}' for card {card.get('name')}")
     if "card_faces" in card and not card.get("image_uris"):
         aggregated = [face["image_uris"] for face in card["card_faces"] if "image_uris" in face]
         if aggregated:
@@ -124,13 +136,13 @@ def upsert_sets_batch(data_batch):
 
 def import_sets():
     sets_url = "https://api.scryfall.com/sets"
-    print(f"Downloading sets from {sets_url}")
+    logger.info(f"Downloading sets from {sets_url}")
     resp = requests.get(sets_url, timeout=10)
     if resp.status_code != 200:
         raise RuntimeError(f"Failed to download sets: {resp.status_code}")
     sets_json = resp.json()
     sets_list = sets_json.get("data", [])
-    print(f"Processing {len(sets_list)} sets...")
+    logger.info(f"Processing {len(sets_list)} sets...")
     batch = []
     for set_item in sets_list:
         processed = process_set(set_item)
@@ -140,11 +152,11 @@ def import_sets():
         batch.append(row)
     if batch:
         upsert_sets_batch(batch)
-        print(f"Upserted {len(batch)} sets.")
+        logger.info(f"Upserted {len(batch)} sets.")
 
 def download_latest_json(json_file):
     bulk_api = "https://api.scryfall.com/bulk-data"
-    print(f"Checking Scryfall API for {BULK_DATA_TYPE}...")
+    logger.info(f"Checking Scryfall API for {BULK_DATA_TYPE}...")
     resp = requests.get(bulk_api, timeout=10)
     if resp.status_code != 200:
         raise RuntimeError(f"Failed API request: {resp.status_code}")
@@ -158,7 +170,7 @@ def download_latest_json(json_file):
     if os.path.exists(json_file):
         local_mtime = datetime.fromtimestamp(os.path.getmtime(json_file), tz=timezone.utc)
         if local_mtime >= server_updated_at:
-            print("Local data is up to date.")
+            logger.info("Local Scryfall JSON is up to date — skipping download.")
             return
     r = requests.get(download_uri, timeout=10)
     if r.status_code != 200:
@@ -166,7 +178,7 @@ def download_latest_json(json_file):
     with open(json_file, "wb") as f:
         f.write(r.content)
     os.utime(json_file, (server_updated_at.timestamp(), server_updated_at.timestamp()))
-    print(f"Downloaded and saved {json_file}")
+    logger.info(f"Downloaded and saved {json_file}")
 
 def is_card_table_populated():
     conn = pg_pool.getconn()
@@ -179,15 +191,15 @@ def is_card_table_populated():
 
 def main():
     if is_card_table_populated():
-        print("Cards already exist in the database. Skipping import.")
+        logger.info("✅ Cards already present — skipping import.")
         return
 
-    json_file = f"scryfall-{BULK_DATA_TYPE}.json"
+    json_file = os.path.join(DATA_DIR, f"scryfall-{BULK_DATA_TYPE}.json")
     download_latest_json(json_file)
     batch_size = 10000
     batch = []
     total_count = 0
-    print("Processing cards...")
+    logger.info("🔄 Starting card processing...")
     with open(json_file, 'rb') as f:
         cards = ijson.items(f, 'item')
         for card in cards:
@@ -198,20 +210,20 @@ def main():
             batch.append(row)
             total_count += 1
             if total_count % batch_size == 0:
-                print(f"Upserting {total_count} cards...")
+                logger.info(f"⬆️ Upserting batch — {total_count} cards processed so far.")
                 upsert_batch(batch)
                 batch = []
     if batch:
         upsert_batch(batch)
-    print(f"Finished processing {total_count} cards.")
+    logger.info(f"✅ Finished processing {total_count} cards.")
     import_sets()
 
-# Lock and random delay for concurrency safety
 if __name__ == "__main__":
     LOCK_PATH = "/tmp/scryfall_import.lock"
-    time.sleep(random.uniform(0, 5))  # Random delay to prevent race condition
+    time.sleep(random.uniform(0, 5))
     try:
         with FileLock(LOCK_PATH, timeout=0):
+            logger.info("📦 Acquired lock — beginning import task")
             main()
     except Timeout:
-        print("Another process is already importing data. Skipping.")
+        logger.warning("⛔ Another import is already in progress — skipping.")

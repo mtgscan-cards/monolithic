@@ -11,3 +11,4 @@ venv/
 .vscode/
 tests/
 scryfall-all_prints.json
+data/scryfall-all_prints.json

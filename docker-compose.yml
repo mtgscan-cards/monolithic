@@ -28,11 +28,14 @@ services:
       - ./inference-backend/.env
     ports:
       - "5000:5000"
+    volumes:
+      - scryfall_data:/app/data  # ← persist the bulk JSON data
     networks:
       - backend-net
 
 volumes:
   pg_data:
+  scryfall_data:  # ← for storing Scryfall .json data
 
 networks:
   backend-net:
