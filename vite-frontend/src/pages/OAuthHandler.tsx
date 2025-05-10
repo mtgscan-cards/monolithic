@@ -7,12 +7,11 @@ import api from '../api/axios'
 const OAuthHandler: React.FC = () => {
   const { setUser } = useContext(AuthContext)
   const navigate = useNavigate()
-  const { search, hash } = useLocation()
+  const { hash } = useLocation()
 
   useEffect(() => {
-    const qs = (search.startsWith('?') ? search.slice(1) : '') ||
-               (hash   .startsWith('#') ? hash  .slice(1) : '')
-    const params = new URLSearchParams(qs)
+    const fragment = hash.startsWith('#') ? hash.slice(1) : ''
+    const params = new URLSearchParams(fragment)
     const access_token = params.get('access_token')
 
     if (!access_token) {
@@ -35,7 +34,6 @@ const OAuthHandler: React.FC = () => {
     localStorage.setItem('google_linked', String(google_linked))
     localStorage.setItem('github_linked', String(github_linked))
     localStorage.setItem('has_password', String(has_password))
-
     api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
     setUser({
@@ -49,7 +47,7 @@ const OAuthHandler: React.FC = () => {
 
     const target = has_password ? '/' : '/setup'
     navigate(target, { replace: true })
-  }, [search, hash, setUser, navigate])
+  }, [hash, navigate, setUser])
 
   return <p>Authenticating…</p>
 }

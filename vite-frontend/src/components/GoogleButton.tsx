@@ -1,3 +1,4 @@
+// src/components/GoogleButton.tsx
 import React, { useEffect, useContext } from 'react'
 import api from '../api/axios'
 import { useNavigate } from 'react-router-dom'
@@ -60,7 +61,6 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
             has_password,
           } = data
 
-          // store locally
           localStorage.setItem('access_token', access_token)
           localStorage.setItem('username', username)
           localStorage.setItem('avatar_url', avatar_url)

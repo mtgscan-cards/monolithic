@@ -1,4 +1,3 @@
-import datetime
 import secrets
 import urllib.parse
 
@@ -14,6 +13,7 @@ from config import (
 )
 import requests as httpx
 from utils.cookies import set_refresh_cookie
+
 
 @auth_bp.route("/login/github", methods=["GET"])
 def github_login():
@@ -36,6 +36,7 @@ def github_login():
     }
     auth_url = "https://github.com/login/oauth/authorize?" + urllib.parse.urlencode(params)
     return redirect(auth_url)
+
 
 @auth_bp.route("/callback/github", methods=["GET"])
 def github_callback():
@@ -119,9 +120,11 @@ def github_callback():
         "has_password":  str(bool(pw_hash)).lower(),
     })
 
-    resp = make_response(redirect(f"{FRONTEND_URL}/auth/oauth-callback?{qs}"))
+    # ✅ Use hash fragment to avoid CORS preflight
+    resp = make_response(redirect(f"{FRONTEND_URL}/auth/oauth-callback#{qs}"))
     set_refresh_cookie(resp, tokens["refresh_token"])
     return resp
+
 
 @auth_bp.route("/link/github", methods=["POST"])
 @jwt_required
@@ -146,6 +149,7 @@ def link_github():
     }
     auth_url = "https://github.com/login/oauth/authorize?" + urllib.parse.urlencode(params)
     return jsonify({"auth_url": auth_url}), 200
+
 
 @auth_bp.route("/callback/link/github", methods=["GET"])
 def github_link_callback():

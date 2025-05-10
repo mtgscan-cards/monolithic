@@ -73,7 +73,9 @@ def google_login():
         "has_password":  str(bool(pw_hash)).lower(),
     })
 
-    resp = make_response(redirect(f"{current_app.config['FRONTEND_URL']}/auth/oauth-callback?{qs}"))
+    # ⛳ REDIRECT WITH HASH INSTEAD OF QUERY TO AVOID CORS
+    redirect_url = f"{current_app.config['FRONTEND_URL']}/auth/oauth-callback#{qs}"
+    resp = make_response(redirect(redirect_url))
     set_refresh_cookie(resp, tokens["refresh_token"])
     return resp
 
