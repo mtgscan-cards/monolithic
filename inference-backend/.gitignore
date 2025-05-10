@@ -4,4 +4,8 @@ resources
 scryfall-all_prints.json
 scryfall_update/__pycache__
 routes/__pycache__
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 data/scryfall-all_prints.json

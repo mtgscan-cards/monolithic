@@ -1,8 +1,7 @@
-// src/components/GoogleButton.tsx
 import React, { useEffect, useContext } from 'react'
 import api from '../api/axios'
 import { useNavigate } from 'react-router-dom'
-import { AuthContext, User } from '../contexts/AuthContext'
+import { AuthContext } from '../contexts/AuthContext'
 
 declare global {
   interface Window {
@@ -51,23 +50,39 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
             { credential }
           )
 
-          // store only the access token
-          localStorage.setItem('access_token', data.access_token)
-          api.defaults.headers.common['Authorization'] = `Bearer ${data.access_token}`
+          const {
+            access_token,
+            username,
+            display_name,
+            avatar_url,
+            google_linked,
+            github_linked,
+            has_password,
+          } = data
 
-          // update context
+          // store locally
+          localStorage.setItem('access_token', access_token)
+          localStorage.setItem('username', username)
+          localStorage.setItem('avatar_url', avatar_url)
+          localStorage.setItem('display_name', display_name)
+          localStorage.setItem('google_linked', String(google_linked))
+          localStorage.setItem('github_linked', String(github_linked))
+          localStorage.setItem('has_password', String(has_password))
+          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+
           setUser({
-            display_name:  data.display_name,
-            avatar_url:    data.avatar_url,
-            google_linked: data.google_linked,
-            github_linked: data.github_linked,
-            has_password:  data.has_password,
-            username:      data.username,
-          } as User)
+            username,
+            display_name,
+            avatar_url,
+            google_linked,
+            github_linked,
+            has_password,
+          })
 
-          // navigate
-          if (!linkMode) navigate(data.has_password ? '/' : '/setup')
-          else         navigate('/')
+          if (!linkMode) {
+            if (!has_password) navigate('/setup')
+            else               navigate('/')
+          }
 
           onSuccess?.()
         } catch (err) {

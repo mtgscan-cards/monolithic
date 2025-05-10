@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   mtg-db:
     build:
@@ -29,13 +27,14 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - scryfall_data:/app/data  # ← persist the bulk JSON data
+      - ./inference-backend/resources:/app/resources:ro  # Mount local resources folder
+      - scryfall_data:/app/data
     networks:
       - backend-net
 
 volumes:
   pg_data:
-  scryfall_data:  # ← for storing Scryfall .json data
+  scryfall_data:
 
 networks:
   backend-net:

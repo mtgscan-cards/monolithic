@@ -60,7 +60,8 @@ REFRESH_TOKEN_EXPIRE_DAYS=30
 JWT_SECRET=replace-this-with-a-secure-key
 FLASK_SECRET_KEY=replace-this-with-a-secure-key
 ```
-## 3. Deploy
+
+### 3. Deploy
 
 ```bash
 docker compose up --build
@@ -74,3 +75,8 @@ npm run dev
 * **Backend**: [http://localhost:5000](http://localhost:5000)
 * **Frontend**: [http://localhost:5173](http://localhost:5173)
 
+---
+
+## Diagram
+
+![System Diagram](https://www.mermaidchart.com/raw/dc4dca0c-b6f6-42e2-b2ef-1a04bf86788f?theme=dark&version=v0.1&format=svg)

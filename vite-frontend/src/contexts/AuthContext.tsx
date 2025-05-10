@@ -58,46 +58,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const qs = (search.startsWith('?') ? search.slice(1) : '') ||
                (hash   .startsWith('#') ? hash  .slice(1) : '')
-    if (qs) {
-      const params = new URLSearchParams(qs)
-      const at     = params.get('access_token')
-      if (at) {
-        const username      = params.get('username') || ''
-        const avatar_url    = params.get('avatar_url') || ''
-        const display_name  = params.get('display_name') || ''
-        const google_linked = params.get('google_linked') === 'true'
-        const github_linked = params.get('github_linked') === 'true'
-        const has_password  = params.get('has_password') === 'true'
+    const params = new URLSearchParams(qs)
+    const at = params.get('access_token')
 
-        console.log('[AuthContext] ✅ Detected OAuth redirect with token')
+    if (at) {
+      const username      = params.get('username') || ''
+      const avatar_url    = params.get('avatar_url') || ''
+      const display_name  = params.get('display_name') || ''
+      const google_linked = params.get('google_linked') === 'true'
+      const github_linked = params.get('github_linked') === 'true'
+      const has_password  = params.get('has_password') === 'true'
 
-        localStorage.setItem('access_token', at)
-        localStorage.setItem('username', username)
-        localStorage.setItem('avatar_url', avatar_url)
-        localStorage.setItem('display_name', display_name)
-        localStorage.setItem('google_linked', String(google_linked))
-        localStorage.setItem('github_linked', String(github_linked))
-        localStorage.setItem('has_password', String(has_password))
+      console.log('[AuthContext] ✅ Detected OAuth redirect with token')
 
-        api.defaults.headers.common['Authorization'] = `Bearer ${at}`
+      localStorage.setItem('access_token', at)
+      localStorage.setItem('username', username)
+      localStorage.setItem('avatar_url', avatar_url)
+      localStorage.setItem('display_name', display_name)
+      localStorage.setItem('google_linked', String(google_linked))
+      localStorage.setItem('github_linked', String(github_linked))
+      localStorage.setItem('has_password', String(has_password))
 
-        const u: User = {
-          display_name,
-          avatar_url,
-          google_linked,
-          github_linked,
-          has_password,
-          username,
-        }
+      api.defaults.headers.common['Authorization'] = `Bearer ${at}`
 
-        setUser(u)
-
-        if (!u.has_password) navigate('/setup', { replace: true })
-        else                 navigate('/',       { replace: true })
-
-        window.history.replaceState(null, document.title, pathname)
-        return
+      const u: User = {
+        display_name,
+        avatar_url,
+        google_linked,
+        github_linked,
+        has_password,
+        username,
       }
+
+      setUser(u)
+
+      const target = !has_password ? '/setup' : '/'
+      if (pathname !== target) {
+        navigate(target, { replace: true })
+      }
+
+      window.history.replaceState(null, document.title, target)
+      return
     }
 
     // 2) Try to refresh from local access token

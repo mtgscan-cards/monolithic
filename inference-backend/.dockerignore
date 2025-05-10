@@ -12,3 +12,4 @@ venv/
 tests/
 scryfall-all_prints.json
 data/scryfall-all_prints.json
+resources/

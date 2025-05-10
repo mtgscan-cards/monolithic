@@ -1,10 +1,8 @@
-# routes/auth/handlers/oauth_github.py
-
 import datetime
 import secrets
 import urllib.parse
 
-from flask import jsonify, redirect, request, session, url_for, make_response
+from flask import jsonify, redirect, request, session, url_for, make_response, current_app
 from jwt_helpers import jwt_required
 from .. import auth_bp
 from ..services import issue_tokens
@@ -13,13 +11,9 @@ from config import (
     GITHUB_APP_CLIENT_ID,
     GITHUB_APP_CLIENT_SECRET,
     FRONTEND_URL,
-    REFRESH_TOKEN_EXPIRE_DAYS,
 )
 import requests as httpx
 from utils.cookies import set_refresh_cookie
-
-def days_to_seconds(days: int) -> int:
-    return days * 24 * 60 * 60
 
 @auth_bp.route("/login/github", methods=["GET"])
 def github_login():
@@ -45,12 +39,6 @@ def github_login():
 
 @auth_bp.route("/callback/github", methods=["GET"])
 def github_callback():
-    """
-    ---
-    tags:
-      - Authentication
-    summary: Complete GitHub OAuth login
-    """
     state = request.args.get("state", "")
     if state != session.get("oauth_state"):
         return redirect(f"{FRONTEND_URL}/login?error=invalid_oauth_state")
@@ -59,7 +47,6 @@ def github_callback():
     if not code:
         return redirect(f"{FRONTEND_URL}/login?error=code_missing")
 
-    # Exchange code for GitHub access token
     token_res = httpx.post(
         "https://github.com/login/oauth/access_token",
         headers={"Accept": "application/json"},
@@ -75,7 +62,6 @@ def github_callback():
     token_res.raise_for_status()
     gh_token = token_res.json().get("access_token")
 
-    # Fetch GitHub profile
     user_res = httpx.get(
         "https://api.github.com/user",
         headers={"Authorization": f"Bearer {gh_token}"},
@@ -87,98 +73,53 @@ def github_callback():
     name      = profile.get("name") or profile["login"]
     avatar    = profile.get("avatar_url", "")
 
-    # Upsert user in database
     conn = pg_pool.getconn()
     try:
         cur = conn.cursor()
-        cur.execute(
-            "SELECT id, username, password_hash FROM users WHERE github_id = %s;",
-            (github_id,),
-        )
+        cur.execute("SELECT id, username, password_hash FROM users WHERE github_id = %s;", (github_id,))
         row = cur.fetchone()
 
         if row:
             user_id, username, pw_hash = row
-            cur.execute(
-                """
-                UPDATE users
-                   SET full_name   = %s,
-                       picture_url = %s,
-                       email       = %s
-                 WHERE id = %s;
-                """,
-                (name, avatar, email, user_id),
-            )
+            cur.execute("UPDATE users SET full_name = %s, picture_url = %s, email = %s WHERE id = %s;", (name, avatar, email, user_id))
         else:
-            cur.execute(
-                "SELECT id, username, password_hash FROM users WHERE email = %s;",
-                (email,),
-            )
+            cur.execute("SELECT id, username, password_hash FROM users WHERE email = %s;", (email,))
             row2 = cur.fetchone()
             if row2:
                 user_id, username, pw_hash = row2
-                cur.execute(
-                    """
-                    UPDATE users
-                       SET github_id   = %s,
-                           full_name   = %s,
-                           picture_url = %s
-                     WHERE id = %s;
-                    """,
-                    (github_id, name, avatar, user_id),
-                )
+                cur.execute("UPDATE users SET github_id = %s, full_name = %s, picture_url = %s WHERE id = %s;", (github_id, name, avatar, user_id))
             else:
                 username = email.split("@")[0]
-                cur.execute(
-                    """
-                    INSERT INTO users
-                      (email, username, github_id, full_name, picture_url)
-                    VALUES
-                      (%s, %s, %s, %s, %s)
-                    RETURNING id;
-                    """,
-                    (email, username, github_id, name, avatar),
-                )
+                cur.execute("INSERT INTO users (email, username, github_id, full_name, picture_url) VALUES (%s, %s, %s, %s, %s) RETURNING id;", (email, username, github_id, name, avatar))
                 user_id = cur.fetchone()[0]
                 pw_hash = None
 
         conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
+        tokens = issue_tokens(
+            cur,
+            user_id=user_id,
+            username=username,
+            google_linked=False,
+            github_linked=True,
+            has_password=bool(pw_hash),
+            display_name=name,
+            avatar_url=avatar,
+        )
     finally:
         pg_pool.putconn(conn)
+        session.pop("oauth_state", None)
 
-    # Issue JWTs & persist refresh token
-    has_password = bool(pw_hash)
-    tokens = issue_tokens(
-        cur,
-        user_id=user_id,
-        username=username,
-        google_linked=False,
-        github_linked=True,
-        has_password=has_password,
-        display_name=name,
-        avatar_url=avatar,
-    )
-
-    # Clear OAuth state
-    session.pop("oauth_state", None)
-
-    # Build redirect with access_token & user info only
-    params = {
+    qs = urllib.parse.urlencode({
         "access_token":  tokens["access_token"],
         "username":      username,
         "display_name":  name,
         "avatar_url":    avatar,
-        "google_linked": str(False).lower(),
-        "github_linked": str(True).lower(),
-        "has_password":  str(has_password).lower(),
-    }
-    qs = urllib.parse.urlencode(params)
-    base = f"{FRONTEND_URL}/setup" if not has_password else f"{FRONTEND_URL}/"
+        "google_linked": "false",
+        "github_linked": "true",
+        "has_password":  str(bool(pw_hash)).lower(),
+    })
 
-    resp = make_response(redirect(f"{base}?{qs}"))
+    resp = make_response(redirect(f"{FRONTEND_URL}/auth/oauth-callback?{qs}"))
     set_refresh_cookie(resp, tokens["refresh_token"])
     return resp
 
