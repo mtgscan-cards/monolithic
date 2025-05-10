@@ -9,7 +9,8 @@ import faiss
 import h5py
 from filelock import FileLock, Timeout
 
-RESOURCE_DIR = os.path.abspath("resources")
+# Use a writable directory for downloading and extracting resources
+RESOURCE_DIR = "/tmp/resources"
 LOCK_DIR = "/tmp/locks"
 LOCK_PATH = os.path.join(LOCK_DIR, "resource_download.lock")
 
