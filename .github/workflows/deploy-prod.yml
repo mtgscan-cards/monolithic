@@ -14,11 +14,13 @@ jobs:
     runs-on: [self-hosted, prod-runner]
 
     steps:
-      - name: Checkout main
+      - name: Checkout full repo
         uses: actions/checkout@v3
         with:
           ref: main
           token: ${{ secrets.PAT_FOR_ACTIONS }}
+          fetch-depth: 0
+          persist-credentials: true
 
       - name: Configure Git
         run: |
