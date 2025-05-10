@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type "deploy" to confirm merging main to prod and trigger deploy'
+        description: 'Type "deploy" to confirm overwriting prod with main and triggering deployment'
         required: true
         default: ""
 
@@ -30,15 +30,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Merge main → prod
+      - name: Force-reset prod to main (no merge commits)
         run: |
           git fetch origin
           git checkout prod
-          git merge origin/main --ff-only || {
-            echo "::error ::Merge failed — not a fast-forward. Resolve manually."
-            exit 1
-          }
-          git push origin prod
+          git reset --hard origin/main
+          git push origin prod --force
 
       - name: Deploy updated prod
         run: |
