@@ -18,6 +18,41 @@ from config import FRONTEND_URL
     allow_headers=["Content-Type", "Authorization"]
 )
 def google_login():
+    """
+    ---
+    tags:
+      - Authentication
+    summary: Log in using Google OAuth credential
+    consumes:
+      - application/json
+    parameters:
+      - name: credential
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            credential:
+              type: string
+              example: "eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+    responses:
+      200:
+        description: Access and refresh tokens issued
+        schema:
+          type: object
+          properties:
+            access_token: { type: string }
+            username: { type: string }
+            display_name: { type: string }
+            avatar_url: { type: string }
+            google_linked: { type: boolean }
+            github_linked: { type: boolean }
+            has_password: { type: boolean }
+      400:
+        description: Missing or invalid credential
+      500:
+        description: Server error
+    """
     cred = (request.json or {}).get("credential")
     if not cred:
         return jsonify({"message": "credential missing"}), 400
@@ -101,7 +136,38 @@ def link_google():
     ---
     tags:
       - Authentication
-    summary: Link a Google account to the current user
+    summary: Link a Google account to the currently authenticated user
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            credential:
+              type: string
+              example: "eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+    responses:
+      200:
+        description: Account successfully linked and tokens returned
+        schema:
+          type: object
+          properties:
+            access_token: { type: string }
+            username: { type: string }
+            display_name: { type: string }
+            avatar_url: { type: string }
+            google_linked: { type: boolean }
+            github_linked: { type: boolean }
+            has_password: { type: boolean }
+      400:
+        description: Invalid or missing credential
+      409:
+        description: Google account already linked to another user
+      500:
+        description: Server error
     """
     cred = (request.json or {}).get("credential")
     if not cred:

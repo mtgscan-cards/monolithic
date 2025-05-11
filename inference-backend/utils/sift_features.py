@@ -3,10 +3,6 @@ import numpy as np
 import time
 import json
 from collections import Counter
-import sqlite3  # (if still needed elsewhere)
-import pandas as pd
-import faiss
-import h5py
 import concurrent.futures  # for parallel candidate processing
 
 # Pre-initialize expensive objects outside the functions.

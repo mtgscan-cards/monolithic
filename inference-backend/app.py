@@ -66,7 +66,7 @@ app.register_blueprint(collection_value_bp)
 swagger = Swagger(app, template={
     "swagger": "2.0",
     "info": {
-        "title": "MTG fullstack backend APIs",
+        "title": "api.mtgscan.cards API docs",
         "description": "Documentation of all endpoints",
         "version": "1.0.0"
     },

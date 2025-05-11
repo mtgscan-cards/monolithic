@@ -3,8 +3,6 @@ import requests
 import zipfile
 import shutil
 from tqdm import tqdm
-import sqlite3
-import pandas as pd
 import faiss
 import h5py
 from filelock import FileLock, Timeout
@@ -62,12 +60,6 @@ def download_and_extract_resources_once():
 def load_resources():
     download_and_extract_resources_once()
     hf = h5py.File(os.path.join(RESOURCE_DIR, "run", "candidate_features.h5"), 'r')
-    conn = sqlite3.connect(os.path.join(RESOURCE_DIR, "run", "card_database.db"))
-    label_mapping = pd.read_sql_query("SELECT * FROM cards", conn)
-    mapping_df = pd.read_sql_query("SELECT * FROM faiss_mapping", conn)
-    conn.close()
     faiss_index = faiss.read_index(os.path.join(RESOURCE_DIR, "run", "faiss_ivf.index"))
-    mapping_df = mapping_df.sort_values("faiss_index")
-    index_to_card = mapping_df["scryfall_id"].tolist()
     print("Resources loaded.")
-    return faiss_index, hf, label_mapping, index_to_card
+    return faiss_index, hf

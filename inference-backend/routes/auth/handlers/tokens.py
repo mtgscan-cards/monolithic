@@ -11,8 +11,7 @@ from jwt_helpers import create_access_token, create_refresh_token
 from utils.cookies import set_refresh_cookie
 from config import JWT_SECRET, JWT_ALGORITHM
 
-# keep this in sync with your cookie max-age
-REFRESH_TOKEN_EXPIRE_DAYS = 30  
+REFRESH_TOKEN_EXPIRE_DAYS = 30  # Keep this in sync with cookie max-age
 
 
 @auth_bp.route("/refresh", methods=["POST", "OPTIONS"])
@@ -23,6 +22,24 @@ REFRESH_TOKEN_EXPIRE_DAYS = 30
     allow_headers=["Content-Type"]
 )
 def refresh():
+    """
+    ---
+    tags:
+      - Authentication
+    summary: Issue new access and refresh tokens from a valid refresh token cookie
+    responses:
+      200:
+        description: Tokens refreshed successfully
+        schema:
+          type: object
+          properties:
+            message: { type: string, example: "Token refreshed" }
+            access_token: { type: string }
+      401:
+        description: Invalid or expired refresh token
+      500:
+        description: Server error during refresh
+    """
     if request.method == "OPTIONS":
         return jsonify({}), 200
 
@@ -87,6 +104,7 @@ def refresh():
     finally:
         pg_pool.putconn(conn)
 
+
 @auth_bp.route("/logout", methods=["POST", "OPTIONS"])
 @cross_origin(
     supports_credentials=True,
@@ -95,8 +113,24 @@ def refresh():
     allow_headers=["Content-Type"]
 )
 def logout_route():
+    """
+    ---
+    tags:
+      - Authentication
+    summary: Log out and revoke the refresh token
+    responses:
+      200:
+        description: Logout successful
+        schema:
+          type: object
+          properties:
+            message: { type: string, example: "Logout successful" }
+      400:
+        description: No refresh token cookie
+      500:
+        description: Server error during logout
+    """
     if request.method == "OPTIONS":
-        # Let Flask-CORS handle preflight automatically
         return jsonify({}), 200
 
     rt = request.cookies.get("refresh_token")

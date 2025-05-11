@@ -2,33 +2,21 @@
 
 import re
 import datetime
-from flask import request, jsonify, session, make_response
+from flask import request, jsonify, session, make_response, current_app
 from flask_cors import cross_origin
 from werkzeug.security import generate_password_hash, check_password_hash
-
 from jwt_helpers import jwt_required
 from .. import auth_bp
 from ..utils import verify_hcaptcha
 from ..services import issue_tokens
 from db.postgres_pool import pg_pool
 from utils.cookies import set_refresh_cookie
+from jwt_helpers import create_access_token, create_refresh_token
+from datetime import datetime, timedelta, timezone
 
 # Only allow 3–30 characters, no slashes, question marks, hashes or whitespace
 USERNAME_REGEX = re.compile(r'^[^\/\?#\s]{3,30}$')
 
-
-def days_to_seconds(days: int) -> int:
-    return days * 24 * 60 * 60
-
-
-from flask import request, jsonify, make_response, current_app
-from datetime import datetime, timedelta, timezone
-from werkzeug.security import check_password_hash
-
-from .. import auth_bp
-from db.postgres_pool import pg_pool
-from jwt_helpers import create_access_token, create_refresh_token
-from utils.cookies import set_refresh_cookie
 
 @auth_bp.route("/login", methods=["POST"])
 @cross_origin(
@@ -38,6 +26,29 @@ from utils.cookies import set_refresh_cookie
     allow_headers=["Content-Type"]
 )
 def login():
+    """
+    ---
+    tags:
+      - Authentication
+    summary: Log in with email and password
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: credentials
+        required: true
+        schema:
+          type: object
+          properties:
+            email: { type: string, example: "user@example.com" }
+            password: { type: string, example: "hunter2" }
+            hcaptcha_token: { type: string, example: "10000000-aaaa-bbbb-cccc-000000000001" }
+    responses:
+      200: { description: Login successful }
+      400: { description: Missing required fields }
+      401: { description: Invalid credentials }
+      500: { description: Server error }
+    """
     if request.method == "OPTIONS":
         return jsonify({}), 200
     data = request.get_json()
@@ -47,9 +58,6 @@ def login():
 
     if not email or not password or not hcaptcha_token:
         return jsonify({"message": "Missing required fields"}), 400
-
-    # hCaptcha validation (optional but recommended)
-    # If already handled earlier in middleware, skip this section
 
     conn = pg_pool.getconn()
     try:
@@ -68,7 +76,6 @@ def login():
         if not check_password_hash(pw_hash, password):
             return jsonify({"message": "Invalid credentials"}), 401
 
-        # Create payload
         payload = {
             "user_id": user_id,
             "username": username,
@@ -79,11 +86,9 @@ def login():
             "has_password": has_password,
         }
 
-        # Create tokens
         access_token  = create_access_token(payload)
         refresh_token = create_refresh_token(payload)
 
-        # Store refresh token with expiry
         expires_at = datetime.now(timezone.utc) + timedelta(days=30)
         cur.execute(
             "INSERT INTO tokens (token_hash, user_id, expires_at) VALUES (%s, %s, %s)",
@@ -91,7 +96,6 @@ def login():
         )
         conn.commit()
 
-        # Create response and set cookie
         resp = make_response(jsonify({
             "message":       "Login successful",
             "access_token":  access_token,
@@ -114,7 +118,6 @@ def login():
         pg_pool.putconn(conn)
 
 
-
 @auth_bp.route("/register", methods=["POST"])
 @cross_origin(
     supports_credentials=True,
@@ -127,7 +130,24 @@ def register():
     ---
     tags:
       - Authentication
-    summary: Register a new user
+    summary: Register a new user with email and password
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: registration
+        required: true
+        schema:
+          type: object
+          properties:
+            email: { type: string }
+            password: { type: string }
+            hcaptcha_token: { type: string }
+    responses:
+      201: { description: Registration successful }
+      400: { description: Missing fields or invalid captcha }
+      409: { description: User already exists }
+      500: { description: Server error }
     """
     data = request.json or {}
     email          = data.get("email")
@@ -176,6 +196,20 @@ def set_password():
     tags:
       - Authentication
     summary: Set or change the user’s password
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: password
+        required: true
+        schema:
+          type: object
+          properties:
+            new_password: { type: string }
+    responses:
+      200: { description: Password updated and tokens reissued }
+      400: { description: Password missing }
+      500: { description: Server error }
     """
     new_pw = (request.json or {}).get("new_password")
     if not new_pw:
@@ -225,10 +259,24 @@ def set_username():
     tags:
       - Authentication
     summary: Update the user’s username
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: update
+        required: true
+        schema:
+          type: object
+          properties:
+            username: { type: string }
+    responses:
+      200: { description: Username updated }
+      400: { description: Invalid username format }
+      404: { description: User not found }
+      500: { description: Server error }
     """
     new_name = (request.json or {}).get("username", "").strip()
 
-    # Enforce our strict regex
     if not USERNAME_REGEX.match(new_name):
         return jsonify({
             "message": (
@@ -246,7 +294,6 @@ def set_username():
             conn.rollback()
             return jsonify({"message": "User not found"}), 404
 
-        # Re-issue tokens with the new username
         tokens = issue_tokens(
             cur,
             user_id=user_id,

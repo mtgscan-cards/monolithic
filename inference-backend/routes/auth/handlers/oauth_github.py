@@ -1,7 +1,7 @@
 import secrets
 import urllib.parse
-
 from flask import jsonify, redirect, request, session, url_for, make_response, current_app
+import requests as httpx
 from jwt_helpers import jwt_required
 from .. import auth_bp
 from ..services import issue_tokens
@@ -11,9 +11,7 @@ from config import (
     GITHUB_APP_CLIENT_SECRET,
     FRONTEND_URL,
 )
-import requests as httpx
 from utils.cookies import set_refresh_cookie
-
 
 @auth_bp.route("/login/github", methods=["GET"])
 def github_login():
@@ -22,6 +20,9 @@ def github_login():
     tags:
       - Authentication
     summary: Initiate GitHub OAuth login flow
+    responses:
+      302:
+        description: Redirect to GitHub for OAuth authentication
     """
     state = secrets.token_urlsafe(16)
     session["oauth_state"] = state
@@ -37,16 +38,26 @@ def github_login():
     auth_url = "https://github.com/login/oauth/authorize?" + urllib.parse.urlencode(params)
     return redirect(auth_url)
 
-
-
-from ..services import issue_tokens
-from db.postgres_pool import pg_pool
-from config import FRONTEND_URL, GITHUB_APP_CLIENT_ID, GITHUB_APP_CLIENT_SECRET
-from utils.cookies import set_refresh_cookie
-
-
 @auth_bp.route("/callback/github", methods=["GET"])
 def github_callback():
+    """
+    ---
+    tags:
+      - Authentication
+    summary: Complete GitHub OAuth login and issue tokens
+    parameters:
+      - name: state
+        in: query
+        type: string
+        required: true
+      - name: code
+        in: query
+        type: string
+        required: true
+    responses:
+      302:
+        description: Redirect to frontend with access token and setup status
+    """
     state = request.args.get("state", "")
     if state != session.get("oauth_state"):
         return redirect(f"{FRONTEND_URL}/login?error=invalid_oauth_state")
@@ -55,7 +66,6 @@ def github_callback():
     if not code:
         return redirect(f"{FRONTEND_URL}/login?error=code_missing")
 
-    # Exchange code for access token
     token_res = httpx.post(
         "https://github.com/login/oauth/access_token",
         headers={"Accept": "application/json"},
@@ -71,7 +81,6 @@ def github_callback():
     token_res.raise_for_status()
     gh_token = token_res.json().get("access_token")
 
-    # Fetch user profile
     user_res = httpx.get(
         "https://api.github.com/user",
         headers={"Authorization": f"Bearer {gh_token}"},
@@ -123,21 +132,19 @@ def github_callback():
             display_name=name,
             avatar_url=avatar,
         )
-
     finally:
         pg_pool.putconn(conn)
         session.pop("oauth_state", None)
 
-    # Return a POST-consumable redirect using query params
-    redirect_url = f"{FRONTEND_URL}/setup?{urllib.parse.urlencode({
-        'access_token': tokens['access_token'],
-        'username':     username,
-    })}" if not pw_hash else f"{FRONTEND_URL}/?token={tokens['access_token']}"
+    redirect_url = (
+        f"{FRONTEND_URL}/setup?{urllib.parse.urlencode({'access_token': tokens['access_token'], 'username': username})}"
+        if not pw_hash else
+        f"{FRONTEND_URL}/?token={tokens['access_token']}"
+    )
 
     resp = make_response(redirect(redirect_url))
     set_refresh_cookie(resp, tokens["refresh_token"])
     return resp
-
 
 @auth_bp.route("/link/github", methods=["POST"])
 @jwt_required
@@ -147,6 +154,14 @@ def link_github():
     tags:
       - Authentication
     summary: Initiate GitHub account linking flow
+    responses:
+      200:
+        description: GitHub OAuth URL returned for linking
+        schema:
+          type: object
+          properties:
+            auth_url:
+              type: string
     """
     state = secrets.token_urlsafe(16)
     session["oauth_state"]  = state
@@ -163,7 +178,6 @@ def link_github():
     auth_url = "https://github.com/login/oauth/authorize?" + urllib.parse.urlencode(params)
     return jsonify({"auth_url": auth_url}), 200
 
-
 @auth_bp.route("/callback/link/github", methods=["GET"])
 def github_link_callback():
     """
@@ -171,9 +185,22 @@ def github_link_callback():
     tags:
       - Authentication
     summary: Complete GitHub account linking
+    parameters:
+      - name: state
+        in: query
+        required: true
+        type: string
+      - name: code
+        in: query
+        required: true
+        type: string
+    responses:
+      302:
+        description: Redirect to frontend after linking
     """
     if request.args.get("state") != session.get("oauth_state"):
         return jsonify({"message": "Invalid OAuth state"}), 400
+
     code = request.args.get("code", "")
     if not code:
         return jsonify({"message": "Code not provided"}), 400

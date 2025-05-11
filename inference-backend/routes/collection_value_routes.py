@@ -1,3 +1,4 @@
+# collection_value_routes.py
 import datetime
 from flask import Blueprint, request, jsonify, current_app
 from db.postgres_pool import pg_pool
@@ -19,18 +20,41 @@ collection_value_bp = Blueprint(
 )
 def get_current_collection_value(collection_id):
     """
-    Get current total USD value of a collection
+    ---
+    tags:
+      - Collection Value
+    summary: Get current USD value of a collection
+    parameters:
+      - name: collection_id
+        in: path
+        type: integer
+        required: true
+        description: The global ID of the collection
+    responses:
+      200:
+        description: Current collection value in USD
+        schema:
+          type: object
+          properties:
+            collection_id:
+              type: integer
+            current_total_value:
+              type: string
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden
+      404:
+        description: Collection not found
+      500:
+        description: Internal error while calculating value
     """
     conn = None
     try:
         conn = pg_pool.getconn()
         cur = conn.cursor()
 
-        # 1) Lookup privacy/ownership
-        cur.execute(
-            "SELECT is_public, user_id FROM collections WHERE id = %s;",
-            (collection_id,)
-        )
+        cur.execute("SELECT is_public, user_id FROM collections WHERE id = %s;", (collection_id,))
         row = cur.fetchone()
         cur.close()
 
@@ -96,19 +120,58 @@ def get_current_collection_value(collection_id):
 )
 def get_collection_value_history(collection_id):
     """
-    Get historical USD values of a collection over time
+    ---
+    tags:
+      - Collection Value
+    summary: Get collection value history over time
+    parameters:
+      - name: collection_id
+        in: path
+        type: integer
+        required: true
+        description: The global ID of the collection
+      - name: range
+        in: query
+        type: string
+        enum: ["3d", "1w", "2w", "1m", "all"]
+        default: all
+        description: Time range of historical values
+    responses:
+      200:
+        description: Historical value timeline
+        schema:
+          type: object
+          properties:
+            collection_id:
+              type: integer
+            range:
+              type: string
+            current_date:
+              type: string
+            history:
+              type: array
+              items:
+                type: object
+                properties:
+                  snapshot_date:
+                    type: string
+                  total_value:
+                    type: string
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden
+      404:
+        description: Collection not found
+      500:
+        description: Internal error while calculating history
     """
     time_range = request.args.get('range', 'all').lower()
-
     conn = None
     try:
         conn = pg_pool.getconn()
         cur = conn.cursor()
-
-        cur.execute(
-            "SELECT is_public, user_id FROM collections WHERE id = %s;",
-            (collection_id,)
-        )
+        cur.execute("SELECT is_public, user_id FROM collections WHERE id = %s;", (collection_id,))
         row = cur.fetchone()
         cur.close()
 

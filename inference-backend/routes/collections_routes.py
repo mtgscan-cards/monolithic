@@ -67,7 +67,7 @@ from uuid import UUID
 from flask import Blueprint, current_app, request, jsonify
 from flask_cors import cross_origin
 from db.postgres_pool import pg_pool
-from decorators import jwt_required
+from jwt_helpers import jwt_required
 
 collections_bp = Blueprint("collections_bp", __name__, url_prefix="/collections")
 

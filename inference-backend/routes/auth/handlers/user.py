@@ -1,5 +1,3 @@
-# routes/auth/handlers/user.py
-
 from flask import jsonify, request
 from flask_cors import cross_origin
 from jwt_helpers import jwt_required
@@ -20,6 +18,26 @@ def me():
     tags:
       - Authentication
     summary: Get current user profile
+    responses:
+      200:
+        description: User profile object
+        schema:
+          type: object
+          properties:
+            display_name:
+              type: string
+            avatar_url:
+              type: string
+            google_linked:
+              type: boolean
+            github_linked:
+              type: boolean
+            has_password:
+              type: boolean
+            username:
+              type: string
+      404:
+        description: User not found
     """
     user_id = request.user["user_id"]
     conn = pg_pool.getconn()
@@ -28,11 +46,11 @@ def me():
         cur.execute(
             """
             SELECT
-              COALESCE(full_name, username)    AS display_name,
+              COALESCE(full_name, username)     AS display_name,
               COALESCE(picture_url, '')         AS avatar_url,
-              (google_sub IS NOT NULL)         AS google_linked,
-              (github_id IS NOT NULL)          AS github_linked,
-              (password_hash IS NOT NULL)      AS has_password,
+              (google_sub IS NOT NULL)          AS google_linked,
+              (github_id IS NOT NULL)           AS github_linked,
+              (password_hash IS NOT NULL)       AS has_password,
               username
             FROM users
             WHERE id = %s;
@@ -84,7 +102,6 @@ def username_available():
               example: true
     """
     raw = request.args.get("username", "").strip()
-    # too short or looks like an email → never available
     if len(raw) < 3 or "@" in raw:
         return jsonify({"available": False}), 200
 
