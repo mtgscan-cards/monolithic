@@ -1,11 +1,18 @@
 # routes/auth/handlers/user.py
 
 from flask import jsonify, request
+from flask_cors import cross_origin
 from jwt_helpers import jwt_required
 from .. import auth_bp
 from db.postgres_pool import pg_pool
 
 @auth_bp.route("/me", methods=["GET"])
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type"]
+)
 @jwt_required
 def me():
     """

@@ -53,8 +53,7 @@ app.secret_key                           = os.getenv('FLASK_SECRET_KEY', 'your-s
 app.config['SESSION_COOKIE_SAMESITE']    = 'Lax'
 app.config['SESSION_COOKIE_SECURE']      = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://mtgscan.cards")
-CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
+CORS(app, supports_credentials=True, origins=["https://mtgscan.cards"])
 
 # ─── Blueprint registration ──────────────────────────────────────────────────
 app.register_blueprint(auth_bp)

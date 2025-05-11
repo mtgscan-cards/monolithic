@@ -3,6 +3,7 @@
 import re
 import datetime
 from flask import request, jsonify, session, make_response
+from flask_cors import cross_origin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from jwt_helpers import jwt_required
@@ -30,7 +31,15 @@ from jwt_helpers import create_access_token, create_refresh_token
 from utils.cookies import set_refresh_cookie
 
 @auth_bp.route("/login", methods=["POST"])
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type"]
+)
 def login():
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
     data = request.get_json()
     email = data.get("email")
     password = data.get("password")
@@ -107,6 +116,12 @@ def login():
 
 
 @auth_bp.route("/register", methods=["POST"])
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type"]
+)
 def register():
     """
     ---
@@ -148,6 +163,12 @@ def register():
 
 
 @auth_bp.route("/set_password", methods=["POST"])
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type"]
+)
 @jwt_required
 def set_password():
     """

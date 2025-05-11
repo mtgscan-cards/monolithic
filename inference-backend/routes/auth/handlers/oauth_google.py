@@ -92,6 +92,12 @@ def google_login():
 
 
 @auth_bp.route("/link/google", methods=["POST"])
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type"]
+)
 @jwt_required
 def link_google():
     """

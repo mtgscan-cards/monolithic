@@ -48,7 +48,8 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
         try {
           const { data } = await api.post(
             linkMode ? '/auth/link/google' : '/auth/login/google',
-            { credential }
+            { credential },
+            { withCredentials: true } // ✅ Required for secure cookies and CORS
           )
 
           const {

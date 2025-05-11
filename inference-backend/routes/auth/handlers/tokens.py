@@ -1,5 +1,6 @@
 # routes/auth/handlers/tokens.py
 
+from flask_cors import cross_origin
 import jwt
 from datetime import datetime, timezone, timedelta
 from flask import current_app, request, jsonify, make_response
@@ -14,12 +15,20 @@ from config import JWT_SECRET, JWT_ALGORITHM
 REFRESH_TOKEN_EXPIRE_DAYS = 30  
 
 
-@auth_bp.route("/refresh", methods=["POST"])
+@auth_bp.route("/refresh", methods=["POST", "OPTIONS"])
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type"]
+)
 def refresh():
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+
     current_app.logger.debug(f"→ Incoming headers: {dict(request.headers)}")
     current_app.logger.debug(f"→ Incoming cookies: {request.cookies}")
 
-    # 1) grab the raw JWT from the HttpOnly cookie
     old_rt = request.cookies.get("refresh_token")
     if not old_rt:
         current_app.logger.error("Refresh token cookie missing")
@@ -28,7 +37,6 @@ def refresh():
     conn = pg_pool.getconn()
     try:
         cur = conn.cursor()
-        # 2) look up the token_hash in the DB and check its expires_at
         cur.execute(
             "SELECT expires_at FROM tokens WHERE token_hash = %s;",
             (old_rt,),
@@ -38,14 +46,12 @@ def refresh():
             current_app.logger.error("Invalid refresh token")
             return jsonify({"message": "Invalid refresh token"}), 401
 
-        db_expires_at = row[0]  # a tz-aware datetime from Postgres
+        db_expires_at = row[0]
         now_utc = datetime.now(timezone.utc)
-        # compare using two aware datetimes
         if db_expires_at < now_utc:
-            current_app.logger.error("Session has expired. Please log in again.")
-            return jsonify({"message": "Session has expired. Please log in again."}), 401
+            current_app.logger.error("Session has expired.")
+            return jsonify({"message": "Session has expired."}), 401
 
-        # 3) decode the JWT *without* enforcing its exp claim
         try:
             payload = jwt.decode(
                 old_rt,
@@ -57,21 +63,18 @@ def refresh():
             current_app.logger.error(f"Invalid refresh token: {e}")
             return jsonify({"message": "Invalid refresh token", "error": str(e)}), 401
 
-        # 4) issue brand-new tokens
         new_access  = create_access_token(payload)
         new_refresh = create_refresh_token(payload)
-
-        # 5) rotate the DB record to the fresh token + new expiry
         new_expires = now_utc + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+
         cur.execute(
             "UPDATE tokens SET token_hash = %s, expires_at = %s WHERE token_hash = %s;",
             (new_refresh, new_expires, old_rt),
         )
         conn.commit()
 
-        # 6) send back the new access_token & set the rotated cookie
         resp = make_response(jsonify({
-            "message":      "Token refreshed",
+            "message": "Token refreshed",
             "access_token": new_access,
         }), 200)
         set_refresh_cookie(resp, new_refresh)
@@ -84,10 +87,18 @@ def refresh():
     finally:
         pg_pool.putconn(conn)
 
-
-@auth_bp.route("/logout", methods=["POST"])
+@auth_bp.route("/logout", methods=["POST", "OPTIONS"])
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type"]
+)
 def logout_route():
-    # 1) grab the refresh token from the cookie
+    if request.method == "OPTIONS":
+        # Let Flask-CORS handle preflight automatically
+        return jsonify({}), 200
+
     rt = request.cookies.get("refresh_token")
     if not rt:
         return jsonify({"message": "refresh token cookie missing"}), 400
@@ -95,7 +106,6 @@ def logout_route():
     conn = pg_pool.getconn()
     try:
         cur = conn.cursor()
-        # 2) delete it from the DB
         cur.execute("DELETE FROM tokens WHERE token_hash = %s;", (rt,))
         conn.commit()
     except Exception as exc:
@@ -104,7 +114,6 @@ def logout_route():
     finally:
         pg_pool.putconn(conn)
 
-    # 3) clear the cookie on the client side
     resp = make_response(jsonify({"message": "Logout successful"}), 200)
     resp.delete_cookie("refresh_token", path="/")
     return resp
