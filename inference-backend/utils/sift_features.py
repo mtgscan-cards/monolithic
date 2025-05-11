@@ -6,8 +6,8 @@ from collections import Counter
 import concurrent.futures  # for parallel candidate processing
 
 # Pre-initialize expensive objects outside the functions.
-global_sift = cv2.SIFT_create(nfeatures=250)  # Assumes max_features=250 for all cases.
-global_CLAHE = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+global_sift = cv2.SIFT_create(nfeatures=250)
+global_CLAHE = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
 def extract_features_sift(roi_image, max_features=250):
     debug_timings = {}
@@ -23,20 +23,20 @@ def extract_features_sift(roi_image, max_features=250):
     lab = cv2.cvtColor(resized, cv2.COLOR_BGR2LAB)
     debug_timings['to_lab'] = time.perf_counter() - start
 
-    # Split channels and apply CLAHE using the global CLAHE object.
+    # Split channels and apply CLAHE.
     start = time.perf_counter()
     L, A, B = cv2.split(lab)
     L_clahe = global_CLAHE.apply(L)
     debug_timings['clahe'] = time.perf_counter() - start
 
-    # Merge channels and convert back to BGR then to grayscale.
+    # Merge back and convert to grayscale.
     start = time.perf_counter()
     lab_clahe = cv2.merge((L_clahe, A, B))
     enhanced_color = cv2.cvtColor(lab_clahe, cv2.COLOR_LAB2BGR)
     gray = cv2.cvtColor(enhanced_color, cv2.COLOR_BGR2GRAY)
     debug_timings['color_processing'] = time.perf_counter() - start
 
-    # SIFT feature extraction with the pre-created global SIFT detector.
+    # SIFT feature extraction.
     start = time.perf_counter()
     keypoints, descriptors = global_sift.detectAndCompute(gray, None)
     debug_timings['sift_detection'] = time.perf_counter() - start
@@ -54,8 +54,7 @@ def extract_features_sift(roi_image, max_features=250):
         start = time.perf_counter()
         eps = 1e-7
         descriptors = descriptors / (descriptors.sum(axis=1, keepdims=True) + eps)
-        descriptors = np.sqrt(descriptors)
-        descriptors = descriptors.astype('float32')
+        descriptors = np.sqrt(descriptors).astype('float32')
         debug_timings['normalization'] = time.perf_counter() - start
 
     total_time = time.perf_counter() - overall_start
@@ -63,19 +62,14 @@ def extract_features_sift(roi_image, max_features=250):
     for step, t in debug_timings.items():
         print(f"  {step}: {t:.3f} seconds")
     print(f"Total SIFT extraction time: {total_time:.3f} seconds")
+
     return keypoints, descriptors, enhanced_color
 
 def deserialize_keypoints(kps_data):
-    keypoints = []
-    for d in kps_data:
-        kp = cv2.KeyPoint(
-            d['pt'][0], d['pt'][1],
-            d['size'], d['angle'],
-            d['response'], d['octave'],
-            d['class_id']
-        )
-        keypoints.append(kp)
-    return keypoints
+    return [
+        cv2.KeyPoint(d['pt'][0], d['pt'][1], d['size'], d['angle'], d['response'], d['octave'], d['class_id'])
+        for d in kps_data
+    ]
 
 def load_candidate_features_for_card(card_id, hf):
     features = []
@@ -89,12 +83,12 @@ def load_candidate_features_for_card(card_id, hf):
             features.append((kp_serialized, des))
     return features
 
-def find_closest_card_ransac(roi_image, faiss_index, index_to_card, hf, label_mapping,
+def find_closest_card_ransac(roi_image, faiss_index, hf,
                              k=3, min_candidate_matches=1, MIN_INLIER_THRESHOLD=8, max_candidates=10):
     overall_start = time.perf_counter()
     debug_info = {}
 
-    # Feature extraction.
+    # Feature extraction
     sift_start = time.perf_counter()
     keypoints, descriptors, processed_img = extract_features_sift(roi_image, max_features=250)
     debug_info['sift_time'] = time.perf_counter() - sift_start
@@ -104,50 +98,47 @@ def find_closest_card_ransac(roi_image, faiss_index, index_to_card, hf, label_ma
         debug_info['error'] = "No descriptors found."
         return None, "Unknown", keypoints, processed_img, debug_info
 
-    # FAISS search.
+    # FAISS search
     start = time.perf_counter()
     distances, indices = faiss_index.search(descriptors, k)
     debug_info['faiss_search_time'] = time.perf_counter() - start
 
-    candidate_ids = [index_to_card[i] for i in indices.flatten()]
+    candidate_ids = indices.flatten().tolist()
     candidate_counts = Counter(candidate_ids)
     debug_info['faiss_candidate_counts'] = dict(candidate_counts)
-    
+
     best_inliers = 0
     best_candidate = None
     candidate_debug = {}
-    
-    # Select top candidates.
+
     sorted_candidates = sorted(candidate_counts.items(), key=lambda x: -x[1])
     top_candidate_ids = [cand for cand, cnt in sorted_candidates[:max_candidates]]
 
     def process_candidate(candidate_id):
-        # Create a local BFMatcher for each candidate to maintain independence.
         local_bf = cv2.BFMatcher()
         cand_debug = {}
         cand_start = time.perf_counter()
 
-        candidate_load_start = time.perf_counter()
         candidate_sets = load_candidate_features_for_card(candidate_id, hf)
-        cand_debug['load_time'] = time.perf_counter() - candidate_load_start
+        cand_debug['load_time'] = time.perf_counter() - cand_start
 
         total_inliers = 0
         bf_time_total = 0.0
         ransac_time_total = 0.0
 
         for kp_serialized, candidate_des in candidate_sets:
-            candidate_bf_start = time.perf_counter()
             candidate_kp = deserialize_keypoints(kp_serialized)
+            bf_start = time.perf_counter()
             matches = local_bf.knnMatch(descriptors, candidate_des, k=2)
-            bf_time_total += time.perf_counter() - candidate_bf_start
+            bf_time_total += time.perf_counter() - bf_start
 
             good_matches = [m for m, n in matches if m.distance < 0.75 * n.distance]
             if len(good_matches) >= 4:
-                candidate_ransac_start = time.perf_counter()
+                ransac_start = time.perf_counter()
                 src_pts = np.float32([keypoints[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
                 dst_pts = np.float32([candidate_kp[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-                H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
-                ransac_time_total += time.perf_counter() - candidate_ransac_start
+                _, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+                ransac_time_total += time.perf_counter() - ransac_start
                 if mask is not None:
                     total_inliers += int(mask.sum())
 
@@ -157,26 +148,25 @@ def find_closest_card_ransac(roi_image, faiss_index, index_to_card, hf, label_ma
         cand_debug['iteration_time'] = time.perf_counter() - cand_start
         return candidate_id, total_inliers, cand_debug
 
-    # Use parallel candidate processing only if beneficial.
     if len(top_candidate_ids) > 1:
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = {executor.submit(process_candidate, cand_id): cand_id 
-                       for cand_id in top_candidate_ids if candidate_counts[cand_id] >= min_candidate_matches}
+            futures = {
+                executor.submit(process_candidate, cand_id): cand_id
+                for cand_id in top_candidate_ids
+                if candidate_counts[cand_id] >= min_candidate_matches
+            }
             for future in concurrent.futures.as_completed(futures):
                 cand_id, total_inliers, cand_debug = future.result()
                 candidate_debug[cand_id] = cand_debug
-                debug_info.setdefault('ransac_inliers', {})[cand_id] = total_inliers
                 if total_inliers > best_inliers:
                     best_inliers = total_inliers
                     best_candidate = cand_id
     else:
-        # If there's just one candidate, process it sequentially.
         for cand_id in top_candidate_ids:
             if candidate_counts[cand_id] < min_candidate_matches:
                 continue
             cand_id, total_inliers, cand_debug = process_candidate(cand_id)
             candidate_debug[cand_id] = cand_debug
-            debug_info.setdefault('ransac_inliers', {})[cand_id] = total_inliers
             if total_inliers > best_inliers:
                 best_inliers = total_inliers
                 best_candidate = cand_id
@@ -185,18 +175,16 @@ def find_closest_card_ransac(roi_image, faiss_index, index_to_card, hf, label_ma
     debug_info['candidate_debug'] = candidate_debug
 
     sort_start = time.perf_counter()
-    sorted_candidates = sorted(debug_info.get('ransac_inliers', {}).items(), key=lambda x: -x[1])
+    sorted_candidates = sorted(candidate_debug.items(), key=lambda x: -x[1]['total_inliers'])
     debug_info['candidate_sort_time'] = time.perf_counter() - sort_start
 
     print(f"Candidate sorting took: {debug_info['candidate_sort_time']:.3f} seconds")
     print("Top candidate inlier counts:")
-    for idx, (cand, inliers) in enumerate(sorted_candidates[:3], start=1):
-        print(f"  {idx}. Candidate {cand} - {inliers} inliers")
+    for idx, (cand, dbg) in enumerate(reversed(sorted_candidates[:3]), start=1):
+        print(f"  {idx}. Candidate {cand} - {dbg['total_inliers']} inliers")
 
     if best_inliers < MIN_INLIER_THRESHOLD:
         best_candidate = None
 
-    card_name = None  # Card lookup omitted here.
     debug_info['overall_time'] = time.perf_counter() - overall_start
-
-    return best_candidate, card_name, keypoints, processed_img, debug_info
+    return best_candidate, None, keypoints, processed_img, debug_info

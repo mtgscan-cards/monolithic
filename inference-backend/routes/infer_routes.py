@@ -83,7 +83,7 @@ def infer():
     # Process the image using SIFT/RANSAC.
     sift_start = time.perf_counter()
     best_candidate, _, keypoints, processed_img, debug_info = find_closest_card_ransac(
-        roi_image, faiss_index, index_to_card, hf, label_mapping, k=3
+        roi_image, faiss_index, hf, k=3
     )
     sift_time = time.perf_counter() - sift_start
     print(f"SIFT/RANSAC processing took: {sift_time:.3f} seconds")
