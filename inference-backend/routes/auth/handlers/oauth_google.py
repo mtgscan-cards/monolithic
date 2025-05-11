@@ -1,5 +1,7 @@
 from flask import redirect, request, jsonify, session, make_response, current_app
 import urllib
+
+from flask_cors import cross_origin
 from jwt_helpers import jwt_required
 from .. import auth_bp
 from ..utils import verify_google_token
@@ -8,15 +10,13 @@ from db.postgres_pool import pg_pool
 from utils.cookies import set_refresh_cookie
 
 @auth_bp.route("/login/google", methods=["POST", "OPTIONS"])
+@cross_origin(
+    supports_credentials=True,
+    origins=[current_app.config["FRONTEND_URL"]],
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type"]
+)
 def google_login():
-    # Handle CORS preflight request
-    if request.method == "OPTIONS":
-        response = make_response()
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-        return response
-
     cred = (request.json or {}).get("credential")
     if not cred:
         return jsonify({"message": "credential missing"}), 400
@@ -87,7 +87,6 @@ def google_login():
     redirect_url = f"{current_app.config['FRONTEND_URL']}/auth/oauth-callback#{qs}"
     resp = make_response(redirect(redirect_url))
     set_refresh_cookie(resp, tokens["refresh_token"])
-    resp.headers["Access-Control-Allow-Origin"] = "*"
     return resp
 
 
