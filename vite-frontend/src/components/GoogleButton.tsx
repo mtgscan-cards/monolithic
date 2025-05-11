@@ -1,4 +1,3 @@
-// src/components/GoogleButton.tsx
 import React, { useEffect, useContext } from 'react'
 import api from '../api/axios'
 import { useNavigate } from 'react-router-dom'
@@ -46,14 +45,14 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
       scope: 'openid email profile',
       callback: async ({ credential }) => {
         try {
-          // 🔥 Prevent sending stale Authorization header during login
-          delete api.defaults.headers.common['Authorization'];
-      
+          // ✅ Ensure no stale auth header is sent
+          delete api.defaults.headers.common['Authorization']
+
           const { data } = await api.post(
             linkMode ? '/auth/link/google' : '/auth/login/google',
             { credential },
             { withCredentials: true }
-          );
+          )
 
           const {
             access_token,
@@ -65,6 +64,7 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
             has_password,
           } = data
 
+          // Save credentials
           localStorage.setItem('access_token', access_token)
           localStorage.setItem('username', username)
           localStorage.setItem('avatar_url', avatar_url)
@@ -72,6 +72,7 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
           localStorage.setItem('google_linked', String(google_linked))
           localStorage.setItem('github_linked', String(github_linked))
           localStorage.setItem('has_password', String(has_password))
+
           api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
           setUser({

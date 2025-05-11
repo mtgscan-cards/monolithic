@@ -75,18 +75,15 @@ def google_login():
     finally:
         pg_pool.putconn(conn)
 
-    qs = urllib.parse.urlencode({
+    resp = jsonify({
         "access_token":  tokens["access_token"],
         "username":      username,
         "display_name":  full_name or username,
         "avatar_url":    picture or "",
-        "google_linked": "true",
-        "github_linked": "false",
-        "has_password":  str(bool(pw_hash)).lower(),
+        "google_linked": True,
+        "github_linked": False,
+        "has_password":  bool(pw_hash),
     })
-
-    redirect_url = f"{current_app.config['FRONTEND_URL']}/auth/oauth-callback#{qs}"
-    resp = make_response(redirect(redirect_url))
     set_refresh_cookie(resp, tokens["refresh_token"])
     return resp
 
