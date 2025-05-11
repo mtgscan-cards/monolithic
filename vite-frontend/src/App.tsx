@@ -34,7 +34,6 @@ import NotFoundPage from './pages/NotFoundPage'
 
 import { sendFilterCriteria } from './api/FilterBackend'
 import './App.css'
-import OAuthHandler from './pages/OAuthHandler'
 
 const modernTheme = createTheme({
   palette: {
@@ -156,7 +155,6 @@ const App: React.FC = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/setup" element={<AccountSetupPage />} />
-            <Route path="/auth/oauth-callback" element={<OAuthHandler />} />
             <Route path="*" element={<NotFoundPage />} />
 
             <Route element={<PublicOrProtectedRoute />}>

@@ -38,6 +38,13 @@ def github_login():
     return redirect(auth_url)
 
 
+
+from ..services import issue_tokens
+from db.postgres_pool import pg_pool
+from config import FRONTEND_URL, GITHUB_APP_CLIENT_ID, GITHUB_APP_CLIENT_SECRET
+from utils.cookies import set_refresh_cookie
+
+
 @auth_bp.route("/callback/github", methods=["GET"])
 def github_callback():
     state = request.args.get("state", "")
@@ -48,6 +55,7 @@ def github_callback():
     if not code:
         return redirect(f"{FRONTEND_URL}/login?error=code_missing")
 
+    # Exchange code for access token
     token_res = httpx.post(
         "https://github.com/login/oauth/access_token",
         headers={"Accept": "application/json"},
@@ -63,6 +71,7 @@ def github_callback():
     token_res.raise_for_status()
     gh_token = token_res.json().get("access_token")
 
+    # Fetch user profile
     user_res = httpx.get(
         "https://api.github.com/user",
         headers={"Authorization": f"Bearer {gh_token}"},
@@ -91,11 +100,19 @@ def github_callback():
                 cur.execute("UPDATE users SET github_id = %s, full_name = %s, picture_url = %s WHERE id = %s;", (github_id, name, avatar, user_id))
             else:
                 username = email.split("@")[0]
-                cur.execute("INSERT INTO users (email, username, github_id, full_name, picture_url) VALUES (%s, %s, %s, %s, %s) RETURNING id;", (email, username, github_id, name, avatar))
+                cur.execute(
+                    """
+                    INSERT INTO users (email, username, github_id, full_name, picture_url)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING id;
+                    """,
+                    (email, username, github_id, name, avatar)
+                )
                 user_id = cur.fetchone()[0]
                 pw_hash = None
 
         conn.commit()
+
         tokens = issue_tokens(
             cur,
             user_id=user_id,
@@ -106,22 +123,18 @@ def github_callback():
             display_name=name,
             avatar_url=avatar,
         )
+
     finally:
         pg_pool.putconn(conn)
         session.pop("oauth_state", None)
 
-    qs = urllib.parse.urlencode({
-        "access_token":  tokens["access_token"],
-        "username":      username,
-        "display_name":  name,
-        "avatar_url":    avatar,
-        "google_linked": "false",
-        "github_linked": "true",
-        "has_password":  str(bool(pw_hash)).lower(),
-    })
+    # Return a POST-consumable redirect using query params
+    redirect_url = f"{FRONTEND_URL}/setup?{urllib.parse.urlencode({
+        'access_token': tokens['access_token'],
+        'username':     username,
+    })}" if not pw_hash else f"{FRONTEND_URL}/?token={tokens['access_token']}"
 
-    # ✅ Use hash fragment to avoid CORS preflight
-    resp = make_response(redirect(f"{FRONTEND_URL}/auth/oauth-callback#{qs}"))
+    resp = make_response(redirect(redirect_url))
     set_refresh_cookie(resp, tokens["refresh_token"])
     return resp
 
