@@ -7,8 +7,16 @@ from ..services import issue_tokens
 from db.postgres_pool import pg_pool
 from utils.cookies import set_refresh_cookie
 
-@auth_bp.route("/login/google", methods=["POST"])
+@auth_bp.route("/login/google", methods=["POST", "OPTIONS"])
 def google_login():
+    # Handle CORS preflight request
+    if request.method == "OPTIONS":
+        response = make_response()
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        return response
+
     cred = (request.json or {}).get("credential")
     if not cred:
         return jsonify({"message": "credential missing"}), 400
@@ -33,16 +41,19 @@ def google_login():
 
         if row:
             user_id, username, pw_hash = row
-            cur.execute("UPDATE users SET email = %s, full_name = %s, picture_url = %s, locale = %s WHERE id = %s;", (email, full_name, picture, locale, user_id))
+            cur.execute("UPDATE users SET email = %s, full_name = %s, picture_url = %s, locale = %s WHERE id = %s;",
+                        (email, full_name, picture, locale, user_id))
         else:
             cur.execute("SELECT id, username, password_hash FROM users WHERE email = %s;", (email,))
             row2 = cur.fetchone()
             if row2:
                 user_id, username, pw_hash = row2
-                cur.execute("UPDATE users SET google_sub = %s, full_name = %s, picture_url = %s, locale = %s WHERE id = %s;", (google_sub, full_name, picture, locale, user_id))
+                cur.execute("UPDATE users SET google_sub = %s, full_name = %s, picture_url = %s, locale = %s WHERE id = %s;",
+                            (google_sub, full_name, picture, locale, user_id))
             else:
                 username = email.split("@")[0]
-                cur.execute("INSERT INTO users (email, username, google_sub, full_name, picture_url, locale) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;", (email, username, google_sub, full_name, picture, locale))
+                cur.execute("INSERT INTO users (email, username, google_sub, full_name, picture_url, locale) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;",
+                            (email, username, google_sub, full_name, picture, locale))
                 user_id = cur.fetchone()[0]
                 pw_hash = None
 
@@ -73,10 +84,10 @@ def google_login():
         "has_password":  str(bool(pw_hash)).lower(),
     })
 
-    # ⛳ REDIRECT WITH HASH INSTEAD OF QUERY TO AVOID CORS
     redirect_url = f"{current_app.config['FRONTEND_URL']}/auth/oauth-callback#{qs}"
     resp = make_response(redirect(redirect_url))
     set_refresh_cookie(resp, tokens["refresh_token"])
+    resp.headers["Access-Control-Allow-Origin"] = "*"
     return resp
 
 
