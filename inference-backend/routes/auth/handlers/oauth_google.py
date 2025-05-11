@@ -8,11 +8,12 @@ from ..utils import verify_google_token
 from ..services import issue_tokens
 from db.postgres_pool import pg_pool
 from utils.cookies import set_refresh_cookie
+from config import FRONTEND_URL
 
 @auth_bp.route("/login/google", methods=["POST", "OPTIONS"])
 @cross_origin(
     supports_credentials=True,
-    origins=[current_app.config["FRONTEND_URL"]],
+    origins=[FRONTEND_URL],
     methods=["POST", "OPTIONS"],
     allow_headers=["Content-Type"]
 )
