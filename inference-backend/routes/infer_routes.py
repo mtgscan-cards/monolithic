@@ -9,7 +9,7 @@ from db.postgres_pool import pg_pool  # Import the connection pool
 infer_bp = Blueprint('infer_bp', __name__)
 
 # Load heavy resources once at startup
-faiss_index, hf, label_mapping, index_to_card = load_resources()
+faiss_index, hf = load_resources()
 
 @infer_bp.route('/infer', methods=['POST'])
 def infer():
