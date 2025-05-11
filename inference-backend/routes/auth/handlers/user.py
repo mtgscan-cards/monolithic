@@ -10,8 +10,8 @@ from db.postgres_pool import pg_pool
 @cross_origin(
     supports_credentials=True,
     origins=["https://mtgscan.cards"],
-    methods=["POST", "OPTIONS"],
-    allow_headers=["Content-Type"]
+    methods=["GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
 )
 @jwt_required
 def me():
