@@ -1,5 +1,3 @@
-# blueprints/collection_value.py
-
 import datetime
 from flask import Blueprint, request, jsonify, current_app
 from db.postgres_pool import pg_pool
@@ -12,37 +10,23 @@ collection_value_bp = Blueprint(
     url_prefix='/collection-value'
 )
 
-
 @collection_value_bp.route('/<int:collection_id>/current', methods=['GET'])
-@cross_origin(supports_credentials=True)
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 def get_current_collection_value(collection_id):
     """
     Get current total USD value of a collection
-    ---
-    tags:
-      - Collection Value
-    parameters:
-      - name: collection_id
-        in: path
-        type: integer
-        required: true
-        description: The global ID of the collection
-    responses:
-      200:
-        description: Current total value returned
-      401:
-        description: Unauthorized
-      403:
-        description: Forbidden
-      500:
-        description: Server error
     """
     conn = None
     try:
         conn = pg_pool.getconn()
         cur = conn.cursor()
 
-        # ─── 1) Look up is_public & owner_id ───────────────────
+        # 1) Lookup privacy/ownership
         cur.execute(
             "SELECT is_public, user_id FROM collections WHERE id = %s;",
             (collection_id,)
@@ -55,7 +39,6 @@ def get_current_collection_value(collection_id):
 
         is_public, owner_id = row
 
-        # ─── 2) If private, enforce JWT + owner check ────────
         if not is_public:
             try:
                 verify_jwt_in_request()
@@ -64,11 +47,9 @@ def get_current_collection_value(collection_id):
                 return jsonify({"message": "Unauthorized"}), 401
 
             user_id = get_jwt_identity()
-            current_app.logger.debug(f"JWT identity (user_id): {user_id}, owner_id: {owner_id}")
             if user_id != owner_id:
                 return jsonify({"message": "Forbidden"}), 403
 
-        # ─── 3) Compute total USD value ───────────────────────
         conn2 = pg_pool.getconn()
         cur2 = conn2.cursor()
         cur2.execute("""
@@ -107,32 +88,15 @@ def get_current_collection_value(collection_id):
 
 
 @collection_value_bp.route('/<int:collection_id>/history', methods=['GET'])
-@cross_origin(supports_credentials=True)
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 def get_collection_value_history(collection_id):
     """
     Get historical USD values of a collection over time
-    ---
-    tags:
-      - Collection Value
-    parameters:
-      - name: collection_id
-        in: path
-        type: integer
-        required: true
-      - name: range
-        in: query
-        type: string
-        enum: ["3d","1w","2w","1m","all"]
-        default: all
-    responses:
-      200:
-        description: Historical value timeline returned
-      401:
-        description: Unauthorized
-      403:
-        description: Forbidden
-      500:
-        description: Server error
     """
     time_range = request.args.get('range', 'all').lower()
 
@@ -141,7 +105,6 @@ def get_collection_value_history(collection_id):
         conn = pg_pool.getconn()
         cur = conn.cursor()
 
-        # ─── 1) Look up is_public & owner_id ───────────────────
         cur.execute(
             "SELECT is_public, user_id FROM collections WHERE id = %s;",
             (collection_id,)
@@ -154,7 +117,6 @@ def get_collection_value_history(collection_id):
 
         is_public, owner_id = row
 
-        # ─── 2) If private, enforce JWT + owner check ────────
         if not is_public:
             try:
                 verify_jwt_in_request()
@@ -163,11 +125,9 @@ def get_collection_value_history(collection_id):
                 return jsonify({"message": "Unauthorized"}), 401
 
             user_id = get_jwt_identity()
-            current_app.logger.debug(f"JWT identity (user_id): {user_id}, owner_id: {owner_id}")
             if user_id != owner_id:
                 return jsonify({"message": "Forbidden"}), 403
 
-        # ─── 3) Determine cutoff_date ────────────────────────
         conn2 = pg_pool.getconn()
         cur2 = conn2.cursor()
         cur2.execute("""
@@ -188,7 +148,7 @@ def get_collection_value_history(collection_id):
             }), 200
 
         current_date = max_date_row[0]
-        # Compute cutoff
+
         if time_range == '3d':
             cutoff = current_date - datetime.timedelta(days=3)
         elif time_range == '1w':
@@ -200,7 +160,6 @@ def get_collection_value_history(collection_id):
         else:
             cutoff = None
 
-        # ─── 4) Query history rows ──────────────────────────
         if cutoff:
             cur2.execute("""
                 SELECT snapshot_date,

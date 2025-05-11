@@ -87,7 +87,12 @@ def get_global_collection_id(user_id: int, user_collection_id: int, conn):
 
 # ══════════════════ Collection‑level endpoints ══════════════════
 @collections_bp.route("", methods=["POST"])
-@cross_origin(supports_credentials=True)
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 @jwt_required
 def create_collection():
     """
@@ -189,7 +194,12 @@ def create_collection():
 
 
 @collections_bp.route("", methods=["GET"])
-@cross_origin(supports_credentials=True)
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 @jwt_required
 def list_collections():
     """
@@ -262,7 +272,12 @@ from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
     "/<string:username>/collection/<int:user_collection_id>",
     methods=["GET"]
 )
-@cross_origin(supports_credentials=True)
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 def get_collection(
     username: str,
     user_collection_id: int,
@@ -363,7 +378,12 @@ def get_collection(
 @collections_bp.route(
     "/<string:username>/collection/<int:user_collection_id>/cards", methods=["POST"]
 )
-@cross_origin(supports_credentials=True)
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 @jwt_required
 def add_card_to_collection(username, user_collection_id):
     """
@@ -489,7 +509,12 @@ from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
     "/<string:username>/collection/<int:user_collection_id>/cards",
     methods=["GET"]
 )
-@cross_origin(supports_credentials=True)
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 def list_cards_in_collection(username: str, user_collection_id: int):
     """
     List cards in a collection (public if is_public=True, otherwise owner-only)
@@ -597,7 +622,12 @@ def list_cards_in_collection(username: str, user_collection_id: int):
     "/<string:username>/collection/<int:user_collection_id>/cards/<int:collection_card_id>",
     methods=["DELETE"],
 )
-@cross_origin(supports_credentials=True)
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 @jwt_required
 def delete_card_from_collection(username, user_collection_id, collection_card_id):
     """
@@ -647,7 +677,12 @@ def delete_card_from_collection(username, user_collection_id, collection_card_id
             pg_pool.putconn(conn)
 
 @collections_bp.route("/<string:username>/collection/<int:user_collection_id>/bulk-add", methods=["POST"])
-@cross_origin(supports_credentials=True)
+@cross_origin(
+    supports_credentials=True,
+    origins=["https://mtgscan.cards"],
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 @jwt_required
 def bulk_add_cards(username, user_collection_id):
     """
