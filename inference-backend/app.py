@@ -63,6 +63,7 @@ app.register_blueprint(collections_bp)
 app.register_blueprint(collection_value_bp)
 
 # ─── Swagger docs ────────────────────────────────────────────────────────────
+
 swagger = Swagger(app, template={
     "swagger": "2.0",
     "info": {
@@ -71,7 +72,75 @@ swagger = Swagger(app, template={
         "version": "1.0.0"
     },
     "basePath": "/",
-    "schemes": ["http"]
+    "schemes": ["http"],
+    "definitions": {
+        "Color": {
+            "type": "object",
+            "properties": {
+                "top": {"type": "integer", "example": 16777215},
+                "bottom": {"type": "integer", "example": 9109504}
+            }
+        },
+        "Collection": {
+            "type": "object",
+            "properties": {
+                "global_id": {"type": "integer"},
+                "user_collection_id": {"type": "integer"},
+                "label": {"type": "string"},
+                "cardStackStateIndex": {"type": "integer"},
+                "color": {"$ref": "#/definitions/Color"},
+                "is_public": {"type": "boolean"},
+                "is_manual_state": {"type": "boolean"}
+            }
+        },
+        "CollectionCard": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer"},
+                "card_id": {"type": "string"},
+                "name": {"type": "string"},
+                "set": {"type": "string"},
+                "set_name": {"type": "string"},
+                "lang": {"type": "string"},
+                "layout": {"type": "string"},
+                "image_uris": {"type": "object"},
+                "added_at": {"type": "string", "format": "date-time"}
+            }
+        },
+        "TokenResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {"type": "string"},
+                "refresh_token": {"type": "string"},
+                "username": {"type": "string"},
+                "display_name": {"type": "string"},
+                "avatar_url": {"type": "string"},
+                "google_linked": {"type": "boolean"},
+                "github_linked": {"type": "boolean"},
+                "has_password": {"type": "boolean"}
+            }
+        },
+        "BasicResponse": {
+            "type": "object",
+            "properties": {
+                "message": {"type": "string"}
+            }
+        },
+        "ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "message": {"type": "string"},
+                "error": {"type": "string"}
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "Authorization"
+        }
+    }
 })
 
 # ─── DB initialisation helpers ───────────────────────────────────────────────
