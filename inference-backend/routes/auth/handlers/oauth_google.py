@@ -13,9 +13,9 @@ from config import FRONTEND_URL
 @auth_bp.route("/login/google", methods=["POST", "OPTIONS"])
 @cross_origin(
     supports_credentials=True,
-    origins=[FRONTEND_URL],
+    origins=["https://mtgscan.cards"],
     methods=["POST", "OPTIONS"],
-    allow_headers=["Content-Type"]
+    allow_headers=["Content-Type", "Authorization"]
 )
 def google_login():
     cred = (request.json or {}).get("credential")

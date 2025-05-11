@@ -46,11 +46,14 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
       scope: 'openid email profile',
       callback: async ({ credential }) => {
         try {
+          // 🔥 Prevent sending stale Authorization header during login
+          delete api.defaults.headers.common['Authorization'];
+      
           const { data } = await api.post(
             linkMode ? '/auth/link/google' : '/auth/login/google',
             { credential },
-            { withCredentials: true } // ✅ Required for secure cookies and CORS
-          )
+            { withCredentials: true }
+          );
 
           const {
             access_token,
