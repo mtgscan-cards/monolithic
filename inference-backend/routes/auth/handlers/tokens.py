@@ -10,17 +10,13 @@ from db.postgres_pool import pg_pool
 from jwt_helpers import create_access_token, create_refresh_token
 from utils.cookies import set_refresh_cookie
 from config import JWT_SECRET, JWT_ALGORITHM
+from utils.cors import get_cors_origin
 
 REFRESH_TOKEN_EXPIRE_DAYS = 30  # Keep this in sync with cookie max-age
 
 
 @auth_bp.route("/refresh", methods=["POST", "OPTIONS"])
-@cross_origin(
-    supports_credentials=True,
-    origins=["https://mtgscan.cards"],
-    methods=["POST", "OPTIONS"],
-    allow_headers=["Content-Type"]
-)
+@cross_origin(**get_cors_origin())
 def refresh():
     """
     ---
@@ -106,12 +102,7 @@ def refresh():
 
 
 @auth_bp.route("/logout", methods=["POST", "OPTIONS"])
-@cross_origin(
-    supports_credentials=True,
-    origins=["https://mtgscan.cards"],
-    methods=["POST", "OPTIONS"],
-    allow_headers=["Content-Type"]
-)
+@cross_origin(**get_cors_origin())
 def logout_route():
     """
     ---

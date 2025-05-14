@@ -5,6 +5,8 @@ from db.postgres_pool import pg_pool
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from flask_cors import cross_origin
 
+from utils.cors import get_cors_origin
+
 collection_value_bp = Blueprint(
     'collection_value_bp',
     __name__,
@@ -12,12 +14,7 @@ collection_value_bp = Blueprint(
 )
 
 @collection_value_bp.route('/<int:collection_id>/current', methods=['GET'])
-@cross_origin(
-    supports_credentials=True,
-    origins=["https://mtgscan.cards"],
-    methods=["GET", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"]
-)
+@cross_origin(**get_cors_origin())
 def get_current_collection_value(collection_id):
     """
     ---
@@ -112,12 +109,7 @@ def get_current_collection_value(collection_id):
 
 
 @collection_value_bp.route('/<int:collection_id>/history', methods=['GET'])
-@cross_origin(
-    supports_credentials=True,
-    origins=["https://mtgscan.cards"],
-    methods=["GET", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"]
-)
+@cross_origin(**get_cors_origin())
 def get_collection_value_history(collection_id):
     """
     ---

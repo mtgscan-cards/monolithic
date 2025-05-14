@@ -9,14 +9,10 @@ from ..services import issue_tokens
 from db.postgres_pool import pg_pool
 from utils.cookies import set_refresh_cookie
 from config import FRONTEND_URL
+from utils.cors import get_cors_origin
 
 @auth_bp.route("/login/google", methods=["POST", "OPTIONS"])
-@cross_origin(
-    supports_credentials=True,
-    origins=["https://mtgscan.cards"],
-    methods=["POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"]
-)
+@cross_origin(**get_cors_origin())
 def google_login():
     """
     ---
@@ -124,12 +120,7 @@ def google_login():
 
 
 @auth_bp.route("/link/google", methods=["POST"])
-@cross_origin(
-    supports_credentials=True,
-    origins=["https://mtgscan.cards"],
-    methods=["POST", "OPTIONS"],
-    allow_headers=["Content-Type"]
-)
+@cross_origin(**get_cors_origin())
 @jwt_required
 def link_google():
     """

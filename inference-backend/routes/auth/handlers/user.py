@@ -3,14 +3,10 @@ from flask_cors import cross_origin
 from jwt_helpers import jwt_required
 from .. import auth_bp
 from db.postgres_pool import pg_pool
+from utils.cors import get_cors_origin
 
 @auth_bp.route("/me", methods=["GET"])
-@cross_origin(
-    supports_credentials=True,
-    origins=["https://mtgscan.cards"],
-    methods=["GET", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"]
-)
+@cross_origin(**get_cors_origin())
 @jwt_required
 def me():
     """

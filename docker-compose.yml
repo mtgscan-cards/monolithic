@@ -27,7 +27,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./inference-backend/resources:/app/resources:ro  # Mount local resources folder
+      - ./inference-backend/resources:/app/resources  # Mount local resources folder
       - scryfall_data:/app/data
     networks:
       - backend-net

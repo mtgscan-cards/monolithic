@@ -13,18 +13,14 @@ from db.postgres_pool import pg_pool
 from utils.cookies import set_refresh_cookie
 from jwt_helpers import create_access_token, create_refresh_token
 from datetime import datetime, timedelta, timezone
+from utils.cors import get_cors_origin
 
 # Only allow 3–30 characters, no slashes, question marks, hashes or whitespace
 USERNAME_REGEX = re.compile(r'^[^\/\?#\s]{3,30}$')
 
 
 @auth_bp.route("/login", methods=["POST"])
-@cross_origin(
-    supports_credentials=True,
-    origins=["https://mtgscan.cards"],
-    methods=["POST", "OPTIONS"],
-    allow_headers=["Content-Type"]
-)
+@cross_origin(**get_cors_origin())
 def login():
     """
     ---
@@ -119,12 +115,7 @@ def login():
 
 
 @auth_bp.route("/register", methods=["POST"])
-@cross_origin(
-    supports_credentials=True,
-    origins=["https://mtgscan.cards"],
-    methods=["POST", "OPTIONS"],
-    allow_headers=["Content-Type"]
-)
+@cross_origin(**get_cors_origin())
 def register():
     """
     ---
@@ -183,12 +174,7 @@ def register():
 
 
 @auth_bp.route("/set_password", methods=["POST"])
-@cross_origin(
-    supports_credentials=True,
-    origins=["https://mtgscan.cards"],
-    methods=["POST", "OPTIONS"],
-    allow_headers=["Content-Type"]
-)
+@cross_origin(**get_cors_origin())
 @jwt_required
 def set_password():
     """
