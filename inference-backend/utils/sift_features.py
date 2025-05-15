@@ -83,7 +83,7 @@ def load_candidate_features_for_card(card_id, hf):
             features.append((kp_serialized, des))
     return features
 
-def find_closest_card_ransac(roi_image, faiss_index, hf,
+def find_closest_card_ransac(roi_image, faiss_index, hf, id_map,
                              k=3, min_candidate_matches=1, MIN_INLIER_THRESHOLD=8, max_candidates=10):
     overall_start = time.perf_counter()
     debug_info = {}
@@ -103,7 +103,9 @@ def find_closest_card_ransac(roi_image, faiss_index, hf,
     distances, indices = faiss_index.search(descriptors, k)
     debug_info['faiss_search_time'] = time.perf_counter() - start
 
-    candidate_ids = indices.flatten().tolist()
+    # Translate FAISS indices using id_map
+    flat_indices = indices.flatten()
+    candidate_ids = [id_map[i] for i in flat_indices if i < len(id_map)]
     candidate_counts = Counter(candidate_ids)
     debug_info['faiss_candidate_counts'] = dict(candidate_counts)
 

@@ -9,7 +9,7 @@ from db.postgres_pool import pg_pool  # Import the connection pool
 infer_bp = Blueprint('infer_bp', __name__)
 
 # Load heavy resources once at startup
-faiss_index, hf = load_resources()
+faiss_index, hf, id_map = load_resources()
 
 @infer_bp.route('/infer', methods=['POST'])
 def infer():
@@ -83,7 +83,7 @@ def infer():
     # Process the image using SIFT/RANSAC.
     sift_start = time.perf_counter()
     best_candidate, _, keypoints, processed_img, debug_info = find_closest_card_ransac(
-        roi_image, faiss_index, hf, k=3
+        roi_image, faiss_index, hf, id_map, k=3
     )
     sift_time = time.perf_counter() - sift_start
     print(f"SIFT/RANSAC processing took: {sift_time:.3f} seconds")

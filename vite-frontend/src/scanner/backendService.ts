@@ -26,13 +26,15 @@ export interface InferenceResult {
   collector_number: string;     // ← required for bulk add formatting
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 export const sendROIToBackend = async (dataUrl: string): Promise<InferenceResult> => {
   const res = await fetch(dataUrl);
   const blob = await res.blob();
   const formData = new FormData();
   formData.append('roi_image', blob, 'roi.png');
 
-  const response = await fetch('https://api.mtgscan.cards/infer', {
+  const response = await fetch(`${API_BASE_URL}/infer`, {
     method: 'POST',
     body: formData,
   });
