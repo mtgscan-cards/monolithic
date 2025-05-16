@@ -16,7 +16,7 @@ def download_and_extract_resources():
     run_dir = os.path.join(RESOURCE_DIR, "run")
     if not os.path.exists(run_dir):
         os.makedirs(RESOURCE_DIR, exist_ok=True)
-        url = "https://huggingface.co/datasets/JakeTurner616/mtg-cards-SIFT-Features/resolve/main/resourcesV3.zip?download=true"
+        url = "https://huggingface.co/datasets/JakeTurner616/mtg-cards-SIFT-Features/resolve/main/resourcesV4.zip?download=true"
         zip_path = os.path.join(RESOURCE_DIR, "resources.zip")
         print("Downloading resources...")
         response = requests.get(url, stream=True)
