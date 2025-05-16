@@ -2,7 +2,6 @@ import os
 import json
 import requests
 import zipfile
-import shutil
 from tqdm import tqdm
 import faiss
 import h5py
@@ -12,48 +11,53 @@ RESOURCE_DIR = "/app/resources"
 LOCK_DIR = "/tmp/locks"
 LOCK_PATH = os.path.join(LOCK_DIR, "resource_download.lock")
 
-def download_and_extract_resources():
+def _resource_files_exist():
     run_dir = os.path.join(RESOURCE_DIR, "run")
     faiss_path = os.path.join(run_dir, "faiss_ivf.index")
     h5_path = os.path.join(run_dir, "candidate_features.h5")
     map_path = os.path.join(run_dir, "id_map.json")
+    return all(os.path.exists(p) for p in [faiss_path, h5_path, map_path])
 
-    resources_missing = not (os.path.exists(faiss_path) and os.path.exists(h5_path) and os.path.exists(map_path))
+def download_and_extract_resources():
+    run_dir = os.path.join(RESOURCE_DIR, "run")
+    url = "https://huggingface.co/datasets/JakeTurner616/mtg-cards-SIFT-Features/resolve/main/resourcesV4.zip?download=true"
+    zip_path = os.path.join(RESOURCE_DIR, "resources.zip")
 
-    if resources_missing:
-        print("Resource files missing. Downloading...")
-        os.makedirs(RESOURCE_DIR, exist_ok=True)
-        url = "https://huggingface.co/datasets/JakeTurner616/mtg-cards-SIFT-Features/resolve/main/resourcesV4.zip?download=true"
-        zip_path = os.path.join(RESOURCE_DIR, "resources.zip")
+    print("Resource files missing. Downloading...")
+    os.makedirs(RESOURCE_DIR, exist_ok=True)
 
-        response = requests.get(url, stream=True)
-        if response.status_code == 200:
-            total_size = int(response.headers.get('content-length', 0))
-            with open(zip_path, "wb") as f, tqdm(total=total_size, unit='B', unit_scale=True, desc="Downloading resources") as pbar:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-                        pbar.update(len(chunk))
-            print("Download complete. Extracting resources...")
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(RESOURCE_DIR)
-            os.remove(zip_path)
-            print("Resources extracted to", RESOURCE_DIR)
-        else:
-            raise Exception(f"Failed to download resources. Status code: {response.status_code}")
+    response = requests.get(url, stream=True)
+    if response.status_code == 200:
+        total_size = int(response.headers.get('content-length', 0))
+        with open(zip_path, "wb") as f, tqdm(total=total_size, unit='B', unit_scale=True, desc="Downloading resources") as pbar:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+                    pbar.update(len(chunk))
+        print("Download complete. Extracting resources...")
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(RESOURCE_DIR)
+        os.remove(zip_path)
+        print("Resources extracted to", RESOURCE_DIR)
     else:
-        print("Resource files already present. Skipping download.")
+        raise Exception(f"Failed to download resources. Status code: {response.status_code}")
 
 def download_and_extract_resources_once():
     os.makedirs(LOCK_DIR, exist_ok=True)
     with FileLock(LOCK_PATH, timeout=600):
-        download_and_extract_resources()
+        if not _resource_files_exist():
+            download_and_extract_resources()
+        else:
+            print("Resource files already present. Skipping download.")
 
 def load_resources():
+    download_and_extract_resources_once()
+
     print("Loading FAISS index and HDF5 features...")
-    faiss_path = os.path.join(RESOURCE_DIR, "run", "faiss_ivf.index")
-    h5_path    = os.path.join(RESOURCE_DIR, "run", "candidate_features.h5")
-    map_path   = os.path.join(RESOURCE_DIR, "run", "id_map.json")
+    run_dir = os.path.join(RESOURCE_DIR, "run")
+    faiss_path = os.path.join(run_dir, "faiss_ivf.index")
+    h5_path = os.path.join(run_dir, "candidate_features.h5")
+    map_path = os.path.join(run_dir, "id_map.json")
 
     assert os.path.exists(faiss_path), f"FAISS index missing at {faiss_path}"
     assert os.path.exists(h5_path), f"HDF5 file missing at {h5_path}"
