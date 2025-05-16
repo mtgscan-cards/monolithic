@@ -14,11 +14,18 @@ LOCK_PATH = os.path.join(LOCK_DIR, "resource_download.lock")
 
 def download_and_extract_resources():
     run_dir = os.path.join(RESOURCE_DIR, "run")
-    if not os.path.exists(run_dir):
+    faiss_path = os.path.join(run_dir, "faiss_ivf.index")
+    h5_path = os.path.join(run_dir, "candidate_features.h5")
+    map_path = os.path.join(run_dir, "id_map.json")
+
+    resources_missing = not (os.path.exists(faiss_path) and os.path.exists(h5_path) and os.path.exists(map_path))
+
+    if resources_missing:
+        print("Resource files missing. Downloading...")
         os.makedirs(RESOURCE_DIR, exist_ok=True)
         url = "https://huggingface.co/datasets/JakeTurner616/mtg-cards-SIFT-Features/resolve/main/resourcesV4.zip?download=true"
         zip_path = os.path.join(RESOURCE_DIR, "resources.zip")
-        print("Downloading resources...")
+
         response = requests.get(url, stream=True)
         if response.status_code == 200:
             total_size = int(response.headers.get('content-length', 0))
@@ -35,7 +42,7 @@ def download_and_extract_resources():
         else:
             raise Exception(f"Failed to download resources. Status code: {response.status_code}")
     else:
-        print("Resources already exist.")
+        print("Resource files already present. Skipping download.")
 
 def download_and_extract_resources_once():
     os.makedirs(LOCK_DIR, exist_ok=True)
