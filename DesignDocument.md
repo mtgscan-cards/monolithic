@@ -149,47 +149,67 @@ Return most frequent card ID among matches
 ## Architecture Overview
 
 ```mermaid
-graph TD
+graph LR
 
-%% Auth
-OAuth["OAuth (Google / GitHub)"]
+%% === CLIENT (LEFT) ===
+User["User"]
+SPA["SPA (React + Vite)"]
+Worker["WebWorker (OpenCV + TF.js)"]
+Model["Keypoint regression (Card ROI)"]
+FrontendHost["Cloudflare Pages"]
 
-%% API & Logic
-Backend["Flask API (JWT, Search, FAISS Matching, Collections)"]
-Scheduler["APScheduler (Daily Jobs)"]
-Parser["Scryfall JSON Importer"]
+User --> SPA --> Worker --> Model
+SPA -->|Static Assets| FrontendHost
 
-%% Data
-Database["PostgreSQL (Docker Volume)"]
-ScryfallData["/data (Bulk JSON)"]
+%% === BACKEND API ===
+API["Flask API: /auth /collections /infer /search"]
+Utils["utils.py (CORS, JWT, SIFT)"]
+API --> Utils
 
-%% CI/CD
-GitHub["GitHub Actions"]
-Runner["Self-Hosted Runner (prod)"]
+SPA -->|REST API| API
 
-%% Infra
-Nginx["NGINX Proxy Manager (Host-Level)"]
-Docker["Docker Compose"]
-Server["Hosted Server"]
+%% === DATABASE ===
+PG[(PostgreSQL DB)]
+Pool["pg_pool.py"]
+API --> Pool --> PG
 
-%% User Flow
-Frontend["Vite Frontend (SPA Static Site)"]
-Frontend -->|API Calls| Backend
-Frontend -->|OAuth Redirects| OAuth
-OAuth --> Backend
+%% === BACKGROUND JOB ===
+ScryfallJob["scryfall_update.py"]
+ScryfallJob -->|Import Cards| PG
 
-%% Backend Links
-Backend --> Database
-Scheduler --> Database
-Parser --> Database
-Parser --> ScryfallData
+%% === EXTERNAL ===
+OAuthGoogle["Google OAuth"]
+OAuthGitHub["GitHub OAuth"]
+hCaptcha["hCaptcha"]
+Scryfall["Scryfall API"]
 
-%% CI/CD Flow
-GitHub -->|workflow_dispatch| Runner
-Runner -->|Pull + Deploy| Server
-Server --> Docker --> Backend
-Server --> Nginx --> Backend
+API --> OAuthGoogle
+API --> OAuthGitHub
+API --> hCaptcha
+ScryfallJob --> Scryfall
 
-%% Hosting
-Frontend -->|Static| Cloudflare
+%% === CI/CD + INFRA (RIGHT) ===
+CI["GitHub Actions"]
+Runner["Self-Hosted Runner"]
+Compose["Docker Compose"]
+Maint["backup.sh + import_cards.py"]
+
+CI --> Runner --> Compose
+Compose --> API
+Compose --> PG
+Maint --> PG
+
+%% === STYLES ===
+classDef client fill:#5dade2,stroke:#1b4f72,color:#000;
+classDef backend fill:#ffd966,stroke:#7d6608,color:#000;
+classDef db fill:#f5b041,stroke:#873600,color:#000;
+classDef external fill:#bb8fce,stroke:#512e5f,color:#000;
+classDef infra fill:#aab7b8,stroke:#2c3e50,color:#000;
+classDef frontend fill:#58d68d,stroke:#145a32,color:#000;
+
+class User,SPA,Worker,Model,FrontendHost client;
+class API,Utils backend;
+class Pool,PG db;
+class OAuthGoogle,OAuthGitHub,hCaptcha,Scryfall external;
+class CI,Runner,Compose,Maint infra;
 ```
