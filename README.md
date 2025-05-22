@@ -2,7 +2,7 @@
 
 A very simple web app for scanning and organizing MTG cards.
 
----
+[![DeepWiki docs](https://deepwiki.com/badge.svg)](https://deepwiki.com/mtgscan-cards/monolithic) [![MDD](https://img.shields.io/badge/Master%20Design%20Document-018EF5?logo=readme&logoColor=fff)](DesignDocument.md)
 
 ## Stack
 
