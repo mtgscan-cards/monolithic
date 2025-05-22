@@ -1,16 +1,16 @@
-name: Deploy to Production
+name: Deploy Backend to Production Server
 
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type "deploy" to confirm overwriting prod with main and triggering deployment'
+        description: 'Type "deploy backend" to confirm overwriting prod with main and triggering deployment'
         required: true
         default: ""
 
 jobs:
   deploy:
-    if: ${{ github.event.inputs.confirm == 'deploy' }}
+    if: ${{ github.event.inputs.confirm == 'deploy backend' }}
     runs-on: [self-hosted, prod-runner]
 
     steps:

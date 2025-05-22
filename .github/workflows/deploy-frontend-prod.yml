@@ -1,0 +1,42 @@
+name: Deploy Frontend to Cloudflare Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy frontend" to confirm overwriting the latest production deployment'
+        required: true
+        default: ""
+
+jobs:
+  deploy-frontend:
+    if: ${{ github.event.inputs.confirm == 'deploy frontend' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: vite-frontend/package-lock.json
+
+      - name: Install dependencies & build
+        working-directory: vite-frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: Install wrangler
+        run: npm install -g wrangler
+
+      - name: Deploy to Cloudflare Pages
+        run: |
+          wrangler pages deploy vite-frontend/dist --project-name=mtgscan-cards
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
