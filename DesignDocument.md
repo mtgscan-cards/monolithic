@@ -15,41 +15,53 @@
 
 ### Backend Deployment
 
-* **Target:** Production server (self-hosted)
-* **Triggered by:** Manual `workflow_dispatch` on the `prod` branch
+* **Target:** Self-hosted production server
+* **Triggered by:** Manual `workflow_dispatch` with input confirmation (`deploy backend`)
+* **Branch:** Deploys **`main` → `prod`** (forced update before deployment)
 * **Runner:** `prod-runner` (self-hosted)
 * **Steps:**
 
-  ```bash
-  git pull origin prod
-  docker-compose down
-  docker-compose up -d --build
-  ```
+  1. Force-reset `prod` to match `main`
+  2. Pull and rebuild backend services:
+
+     ```bash
+     git pull origin prod
+     docker-compose down
+     docker-compose up -d --build
+     ```
 * **Deploys:**
 
-  * Flask API
-  * PostgreSQL
-  * Background jobs (e.g. `scryfall_update.py`)
-  * Mounts volumes for card data and database
+  * Flask API (`/auth`, `/collections`, `/infer`, `/search`)
+  * PostgreSQL database (`mtg-db`)
+  * Background jobs (e.g., `scryfall_update.py`)
+  * Volumes: `pg_data`, `scryfall_data`
 
 ---
 
 ### Frontend Deployment
 
 * **Target:** Cloudflare Pages
-* **Triggered by:** Manual `workflow_dispatch` on the `prod` branch
-* **Runner:** GitHub-hosted runner
+* **Triggered by:** Manual `workflow_dispatch` with input confirmation (`deploy frontend`)
+* **Branch:** Deploys from `prod` branch (after manual sync with `main`)
+* **Runner:** GitHub-hosted runner (`ubuntu-latest`)
 * **Steps:**
 
-  * GitHub Actions builds the frontend with Vite
-  * Output is deployed to Cloudflare Pages via:
+  1. Checkout the `prod` branch
+  2. Build the frontend using Vite:
 
-    * Native GitHub → Cloudflare Pages integration, **or**
-    * `wrangler pages deploy dist` if using a CLI-based flow
+     ```bash
+     npm install
+     npm run build
+     ```
+  3. Deploy using Wrangler CLI:
+
+     ```bash
+     wrangler pages deploy vite-frontend/dist
+     ```
 * **Deploys:**
 
-  * Static frontend assets
-  * Hosted globally via Cloudflare's CDN
+  * Static frontend SPA
+  * Hosted globally on Cloudflare CDN
 
 ---
 
