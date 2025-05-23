@@ -2,8 +2,8 @@
 
 A very simple web app for scanning and organizing MTG cards.
 
-[![DeepWiki docs](https://deepwiki.com/badge.svg)](https://deepwiki.com/mtgscan-cards/monolithic) [![MDD](https://img.shields.io/badge/Master%20Design%20Document-018EF5?logo=readme&logoColor=fff)](DesignDocument.md)
-
+[![DeepWiki docs](https://deepwiki.com/badge.svg)](https://deepwiki.com/mtgscan-cards/monolithic) [![MDD](https://img.shields.io/badge/Master%20Design%20Document-018EF5?logo=readme&logoColor=fff)](DesignDocument.md) [![Frontend](https://img.shields.io/github/actions/workflow/status/mtgscan-cards/monolithic/deploy-frontend-prod.yml?branch=main&label=Frontend%20Deployment&logo=github)](https://github.com/mtgscan-cards/monolithic/actions/workflows/deploy-frontend-prod.yml)
+[![Backend](https://img.shields.io/github/actions/workflow/status/mtgscan-cards/monolithic/deploy-backend-prod.yml?branch=prod&label=Backend%20Deployment&logo=github)](https://github.com/mtgscan-cards/monolithic/actions/workflows/deploy-backend-prod.yml)
 ## Stack
 
 * **Frontend**: Vite + React
