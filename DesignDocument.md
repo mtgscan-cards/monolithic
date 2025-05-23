@@ -13,15 +13,43 @@
 
 ## Deployment Workflow
 
-Deployment to production is triggered manually via GitHub Actions (`workflow_dispatch`).
+### Backend Deployment
 
-The self-hosted `prod-runner` performs the following:
+* **Target:** Production server (self-hosted)
+* **Triggered by:** Manual `workflow_dispatch` on the `prod` branch
+* **Runner:** `prod-runner` (self-hosted)
+* **Steps:**
 
-```bash
-git pull origin prod
-docker-compose down
-docker-compose up -d --build
-```
+  ```bash
+  git pull origin prod
+  docker-compose down
+  docker-compose up -d --build
+  ```
+* **Deploys:**
+
+  * Flask API
+  * PostgreSQL
+  * Background jobs (e.g. `scryfall_update.py`)
+  * Mounts volumes for card data and database
+
+---
+
+### Frontend Deployment
+
+* **Target:** Cloudflare Pages
+* **Triggered by:** Manual `workflow_dispatch` on the `main` branch
+* **Runner:** GitHub-hosted runner
+* **Steps:**
+
+  * GitHub Actions builds the frontend with Vite
+  * Output is deployed to Cloudflare Pages via:
+
+    * Native GitHub → Cloudflare Pages integration, **or**
+    * `wrangler pages deploy dist` if using a CLI-based flow
+* **Deploys:**
+
+  * Static frontend assets
+  * Hosted globally via Cloudflare's CDN
 
 ---
 
@@ -190,11 +218,13 @@ ScryfallJob --> Scryfall
 
 %% === CI/CD + INFRA (RIGHT) ===
 CI["GitHub Actions"]
-Runner["Self-Hosted Runner"]
+Runner["Self-Hosted Runner (Backend)"]
+RunnerCF["GitHub-Hosted Runner (Frontend)"]
 Compose["Docker Compose"]
 Maint["backup.sh + import_cards.py"]
 
 CI --> Runner --> Compose
+CI -->|Push to main| RunnerCF -->|Deploy| FrontendHost
 Compose --> API
 Compose --> PG
 Maint --> PG
@@ -211,5 +241,5 @@ class User,SPA,Worker,Model,FrontendHost client;
 class API,Utils backend;
 class Pool,PG db;
 class OAuthGoogle,OAuthGitHub,hCaptcha,Scryfall external;
-class CI,Runner,Compose,Maint infra;
+class CI,Runner,RunnerCF,Compose,Maint infra;
 ```
