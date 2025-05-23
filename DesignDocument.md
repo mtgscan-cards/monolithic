@@ -37,7 +37,7 @@
 ### Frontend Deployment
 
 * **Target:** Cloudflare Pages
-* **Triggered by:** Manual `workflow_dispatch` on the `main` branch
+* **Triggered by:** Manual `workflow_dispatch` on the `prod` branch
 * **Runner:** GitHub-hosted runner
 * **Steps:**
 

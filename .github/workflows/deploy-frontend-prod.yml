@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type "deploy frontend" to confirm overwriting the latest production deployment'
+        description: 'Type "deploy frontend" to confirm deploying the frontend from prod branch'
         required: true
         default: ""
 
@@ -14,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout frontend
+      - name: Checkout frontend from prod
         uses: actions/checkout@v3
         with:
-          ref: main
+          ref: prod
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
