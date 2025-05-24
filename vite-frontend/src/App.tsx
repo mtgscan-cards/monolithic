@@ -189,7 +189,7 @@ const App: React.FC = () => {
                 element={<CollectionPortfolioPage />}
               />
             </Route>
-            <Route path="/mobile-scan/:session_id" element={<MobileScanPage />} />
+            <Route path="/mobile-scan/:session_id/*" element={<MobileScanPage />} />
           </Routes>
         </Container>
       </Box>
