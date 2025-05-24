@@ -16,11 +16,13 @@ from routes.infer_routes import infer_bp
 from routes.auth import auth_bp
 from routes.collections_routes import collections_bp
 from routes.collection_value_routes import collection_value_bp
+from routes.mobile_infer_routes import mobile_infer_bp
 from db.postgres_pool import pg_pool
 from scryfall_update.update import main as update_main
 from werkzeug.middleware.proxy_fix import ProxyFix
 import config
 from config import FRONTEND_URL
+
 
 app = Flask(__name__)
 
@@ -62,6 +64,7 @@ app.register_blueprint(search_bp)
 app.register_blueprint(infer_bp)
 app.register_blueprint(collections_bp)
 app.register_blueprint(collection_value_bp)
+app.register_blueprint(mobile_infer_bp)
 
 # ─── Swagger docs ────────────────────────────────────────────────────────────
 
@@ -360,6 +363,48 @@ scheduler.add_job(
     hour=0,
     minute=0
 )
+
+def init_mobile_scan_tables():
+    """
+    Creates mobile scan session and result tables for mobile scan offloading.
+    """
+    conn = pg_pool.getconn()
+    try:
+        cur = conn.cursor()
+
+        # Session table (one per mobile scan session)
+        cur.execute("SELECT to_regclass('public.mobile_scan_sessions');")
+        if cur.fetchone()[0] is None:
+            cur.execute("""
+            CREATE TABLE mobile_scan_sessions (
+                id UUID PRIMARY KEY,
+                user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '10 minutes')
+            );
+            """)
+            print("✅ mobile_scan_sessions table created.")
+
+        # Result table (multiple per session)
+        cur.execute("SELECT to_regclass('public.mobile_scan_results');")
+        if cur.fetchone()[0] is None:
+            cur.execute("""
+            CREATE TABLE mobile_scan_results (
+                id UUID PRIMARY KEY,
+                session_id UUID NOT NULL REFERENCES mobile_scan_sessions(id) ON DELETE CASCADE,
+                result JSONB NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            """)
+            print("✅ mobile_scan_results table created.")
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print("❌ Error ensuring mobile scan tables:", e)
+    finally:
+        pg_pool.putconn(conn)
+
 def take_collection_price_snapshot():
     """
     Insert a new price snapshot for each card in collections if:
@@ -404,6 +449,7 @@ scheduler.add_job(
 init_auth_tables()
 init_security_tables()
 init_collection_tables()
+init_mobile_scan_tables() 
 build_tag_cache()
 
 update_main()  # download scryfall bulk data and populate the database

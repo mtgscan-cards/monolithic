@@ -31,6 +31,7 @@ import CollectionsOverview from './pages/CollectionsOverview'
 import CollectionDetails from './pages/CollectionDetails'
 import CollectionPortfolioPage from './pages/CollectionPortfolio'
 import NotFoundPage from './pages/NotFoundPage'
+import MobileScanPage from './pages/MobileScanPage';
 
 import { sendFilterCriteria } from './api/FilterBackend'
 import './App.css'
@@ -188,6 +189,7 @@ const App: React.FC = () => {
                 element={<CollectionPortfolioPage />}
               />
             </Route>
+            <Route path="/mobile-scan/:session_id/*" element={<MobileScanPage />} />
           </Routes>
         </Container>
       </Box>

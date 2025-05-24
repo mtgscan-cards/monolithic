@@ -40,6 +40,7 @@ interface Props {
   setRoiSnapshot: (dataUrl: string | null) => void;
   setInferenceResult: (r: InferenceResult | null) => void;
   setScannedCards: React.Dispatch<React.SetStateAction<ScannedCard[]>>;
+  onValidROI?: (roiCanvas: HTMLCanvasElement) => void; // <-- newly added
 }
 
 const useFrameProcessor = ({
@@ -49,6 +50,7 @@ const useFrameProcessor = ({
   setRoiSnapshot,
   setInferenceResult,
   setScannedCards,
+  onValidROI, // ✅ add this
 }: Props) => {
   const modelRef = useRef<tf.GraphModel | null>(null);
   const modelLoaded = useRef(false);
@@ -209,26 +211,30 @@ const useFrameProcessor = ({
       validROI &&
       isQuadCentered(quad, video.videoWidth, video.videoHeight);
 
-    if (minConf < CONFIDENCE_THRESHOLD) {
-      setStatus(`Low keypoint confidence (${minConf.toFixed(2)})`);
-    } else if (!validROI) {
-      setStatus('Quadrilateral ambiguous');
-    } else if (!centered) {
-      setStatus('Not centered');
+  if (minConf < CONFIDENCE_THRESHOLD) {
+    setStatus(`Low keypoint confidence (${minConf.toFixed(2)})`);
+  } else if (!validROI) {
+    setStatus('Quadrilateral ambiguous');
+  } else if (!centered) {
+    setStatus('Not centered');
+  } else {
+    const roi = getROICanvas(quad, off);
+    if (!roi) {
+      setStatus('Cannot extract ROI');
     } else {
-      const roi = getROICanvas(quad, off);
-      if (!roi) {
-        setStatus('Cannot extract ROI');
+      const score = computeFocusScore(roi);
+      if (score < FOCUS_THRESHOLD) {
+        setStatus(`Focus too low (${score.toFixed(1)})`);
       } else {
-        const score = computeFocusScore(roi);
-        if (score < FOCUS_THRESHOLD) {
-          setStatus(`Focus too low (${score.toFixed(1)})`);
-        } else {
-          valid = true;
-          setStatus('Valid frame');
+        valid = true;
+        setStatus('Valid frame');
+        if (onValidROI) {
+          onValidROI(roi); // ✅ pass the canvas to the mobile inference uploader
         }
       }
     }
+  }
+
 
     // ─── Draw overlay ────────────────────────────────────────────────────────
     const canvas = canvasRef.current!;
@@ -348,14 +354,7 @@ const useFrameProcessor = ({
     }
 
     raf.current = requestAnimationFrame(process);
-  }, [
-    videoRef,
-    canvasRef,
-    setStatus,
-    setRoiSnapshot,
-    setInferenceResult,
-    setScannedCards,
-  ]);
+  }, [videoRef, canvasRef, setStatus, onValidROI, setRoiSnapshot, setInferenceResult, setScannedCards]);
 
   // ─── Kick off loop ─────────────────────────────────────────────────────────
   useEffect(() => {

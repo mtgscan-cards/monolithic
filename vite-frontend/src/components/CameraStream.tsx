@@ -1,31 +1,52 @@
-// src/components/CameraStream.tsx
 import React, { useEffect } from 'react';
 import { Box, Paper, CircularProgress, Typography } from '@mui/material';
 import { OverlayMarker } from 'over-lib';
 
 interface CameraStreamProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  videoRef?: React.RefObject<HTMLVideoElement | null>; // Optional if used internally
   cameraReady: boolean;
   videoWidth: number;
   videoHeight: number;
+  quad?: { x: number; y: number }[] | null;
 }
 
-const CameraStream: React.FC<CameraStreamProps> = ({ canvasRef, cameraReady, videoWidth, videoHeight }) => {
+const CameraStream: React.FC<CameraStreamProps> = ({
+  canvasRef,
+  cameraReady,
+  videoWidth,
+  videoHeight,
+}) => {
   useEffect(() => {
-    if (canvasRef.current && cameraReady) {
-      const dpr = window.devicePixelRatio || 1;
-      const canvasElement = canvasRef.current;
-      // Set the intrinsic dimensions to the video size multiplied by the device pixel ratio.
-      canvasElement.width = videoWidth * dpr;
-      canvasElement.height = videoHeight * dpr;
-      // Set the CSS display size to the actual video dimensions.
-      canvasElement.style.width = `${videoWidth}px`;
-      canvasElement.style.height = `${videoHeight}px`;
-      const ctx = canvasElement.getContext('2d');
-      if (ctx) {
-        // Scale all drawing operations so they work with the intrinsic dimensions.
-        ctx.scale(dpr, dpr);
-      }
+    if (!canvasRef.current || !cameraReady) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = videoWidth * dpr;
+    canvas.height = videoHeight * dpr;
+    canvas.style.width = `${videoWidth}px`;
+    canvas.style.height = `${videoHeight}px`;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform before scaling
+    ctx.scale(dpr, dpr);
+
+    // Optionally draw quad if embedded in canvasRef as a property
+    type CanvasWithQuad = HTMLCanvasElement & { quad?: { x: number; y: number }[] };
+    const quad: { x: number; y: number }[] | undefined = (canvas as CanvasWithQuad).quad;
+    if (quad && quad.length === 4) {
+      ctx.strokeStyle = 'lime';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(quad[0].x, quad[0].y);
+      ctx.lineTo(quad[1].x, quad[1].y);
+      ctx.lineTo(quad[2].x, quad[2].y);
+      ctx.lineTo(quad[3].x, quad[3].y);
+      ctx.closePath();
+      ctx.stroke();
     }
   }, [canvasRef, cameraReady, videoWidth, videoHeight]);
 
@@ -33,7 +54,11 @@ const CameraStream: React.FC<CameraStreamProps> = ({ canvasRef, cameraReady, vid
     <Box position="relative">
       <canvas
         ref={canvasRef}
-        style={{ width: `${videoWidth}px`, height: `${videoHeight}px`, display: 'block' }}
+        style={{
+          width: `${videoWidth}px`,
+          height: `${videoHeight}px`,
+          display: 'block',
+        }}
       />
       <OverlayMarker
         width="250px"
