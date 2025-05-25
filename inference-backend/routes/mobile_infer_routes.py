@@ -219,6 +219,7 @@ def mobile_infer_submit(session_id):
                 'type': 'object',
                 'properties': {
                     'completed': {'type': 'boolean'},
+                    'result_id': {'type': 'string'},
                     'result': {
                         'type': ['object', 'null'],
                         'description': 'Detected card data if scan completed'
@@ -252,7 +253,7 @@ def get_mobile_scan_result(session_id):
         cur = conn.cursor()
 
         cur.execute("""
-            SELECT r.result, s.expires_at
+            SELECT r.id, r.result, s.expires_at
             FROM mobile_scan_sessions s
             LEFT JOIN mobile_scan_results r ON s.id = r.session_id
             WHERE s.id = %s
@@ -267,15 +268,19 @@ def get_mobile_scan_result(session_id):
         if not row:
             return jsonify({"error": "Session not found"}), 404
 
-        result, expires_at = row
+        result_id, result_data, expires_at = row
 
         if expires_at and expires_at < datetime.now(timezone.utc):
             return jsonify({"error": "Session expired"}), 403
 
-        if result is None:
+        if result_data is None:
             return jsonify({"completed": False, "result": None}), 200
 
-        return jsonify({"completed": True, "result": result}), 200
+        return jsonify({
+            "completed": True,
+            "result_id": str(result_id),
+            "result": result_data
+        }), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500

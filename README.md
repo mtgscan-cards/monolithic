@@ -84,3 +84,8 @@ npm run dev
 ## Diagram
 
 ![System Diagram](https://www.mermaidchart.com/raw/dc4dca0c-b6f6-42e2-b2ef-1a04bf86788f?theme=dark&version=v0.1&format=svg)
+
+## LICENSE
+
+This project is licensed under the GNU General Public License v3.0.  
+See the [LICENSE](./LICENSE) file for full details.

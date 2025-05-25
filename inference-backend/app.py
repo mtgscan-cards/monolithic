@@ -319,7 +319,7 @@ def build_tag_cache():
             ) sub
             GROUP BY keyword
             ORDER BY count DESC
-            LIMIT 100;
+            LIMIT 40;
         """)
         tags = [{'keyword': row[0], 'count': row[1]} for row in cur.fetchall()]
         with open(cache_path, 'w') as f:

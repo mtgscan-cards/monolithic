@@ -80,13 +80,15 @@ const MobileScanPage: React.FC = () => {
 
         const data = await res.json();
 
-        if (active && data?.completed && data.result) {
-          const cardId = data.result.predicted_card_id;
-          if (lastSeenCardIdRef.current !== cardId) {
-            lastSeenCardIdRef.current = cardId;
-            setStatus(`Last Matched: ${data.result.predicted_card_name}`);
-          }
-        }
+      if (active && data?.completed && data.result) {
+        const cardId = data.result.predicted_card_id;
+
+        // Always update status with latest scan result (even if duplicate)
+        setStatus(`Last Matched: ${data.result.predicted_card_name}`);
+
+        // Optionally update lastSeenCardIdRef if still needed for UI
+        lastSeenCardIdRef.current = cardId;
+      }
       } catch (err) {
         console.error("Polling error:", err);
         setStatus('Error polling scan result');

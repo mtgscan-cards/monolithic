@@ -104,7 +104,7 @@ def login():
             "github_linked": github_linked,
             "has_password":  has_password,
         }))
-        set_access_cookies(resp, access_token)  # Add this line
+        set_access_cookies(resp, access_token)  # Add this line to set the access token in cookies
         set_refresh_cookie(resp, refresh_token)
         return resp
 

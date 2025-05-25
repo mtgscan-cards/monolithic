@@ -50,7 +50,7 @@ const useFrameProcessor = ({
   setRoiSnapshot,
   setInferenceResult,
   setScannedCards,
-  onValidROI, // ✅ add this
+  onValidROI,
 }: Props) => {
   const modelRef = useRef<tf.GraphModel | null>(null);
   const modelLoaded = useRef(false);

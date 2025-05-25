@@ -199,6 +199,8 @@ const ScanPage: React.FC = () => {
     setIsRefreshing(false);
   };
 
+  const lastResultIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!mobileSessionId || !mobileWaiting) return;
 
@@ -216,35 +218,47 @@ const ScanPage: React.FC = () => {
         }
 
         const data = await res.json();
-        if (data?.result) {
+
+        if (data?.result && data.result_id && data.result_id !== lastResultIdRef.current) {
+          lastResultIdRef.current = data.result_id;
           const cardId = data.result.predicted_card_id;
-          if (!scannedCards.some((card) => card.id === cardId)) {
-            setScannedCards((prev) => [
-              ...prev,
-              {
-                id: cardId,
-                name: data.result.predicted_card_name,
-                finishes: data.result.finishes,
-                set: data.result.set,
-                setName: data.result.set_name,
-                prices: {
-                  normal: data.result.prices.usd,
-                  foil: data.result.prices.usd_foil,
+
+          setScannedCards((prev) => {
+            const existingIndex = prev.findIndex((card) => card.id === cardId);
+            if (existingIndex !== -1) {
+              const updated = [...prev];
+              updated[existingIndex] = {
+                ...updated[existingIndex],
+                quantity: updated[existingIndex].quantity + 1,
+              };
+              return updated;
+            } else {
+              return [
+                ...prev,
+                {
+                  id: cardId,
+                  name: data.result.predicted_card_name,
+                  finishes: data.result.finishes,
+                  set: data.result.set,
+                  setName: data.result.set_name,
+                  prices: {
+                    normal: data.result.prices.usd,
+                    foil: data.result.prices.usd_foil,
+                  },
+                  imageUri: data.result.image_uris?.normal,
+                  foil: false,
+                  quantity: 1,
+                  hasFoil:
+                    data.result.finishes.includes('foil') &&
+                    data.result.prices.usd_foil != null,
+                  cardId: cardId,
+                  collectorNumber: data.result.collector_number?.replace(/^0+/, '') || '',
                 },
-                imageUri: data.result.image_uris?.normal,
-                foil: false,
-                quantity: 1,
-                hasFoil:
-                  data.result.finishes.includes('foil') &&
-                  data.result.prices.usd_foil != null,
-                cardId: cardId,
-                collectorNumber: data.result.collector_number?.replace(/^0+/, '') || '',
-              },
-            ]);
-            setStatus(`Scan received: ${data.result.predicted_card_name}`);
-          } else {
-            setStatus('Duplicate scan ignored');
-          }
+              ];
+            }
+          });
+
+          setStatus(`Scan received: ${data.result.predicted_card_name}`);
         }
       } catch (err) {
         console.error('Error polling mobile scan result:', err);
@@ -253,7 +267,7 @@ const ScanPage: React.FC = () => {
     }, 2500);
 
     return () => clearInterval(interval);
-  }, [mobileSessionId, mobileWaiting, scannedCards]);
+  }, [mobileSessionId, mobileWaiting]);
 
   return (
     <Container maxWidth="lg" sx={{ paddingY: 4 }}>
@@ -272,59 +286,59 @@ const ScanPage: React.FC = () => {
 
         {mobileDropdownOpen && mobileSessionId && (
           <Box textAlign="center">
-        <Typography variant="subtitle1" mb={1}>
-          Open this QR code on your phone to scan a card
-        </Typography>
-        <Box
-  sx={{
-    position: 'relative',
-    display: 'block',
-    width: 'max-content',
-    mx: 'auto', // center QR code container
-  }}
->
-  {/* QR Code */}
-  <Box
-    sx={{
-      background: 'white',
-      padding: 2,
-      borderRadius: 1,
-    }}
-  >
-    <QRCode
-      value={`${window.location.origin}/mobile-scan/${mobileSessionId}`}
-      style={{ height: 180, width: 180 }}
-    />
-  </Box>
+            <Typography variant="subtitle1" mb={1}>
+              Open this QR code on your phone to scan a card
+            </Typography>
+            <Box
+              sx={{
+                position: 'relative',
+                display: 'block',
+                width: 'max-content',
+                mx: 'auto', // center QR code container
+              }}
+            >
+              {/* QR Code */}
+              <Box
+                sx={{
+                  background: 'white',
+                  padding: 2,
+                  borderRadius: 1,
+                }}
+              >
+                <QRCode
+                  value={`${window.location.origin}/mobile-scan/${mobileSessionId}`}
+                  style={{ height: 180, width: 180 }}
+                />
+              </Box>
 
-  {/* Refresh icon floated to the middle right of QR */}
-  <Tooltip title="Refresh QR code session">
-    <IconButton
-      size="small"
-      onClick={handleManualRefresh}
-      sx={{
-      position: 'absolute',
-      top: '50%',
-      left: '100%',
-      transform: 'translate(8px, -50%)',
-      backgroundColor: (theme) => theme.palette.background.paper,
-      color: (theme) => theme.palette.primary.main,
+              {/* Refresh icon floated to the middle right of QR */}
+              <Tooltip title="Refresh QR code session">
+                <IconButton
+                  size="small"
+                  onClick={handleManualRefresh}
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '100%',
+                    transform: 'translate(8px, -50%)',
+                    backgroundColor: (theme) => theme.palette.background.paper,
+                    color: (theme) => theme.palette.primary.main,
 
-      }}
-    >
-      <RefreshIcon fontSize="small" />
-    </IconButton>
-  </Tooltip>
-</Box>
-        <Typography variant="caption" display="block" mt={1}>
-          Or visit:<br />{`${window.location.origin}/mobile-scan/${mobileSessionId}`}
-        </Typography>
+                  }}
+                >
+                  <RefreshIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+            <Typography variant="caption" display="block" mt={1}>
+              Or visit:<br />{`${window.location.origin}/mobile-scan/${mobileSessionId}`}
+            </Typography>
 
-        {mobileWaiting && (
-          <Typography variant="body2" color="text.secondary" mt={1}>
-            Now awaiting scans from mobile device...
-          </Typography>
-        )}
+            {mobileWaiting && (
+              <Typography variant="body2" color="text.secondary" mt={1}>
+                Now awaiting scans from mobile device...
+              </Typography>
+            )}
           </Box>
         )}
       </Stack>
