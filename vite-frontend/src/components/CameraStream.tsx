@@ -61,8 +61,8 @@ const CameraStream: React.FC<CameraStreamProps> = ({
         }}
       />
       <OverlayMarker
-        width="250px"
-        height="350px"
+        width="300px"
+        height="450px"
         markerColor="white"
         markerThickness={3}
         markerLength="25px"

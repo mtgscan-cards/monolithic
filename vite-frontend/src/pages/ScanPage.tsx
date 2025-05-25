@@ -104,14 +104,29 @@ const ScanPage: React.FC = () => {
     };
   }, []);
 
-  useFrameProcessor({
-    videoRef,
-    canvasRef,
-    setStatus,
-    setInferenceResult,
-    setRoiSnapshot,
-    setScannedCards,
-  });
+useFrameProcessor({
+  videoRef,
+  canvasRef,
+  setStatus,
+  setInferenceResult,
+  setRoiSnapshot,
+  setScannedCards,
+  onScannedCard: (card: ScannedCard) => {
+    setScannedCards((prev) => {
+      const existingIndex = prev.findIndex((c) => c.id === card.id);
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: updated[existingIndex].quantity + 1,
+        };
+        return updated;
+      } else {
+        return [...prev, { ...card, quantity: 1 }];
+      }
+    });
+  },
+});
 
   const handleToggleFoil = (cardId: string) => {
     setScannedCards((prev) =>
@@ -120,7 +135,24 @@ const ScanPage: React.FC = () => {
   };
 
   const handleRemoveCard = (cardId: string) => {
-    setScannedCards((prev) => prev.filter((card) => card.id !== cardId));
+    setScannedCards((prev) => {
+      const index = [...prev].reverse().findIndex((card) => card.id === cardId);
+      if (index === -1) return prev;
+
+      const removeIndex = prev.length - 1 - index;
+      const card = prev[removeIndex];
+
+      if (card.quantity > 1) {
+        const updated = [...prev];
+        updated[removeIndex] = {
+          ...updated[removeIndex],
+          quantity: updated[removeIndex].quantity - 1,
+        };
+        return updated;
+      } else {
+        return prev.filter((_, i) => i !== removeIndex);
+      }
+    });
   };
 
   const handleDrawerToggle = () => {
@@ -199,75 +231,77 @@ const ScanPage: React.FC = () => {
     setIsRefreshing(false);
   };
 
-  const lastResultIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (!mobileSessionId || !mobileWaiting) return;
 
-    const interval = setInterval(async () => {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      try {
-        const res = await fetch(`${apiUrl}/api/mobile-infer/result/${mobileSessionId}`, {
-          credentials: 'include',
+const processedResultIds = useRef(new Set<string>());
+
+useEffect(() => {
+  if (!mobileSessionId || !mobileWaiting) return;
+
+  const interval = setInterval(async () => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    try {
+      const res = await fetch(`${apiUrl}/api/mobile-infer/result/${mobileSessionId}`, {
+        credentials: 'include',
+      });
+
+      if (res.status === 403) {
+        console.warn("Session expired, regenerating...");
+        await createMobileSession();
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data?.result && data.result_id && !processedResultIds.current.has(data.result_id)) {
+        processedResultIds.current.add(data.result_id);
+        const cardId = data.result.predicted_card_id;
+
+        setScannedCards((prev) => {
+          const existingIndex = prev.findIndex((card) => card.id === cardId);
+          if (existingIndex !== -1) {
+            const updated = [...prev];
+            updated[existingIndex] = {
+              ...updated[existingIndex],
+              quantity: updated[existingIndex].quantity + 1,
+            };
+            return updated;
+          } else {
+            return [
+              ...prev,
+              {
+                id: cardId,
+                name: data.result.predicted_card_name,
+                finishes: data.result.finishes,
+                set: data.result.set,
+                setName: data.result.set_name,
+                prices: {
+                  normal: data.result.prices.usd,
+                  foil: data.result.prices.usd_foil,
+                },
+                imageUri: data.result.image_uris?.normal,
+                foil: false,
+                quantity: 1,
+                hasFoil:
+                  data.result.finishes.includes('foil') &&
+                  data.result.prices.usd_foil != null,
+                cardId: cardId,
+                collectorNumber: data.result.collector_number?.replace(/^0+/, '') || '',
+              },
+            ];
+          }
         });
 
-        if (res.status === 403) {
-          console.warn("Session expired, regenerating...");
-          await createMobileSession();
-          return;
-        }
-
-        const data = await res.json();
-
-        if (data?.result && data.result_id && data.result_id !== lastResultIdRef.current) {
-          lastResultIdRef.current = data.result_id;
-          const cardId = data.result.predicted_card_id;
-
-          setScannedCards((prev) => {
-            const existingIndex = prev.findIndex((card) => card.id === cardId);
-            if (existingIndex !== -1) {
-              const updated = [...prev];
-              updated[existingIndex] = {
-                ...updated[existingIndex],
-                quantity: updated[existingIndex].quantity + 1,
-              };
-              return updated;
-            } else {
-              return [
-                ...prev,
-                {
-                  id: cardId,
-                  name: data.result.predicted_card_name,
-                  finishes: data.result.finishes,
-                  set: data.result.set,
-                  setName: data.result.set_name,
-                  prices: {
-                    normal: data.result.prices.usd,
-                    foil: data.result.prices.usd_foil,
-                  },
-                  imageUri: data.result.image_uris?.normal,
-                  foil: false,
-                  quantity: 1,
-                  hasFoil:
-                    data.result.finishes.includes('foil') &&
-                    data.result.prices.usd_foil != null,
-                  cardId: cardId,
-                  collectorNumber: data.result.collector_number?.replace(/^0+/, '') || '',
-                },
-              ];
-            }
-          });
-
-          setStatus(`Scan received: ${data.result.predicted_card_name}`);
-        }
-      } catch (err) {
-        console.error('Error polling mobile scan result:', err);
-        setStatus('Error polling scan result');
+        setStatus(`Scan received: ${data.result.predicted_card_name}`);
       }
-    }, 2500);
+    } catch (err) {
+      console.error('Error polling mobile scan result:', err);
+      setStatus('Error polling scan result');
+    }
+  }, 2500);
 
-    return () => clearInterval(interval);
-  }, [mobileSessionId, mobileWaiting]);
+  return () => clearInterval(interval);
+}, [mobileSessionId, mobileWaiting]);
 
   return (
     <Container maxWidth="lg" sx={{ paddingY: 4 }}>

@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Button,
   CircularProgress,
   Container,
   Card,
@@ -13,7 +12,6 @@ import CameraStream from '../components/CameraStream';
 
 const MobileScanPage: React.FC = () => {
   const { session_id } = useParams<{ session_id: string }>();
-  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -21,7 +19,7 @@ const MobileScanPage: React.FC = () => {
   const [roiSnapshot, setRoiSnapshot] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [quad] = useState<{ x: number; y: number }[] | null>(null);
-  const [videoDimensions, setVideoDimensions] = useState({ width: 640, height: 480 });
+  const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const lastScanTimeRef = useRef<number>(0);
   const lastSeenCardIdRef = useRef<string | null>(null);
 
@@ -30,7 +28,11 @@ const MobileScanPage: React.FC = () => {
     if (!video) return;
 
     navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: 'environment' } })
+      .getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+        },
+      })
       .then((stream) => {
         video.srcObject = stream;
         video.onloadedmetadata = () => {
@@ -80,15 +82,11 @@ const MobileScanPage: React.FC = () => {
 
         const data = await res.json();
 
-      if (active && data?.completed && data.result) {
-        const cardId = data.result.predicted_card_id;
-
-        // Always update status with latest scan result (even if duplicate)
-        setStatus(`Last Matched: ${data.result.predicted_card_name}`);
-
-        // Optionally update lastSeenCardIdRef if still needed for UI
-        lastSeenCardIdRef.current = cardId;
-      }
+        if (active && data?.completed && data.result) {
+          const cardId = data.result.predicted_card_id;
+          setStatus(`Last Matched: ${data.result.predicted_card_name}`);
+          lastSeenCardIdRef.current = cardId;
+        }
       } catch (err) {
         console.error("Polling error:", err);
         setStatus('Error polling scan result');
@@ -100,7 +98,7 @@ const MobileScanPage: React.FC = () => {
       clearInterval(interval);
     };
   }, [session_id]);
-  
+
   useFrameProcessor({
     videoRef,
     canvasRef,
@@ -161,43 +159,51 @@ const MobileScanPage: React.FC = () => {
         Point your phone at a Magic card. It will scan automatically.
       </Typography>
 
-      <Card
-        elevation={4}
-        sx={{
-          position: 'relative',
-          width: '100%',
-          aspectRatio: '3 / 2',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          overflow: 'hidden',
-          mb: 2,
-        }}
-      >
-        <CameraStream
-          canvasRef={canvasRef}
-          videoRef={videoRef}
-          cameraReady={true}
-          videoWidth={videoDimensions.width}
-          videoHeight={videoDimensions.height}
-          quad={quad}
-        />
-        <video ref={videoRef} style={{ display: 'none' }} />
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: 8,
-            left: 8,
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            color: 'white',
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 1,
-          }}
-        >
-          <Typography variant="caption">{status}</Typography>
-        </Box>
-      </Card>
+      <Box
+  sx={{
+    width: '100%',
+    height: '60vh', // Use viewport height to make it prominent on mobile
+    position: 'relative',
+    mb: 2,
+  }}
+>
+  <Card
+    elevation={4}
+    sx={{
+      width: '100%',
+      height: '100%',
+      position: 'relative',
+      overflow: 'hidden',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}
+  >
+    <CameraStream
+      canvasRef={canvasRef}
+      videoRef={videoRef}
+      cameraReady={true}
+      videoWidth={videoDimensions?.width || 640}
+      videoHeight={videoDimensions?.height || 480}
+      quad={quad}
+    />
+    <video ref={videoRef} style={{ display: 'none' }} />
+    <Box
+      sx={{
+        position: 'absolute',
+        bottom: 8,
+        left: 8,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        color: 'white',
+        px: 1.5,
+        py: 0.5,
+        borderRadius: 1,
+      }}
+    >
+      <Typography variant="caption">{status}</Typography>
+    </Box>
+  </Card>
+</Box>
 
       {roiSnapshot && (
         <Box sx={{ mb: 2, textAlign: 'center' }}>
@@ -218,12 +224,6 @@ const MobileScanPage: React.FC = () => {
             {status}
           </Typography>
         )}
-      </Box>
-
-      <Box textAlign="center" mt={2}>
-        <Button onClick={() => navigate('/')} color="secondary">
-          Cancel and return
-        </Button>
       </Box>
     </Container>
   );
