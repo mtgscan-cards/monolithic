@@ -378,7 +378,7 @@ def init_mobile_scan_tables():
             cur.execute("""
             CREATE TABLE mobile_scan_sessions (
                 id UUID PRIMARY KEY,
-                user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '10 minutes')
             );
