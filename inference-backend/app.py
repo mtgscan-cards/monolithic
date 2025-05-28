@@ -366,35 +366,60 @@ scheduler.add_job(
 
 def init_mobile_scan_tables():
     """
-    Creates mobile scan session and result tables for mobile scan offloading.
+    Creates or updates mobile scan session and result tables for mobile scan offloading.
+    Ensures that all expected columns are present.
     """
     conn = pg_pool.getconn()
     try:
         cur = conn.cursor()
 
-        # Session table (one per mobile scan session)
+        # ── Session Table ─────────────────────────────────────────────
         cur.execute("SELECT to_regclass('public.mobile_scan_sessions');")
         if cur.fetchone()[0] is None:
             cur.execute("""
-            CREATE TABLE mobile_scan_sessions (
-                id UUID PRIMARY KEY,
-                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                created_at TIMESTAMPTZ DEFAULT NOW(),
-                expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '10 minutes')
-            );
+                CREATE TABLE mobile_scan_sessions (
+                    id UUID PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '10 minutes'),
+                    completed BOOLEAN DEFAULT FALSE,
+                    result JSONB
+                );
             """)
             print("✅ mobile_scan_sessions table created.")
+        else:
+            # Ensure missing columns are added (ALTER TABLE is idempotent if column already exists)
+            cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='mobile_scan_sessions' AND column_name='completed'
+                    ) THEN
+                        ALTER TABLE mobile_scan_sessions ADD COLUMN completed BOOLEAN DEFAULT FALSE;
+                    END IF;
 
-        # Result table (multiple per session)
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='mobile_scan_sessions' AND column_name='result'
+                    ) THEN
+                        ALTER TABLE mobile_scan_sessions ADD COLUMN result JSONB;
+                    END IF;
+                END
+                $$;
+            """)
+            print("✅ mobile_scan_sessions table updated with missing columns.")
+
+        # ── Result Table ──────────────────────────────────────────────
         cur.execute("SELECT to_regclass('public.mobile_scan_results');")
         if cur.fetchone()[0] is None:
             cur.execute("""
-            CREATE TABLE mobile_scan_results (
-                id UUID PRIMARY KEY,
-                session_id UUID NOT NULL REFERENCES mobile_scan_sessions(id) ON DELETE CASCADE,
-                result JSONB NOT NULL,
-                created_at TIMESTAMPTZ DEFAULT NOW()
-            );
+                CREATE TABLE mobile_scan_results (
+                    id UUID PRIMARY KEY,
+                    session_id UUID NOT NULL REFERENCES mobile_scan_sessions(id) ON DELETE CASCADE,
+                    result JSONB NOT NULL,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
             """)
             print("✅ mobile_scan_results table created.")
 
