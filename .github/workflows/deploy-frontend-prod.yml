@@ -26,6 +26,15 @@ jobs:
           cache: 'npm'
           cache-dependency-path: vite-frontend/package-lock.json
 
+      - name: Inject VITE_ secrets into .env
+        working-directory: vite-frontend
+        run: |
+          echo "VITE_HCAPTCHA_SITEKEY=${{ secrets.VITE_HCAPTCHA_SITEKEY }}" >> .env
+          echo "VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}" >> .env
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
+          echo "VITE_GITHUB_APP_CLIENT_ID=${{ secrets.VITE_GITHUB_APP_CLIENT_ID }}" >> .env
+          echo "VITE_FRONTEND_URL=${{ secrets.VITE_FRONTEND_URL }}" >> .env
+
       - name: Install dependencies & build
         working-directory: vite-frontend
         run: |
