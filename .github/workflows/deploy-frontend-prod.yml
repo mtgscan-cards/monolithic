@@ -35,9 +35,11 @@ jobs:
       - name: Install wrangler
         run: npm install -g wrangler
 
-      - name: Deploy to Cloudflare Pages
+      - name: Deploy to Cloudflare Pages (production)
         run: |
-          wrangler pages deploy vite-frontend/dist --project-name=mtgscan-cards
+          wrangler pages deploy vite-frontend/dist \
+            --project-name=mtgscan-cards \
+            --branch=prod
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
