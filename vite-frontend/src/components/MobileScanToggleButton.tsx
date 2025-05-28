@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button, useMediaQuery, useTheme } from '@mui/material';
 import { ExpandMore, ExpandLess } from '@mui/icons-material';
 
 interface Props {
@@ -8,6 +8,11 @@ interface Props {
 }
 
 const MobileScanToggleButton: React.FC<Props> = ({ isOpen, onClick }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  if (isMobile) return null; // Don't render on mobile devices
+
   return (
     <Button
       variant="outlined"

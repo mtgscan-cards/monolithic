@@ -3,20 +3,16 @@ import {
   Container,
   Box,
   Typography,
-  Card,
   Drawer,
   IconButton,
   useMediaQuery,
   useTheme,
-  Stack,
-  Tooltip,
+  Stack
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import QRCode from 'react-qr-code';
-import RefreshIcon from '@mui/icons-material/Refresh';
 
-import CameraStream from '../components/CameraStream';
+
 import CardList from '../components/CardList';
 import DebugInfo from '../components/DebugInfo';
 import LastScannedCard from '../components/LastScannedCard';
@@ -27,6 +23,8 @@ import type { ScannedCard } from '../hooks/useFrameProcessor';
 import { getAlternatePrintings } from '../api/cards';
 import MobileScanToggleButton from '../components/MobileScanToggleButton';
 import './ScanPage.css';
+import MobileQRCodePanel from '../components/MobileQRCodePanel';
+import CameraPanel from '../components/CameraPanel';
 
 const drawerWidth = 300;
 
@@ -35,11 +33,11 @@ const ScanPage: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null) as React.RefObject<HTMLVideoElement>;
+  const canvasRef = useRef<HTMLCanvasElement>(null) as React.RefObject<HTMLCanvasElement>;
 
   const [cameraReady, setCameraReady] = useState(false);
-  const [status, setStatus] = useState('Initializing...');
+  const [status, setStatus] = useState<React.ReactNode>('Initializing...');
   const [roiSnapshot, setRoiSnapshot] = useState<string | null>(null);
   const [inferenceResult, setInferenceResult] = useState<InferenceResult | null>(null);
   const [scannedCards, setScannedCards] = useState<ScannedCard[]>([]);
@@ -81,13 +79,41 @@ const ScanPage: React.FC = () => {
               setCameraReady(true);
               setStatus('Webcam starting...');
             } catch {
-              setStatus('Error playing video stream');
+              setStatus(
+                <>
+                  Error playing video stream.{' '}
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.location.reload();
+                    }}
+                    style={{ textDecoration: 'underline', color: 'inherit' }}
+                  >
+                    Refresh?
+                  </a>
+                </>
+              );
             }
           };
         }
       } catch (err) {
         console.error('Error accessing webcam:', err);
-        setStatus('Error accessing webcam');
+        setStatus(
+          <>
+            Error accessing webcam. {' '}
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.reload();
+              }}
+              style={{ textDecoration: 'underline', color: 'inherit' }}
+            >
+              Refresh?
+            </a>
+          </>
+        );
       }
     }
 
@@ -104,29 +130,29 @@ const ScanPage: React.FC = () => {
     };
   }, []);
 
-useFrameProcessor({
-  videoRef,
-  canvasRef,
-  setStatus,
-  setInferenceResult,
-  setRoiSnapshot,
-  setScannedCards,
-  onScannedCard: (card: ScannedCard) => {
-    setScannedCards((prev) => {
-      const existingIndex = prev.findIndex((c) => c.id === card.id);
-      if (existingIndex !== -1) {
-        const updated = [...prev];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          quantity: updated[existingIndex].quantity + 1,
-        };
-        return updated;
-      } else {
-        return [...prev, { ...card, quantity: 1 }];
-      }
-    });
-  },
-});
+  useFrameProcessor({
+    videoRef,
+    canvasRef,
+    setStatus,
+    setInferenceResult,
+    setRoiSnapshot,
+    setScannedCards,
+    onScannedCard: (card: ScannedCard) => {
+      setScannedCards((prev) => {
+        const existingIndex = prev.findIndex((c) => c.id === card.id);
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            quantity: updated[existingIndex].quantity + 1,
+          };
+          return updated;
+        } else {
+          return [...prev, { ...card, quantity: 1 }];
+        }
+      });
+    },
+  });
 
   const handleToggleFoil = (cardId: string) => {
     setScannedCards((prev) =>
@@ -233,75 +259,75 @@ useFrameProcessor({
 
 
 
-const processedResultIds = useRef(new Set<string>());
+  const processedResultIds = useRef(new Set<string>());
 
-useEffect(() => {
-  if (!mobileSessionId || !mobileWaiting) return;
+  useEffect(() => {
+    if (!mobileSessionId || !mobileWaiting) return;
 
-  const interval = setInterval(async () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    try {
-      const res = await fetch(`${apiUrl}/api/mobile-infer/result/${mobileSessionId}`, {
-        credentials: 'include',
-      });
-
-      if (res.status === 403) {
-        console.warn("Session expired, regenerating...");
-        await createMobileSession();
-        return;
-      }
-
-      const data = await res.json();
-
-      if (data?.result && data.result_id && !processedResultIds.current.has(data.result_id)) {
-        processedResultIds.current.add(data.result_id);
-        const cardId = data.result.predicted_card_id;
-
-        setScannedCards((prev) => {
-          const existingIndex = prev.findIndex((card) => card.id === cardId);
-          if (existingIndex !== -1) {
-            const updated = [...prev];
-            updated[existingIndex] = {
-              ...updated[existingIndex],
-              quantity: updated[existingIndex].quantity + 1,
-            };
-            return updated;
-          } else {
-            return [
-              ...prev,
-              {
-                id: cardId,
-                name: data.result.predicted_card_name,
-                finishes: data.result.finishes,
-                set: data.result.set,
-                setName: data.result.set_name,
-                prices: {
-                  normal: data.result.prices.usd,
-                  foil: data.result.prices.usd_foil,
-                },
-                imageUri: data.result.image_uris?.normal,
-                foil: false,
-                quantity: 1,
-                hasFoil:
-                  data.result.finishes.includes('foil') &&
-                  data.result.prices.usd_foil != null,
-                cardId: cardId,
-                collectorNumber: data.result.collector_number?.replace(/^0+/, '') || '',
-              },
-            ];
-          }
+    const interval = setInterval(async () => {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      try {
+        const res = await fetch(`${apiUrl}/api/mobile-infer/result/${mobileSessionId}`, {
+          credentials: 'include',
         });
 
-        setStatus(`Scan received: ${data.result.predicted_card_name}`);
-      }
-    } catch (err) {
-      console.error('Error polling mobile scan result:', err);
-      setStatus('Error polling scan result');
-    }
-  }, 2500);
+        if (res.status === 403) {
+          console.warn("Session expired, regenerating...");
+          await createMobileSession();
+          return;
+        }
 
-  return () => clearInterval(interval);
-}, [mobileSessionId, mobileWaiting]);
+        const data = await res.json();
+
+        if (data?.result && data.result_id && !processedResultIds.current.has(data.result_id)) {
+          processedResultIds.current.add(data.result_id);
+          const cardId = data.result.predicted_card_id;
+
+          setScannedCards((prev) => {
+            const existingIndex = prev.findIndex((card) => card.id === cardId);
+            if (existingIndex !== -1) {
+              const updated = [...prev];
+              updated[existingIndex] = {
+                ...updated[existingIndex],
+                quantity: updated[existingIndex].quantity + 1,
+              };
+              return updated;
+            } else {
+              return [
+                ...prev,
+                {
+                  id: cardId,
+                  name: data.result.predicted_card_name,
+                  finishes: data.result.finishes,
+                  set: data.result.set,
+                  setName: data.result.set_name,
+                  prices: {
+                    normal: data.result.prices.usd,
+                    foil: data.result.prices.usd_foil,
+                  },
+                  imageUri: data.result.image_uris?.normal,
+                  foil: false,
+                  quantity: 1,
+                  hasFoil:
+                    data.result.finishes.includes('foil') &&
+                    data.result.prices.usd_foil != null,
+                  cardId: cardId,
+                  collectorNumber: data.result.collector_number?.replace(/^0+/, '') || '',
+                },
+              ];
+            }
+          });
+
+          setStatus(`Scan received: ${data.result.predicted_card_name}`);
+        }
+      } catch (err) {
+        console.error('Error polling mobile scan result:', err);
+        setStatus('Error polling scan result');
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [mobileSessionId, mobileWaiting]);
 
   return (
     <Container maxWidth="lg" sx={{ paddingY: 4 }}>
@@ -311,88 +337,62 @@ useEffect(() => {
         </IconButton>
       </Box>
 
-      <Typography variant="h4" component="h1" textAlign="center" mb={2}>
-        Card Scanner for MTG
-      </Typography>
+      <Box textAlign="center" mb={{ xs: 2, md: 4 }} px={{ xs: 1, sm: 2 }}>
+        <Typography
+          variant="h6"
+          fontWeight={600}
+          sx={{
+            fontSize: {
+              xs: '1rem',  // phones
+              sm: '1.5rem',  // small tablets
+              md: '2rem',    // desktops
+            },
+          }}
+        >
+          MTG Scanner
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mt: 0.5, fontSize: { xs: '0.85rem', sm: '1rem' } }}
+        >
+          Scan cards using a phone or webcam
+        </Typography>
+      </Box>
 
+      <Box
+        sx={{
+          width: '100%',
+          borderBottom: '2px solid',
+          borderColor: 'divider',
+          my: { xs: 2, md: 3 },
+          borderRadius: 1,
+          opacity: 0.7,
+        }}
+      />
+      
       <Stack spacing={2} alignItems="center" my={3}>
         <MobileScanToggleButton isOpen={mobileDropdownOpen} onClick={handleToggleMobileDropdown} />
 
         {mobileDropdownOpen && mobileSessionId && (
-          <Box textAlign="center">
-            <Typography variant="subtitle1" mb={1}>
-              Open this QR code on your phone to scan a card
-            </Typography>
-            <Box
-              sx={{
-                position: 'relative',
-                display: 'block',
-                width: 'max-content',
-                mx: 'auto', // center QR code container
-              }}
-            >
-              {/* QR Code */}
-              <Box
-                sx={{
-                  background: 'white',
-                  padding: 2,
-                  borderRadius: 1,
-                }}
-              >
-                <QRCode
-                  value={`${window.location.origin}/mobile-scan/${mobileSessionId}`}
-                  style={{ height: 180, width: 180 }}
-                />
-              </Box>
-
-              {/* Refresh icon floated to the middle right of QR */}
-              <Tooltip title="Refresh QR code session">
-                <IconButton
-                  size="small"
-                  onClick={handleManualRefresh}
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '100%',
-                    transform: 'translate(8px, -50%)',
-                    backgroundColor: (theme) => theme.palette.background.paper,
-                    color: (theme) => theme.palette.primary.main,
-
-                  }}
-                >
-                  <RefreshIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-            <Typography variant="caption" display="block" mt={1}>
-              Or visit:<br />{`${window.location.origin}/mobile-scan/${mobileSessionId}`}
-            </Typography>
-
-            {mobileWaiting && (
-              <Typography variant="body2" color="text.secondary" mt={1}>
-                Now awaiting scans from mobile device...
-              </Typography>
-            )}
-          </Box>
+          <MobileQRCodePanel
+            sessionId={mobileSessionId}
+            waiting={mobileWaiting}
+            onRefresh={handleManualRefresh}
+          />
         )}
       </Stack>
 
       <Box className="scan-page-container">
         <Box className="scan-page-main">
-          <Card elevation={3} className="camera-card">
-            <Box className="camera-wrapper">
-              <CameraStream
-                canvasRef={canvasRef}
-                cameraReady={cameraReady}
-                videoWidth={videoDimensions.width}
-                videoHeight={videoDimensions.height}
-              />
-              <video ref={videoRef} style={{ display: 'none' }} />
-              <Box className="status-overlay">
-                <Typography variant="body2">{status}</Typography>
-              </Box>
-            </Box>
-          </Card>
+          <CameraPanel
+            canvasRef={canvasRef}
+            videoRef={videoRef}
+            videoWidth={videoDimensions.width}
+            videoHeight={videoDimensions.height}
+            cameraReady={cameraReady}
+            status={status}
+          />
 
           {lastCard && (
             <Box className="last-scanned-card-section">
