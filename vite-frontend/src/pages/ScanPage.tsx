@@ -3,16 +3,16 @@ import {
   Container,
   Box,
   Typography,
-  Card,
   Drawer,
   IconButton,
   useMediaQuery,
   useTheme,
+  Stack
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
-import CameraStream from '../components/CameraStream';
+
 import CardList from '../components/CardList';
 import DebugInfo from '../components/DebugInfo';
 import LastScannedCard from '../components/LastScannedCard';
@@ -21,43 +21,42 @@ import useFrameProcessor from '../hooks/useFrameProcessor';
 import { InferenceResult } from '../scanner/backendService';
 import type { ScannedCard } from '../hooks/useFrameProcessor';
 import { getAlternatePrintings } from '../api/cards';
+import MobileScanToggleButton from '../components/MobileScanToggleButton';
 import './ScanPage.css';
+import MobileQRCodePanel from '../components/MobileQRCodePanel';
+import CameraPanel from '../components/CameraPanel';
 
-const drawerWidth = 300; // fixed width for the drawer
+const drawerWidth = 300;
 
 const ScanPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Use persistent drawer on larger screens and temporary drawer on mobile
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
-
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null) as React.RefObject<HTMLVideoElement>;
+  const canvasRef = useRef<HTMLCanvasElement>(null) as React.RefObject<HTMLCanvasElement>;
 
   const [cameraReady, setCameraReady] = useState(false);
-  const [status, setStatus] = useState('Initializing...');
+  const [status, setStatus] = useState<React.ReactNode>('Initializing...');
   const [roiSnapshot, setRoiSnapshot] = useState<string | null>(null);
   const [inferenceResult, setInferenceResult] = useState<InferenceResult | null>(null);
   const [scannedCards, setScannedCards] = useState<ScannedCard[]>([]);
-  const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number }>({
-    width: 640,
-    height: 480,
-  });
+  const [videoDimensions, setVideoDimensions] = useState({ width: 640, height: 480 });
 
-  // State for Alternate Printings Dialog
   const [alternateDialogOpen, setAlternateDialogOpen] = useState(false);
   const [altPrintings, setAltPrintings] = useState<AltCard[]>([]);
 
-  // Update drawer state when viewport size changes
+  const [mobileSessionId, setMobileSessionId] = useState<string | null>(null);
+  const [mobileWaiting, setMobileWaiting] = useState(false);
+  const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   useEffect(() => {
     setDrawerOpen(!isMobile);
   }, [isMobile]);
 
-  // Determine the last scanned card
   const lastCard = scannedCards.length > 0 ? scannedCards[scannedCards.length - 1] : null;
 
-  // Initialize webcam stream
   useEffect(() => {
     let didAbort = false;
     let localStream: MediaStream | null = null;
@@ -80,13 +79,41 @@ const ScanPage: React.FC = () => {
               setCameraReady(true);
               setStatus('Webcam starting...');
             } catch {
-              setStatus('Error playing video stream');
+              setStatus(
+                <>
+                  Error playing video stream.{' '}
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.location.reload();
+                    }}
+                    style={{ textDecoration: 'underline', color: 'inherit' }}
+                  >
+                    Refresh?
+                  </a>
+                </>
+              );
             }
           };
         }
       } catch (err) {
         console.error('Error accessing webcam:', err);
-        setStatus('Error accessing webcam');
+        setStatus(
+          <>
+            Error accessing webcam. {' '}
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.reload();
+              }}
+              style={{ textDecoration: 'underline', color: 'inherit' }}
+            >
+              Refresh?
+            </a>
+          </>
+        );
       }
     }
 
@@ -103,7 +130,6 @@ const ScanPage: React.FC = () => {
     };
   }, []);
 
-  // Start frame processing
   useFrameProcessor({
     videoRef,
     canvasRef,
@@ -111,26 +137,54 @@ const ScanPage: React.FC = () => {
     setInferenceResult,
     setRoiSnapshot,
     setScannedCards,
+    onScannedCard: (card: ScannedCard) => {
+      setScannedCards((prev) => {
+        const existingIndex = prev.findIndex((c) => c.id === card.id);
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            quantity: updated[existingIndex].quantity + 1,
+          };
+          return updated;
+        } else {
+          return [...prev, { ...card, quantity: 1 }];
+        }
+      });
+    },
   });
 
-  // Toggle foil pricing for a scanned card
   const handleToggleFoil = (cardId: string) => {
     setScannedCards((prev) =>
       prev.map((card) => (card.id === cardId ? { ...card, foil: !card.foil } : card))
     );
   };
 
-  // Remove a card from the collection
   const handleRemoveCard = (cardId: string) => {
-    setScannedCards((prev) => prev.filter((card) => card.id !== cardId));
+    setScannedCards((prev) => {
+      const index = [...prev].reverse().findIndex((card) => card.id === cardId);
+      if (index === -1) return prev;
+
+      const removeIndex = prev.length - 1 - index;
+      const card = prev[removeIndex];
+
+      if (card.quantity > 1) {
+        const updated = [...prev];
+        updated[removeIndex] = {
+          ...updated[removeIndex],
+          quantity: updated[removeIndex].quantity - 1,
+        };
+        return updated;
+      } else {
+        return prev.filter((_, i) => i !== removeIndex);
+      }
+    });
   };
 
-  // Toggle the drawer open/close
   const handleDrawerToggle = () => {
     setDrawerOpen((prev) => !prev);
   };
 
-  // Open the alternate printings dialog via API fetch
   const handleOpenAlternateDialog = async () => {
     if (!lastCard) return;
     try {
@@ -143,7 +197,6 @@ const ScanPage: React.FC = () => {
     }
   };
 
-  // Switch the last scanned card to the selected alternate printing
   const handleSwitchAlternate = (altCard: AltCard) => {
     setScannedCards((prev) => {
       const newCards = [...prev];
@@ -163,51 +216,184 @@ const ScanPage: React.FC = () => {
     setAlternateDialogOpen(false);
   };
 
-  // Remove an alternate printing from the list
   const handleRemoveAlternate = (altCard: AltCard) => {
     setAltPrintings((prev) => prev.filter((a) => a.id !== altCard.id));
   };
 
+  const handleToggleMobileDropdown = async () => {
+    const toggled = !mobileDropdownOpen;
+    setMobileDropdownOpen(toggled);
+
+    if (toggled && !mobileSessionId) {
+      await createMobileSession();
+    }
+  };
+
+  const createMobileSession = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${apiUrl}/api/mobile-infer/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        credentials: 'include',
+      });
+      const data = await res.json();
+      setMobileSessionId(data.session_id);
+      setMobileWaiting(true);
+      setStatus("Waiting for scan from mobile...");
+      console.log("New session created:", data.session_id);
+    } catch (err) {
+      console.error("Failed to create mobile session", err);
+      setStatus("Failed to start mobile scan");
+    }
+  };
+
+  const handleManualRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    await createMobileSession();
+    setIsRefreshing(false);
+  };
+
+
+
+  const processedResultIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (!mobileSessionId || !mobileWaiting) return;
+
+    const interval = setInterval(async () => {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      try {
+        const res = await fetch(`${apiUrl}/api/mobile-infer/result/${mobileSessionId}`, {
+          credentials: 'include',
+        });
+
+        if (res.status === 403) {
+          console.warn("Session expired, regenerating...");
+          await createMobileSession();
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data?.result && data.result_id && !processedResultIds.current.has(data.result_id)) {
+          processedResultIds.current.add(data.result_id);
+          const cardId = data.result.predicted_card_id;
+
+          setScannedCards((prev) => {
+            const existingIndex = prev.findIndex((card) => card.id === cardId);
+            if (existingIndex !== -1) {
+              const updated = [...prev];
+              updated[existingIndex] = {
+                ...updated[existingIndex],
+                quantity: updated[existingIndex].quantity + 1,
+              };
+              return updated;
+            } else {
+              return [
+                ...prev,
+                {
+                  id: cardId,
+                  name: data.result.predicted_card_name,
+                  finishes: data.result.finishes,
+                  set: data.result.set,
+                  setName: data.result.set_name,
+                  prices: {
+                    normal: data.result.prices.usd,
+                    foil: data.result.prices.usd_foil,
+                  },
+                  imageUri: data.result.image_uris?.normal,
+                  foil: false,
+                  quantity: 1,
+                  hasFoil:
+                    data.result.finishes.includes('foil') &&
+                    data.result.prices.usd_foil != null,
+                  cardId: cardId,
+                  collectorNumber: data.result.collector_number?.replace(/^0+/, '') || '',
+                },
+              ];
+            }
+          });
+
+          setStatus(`Scan received: ${data.result.predicted_card_name}`);
+        }
+      } catch (err) {
+        console.error('Error polling mobile scan result:', err);
+        setStatus('Error polling scan result');
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [mobileSessionId, mobileWaiting]);
+
   return (
     <Container maxWidth="lg" sx={{ paddingY: 4 }}>
-      {/* Fixed position toggle button - always anchored to the viewport top-right */}
-      <Box
-        sx={{
-          position: 'fixed',
-          top: 16,
-          right: 16,
-          zIndex: theme.zIndex.drawer + 1,
-        }}
-      >
+      <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: theme.zIndex.drawer + 1 }}>
         <IconButton onClick={handleDrawerToggle} color="primary">
           {drawerOpen ? <ChevronRightIcon /> : <ChevronLeftIcon />}
         </IconButton>
       </Box>
 
-      <Typography variant="h4" component="h1" textAlign="center" mb={2}>
-        Card Scanner for MTG
-      </Typography>
+      <Box textAlign="center" mb={{ xs: 2, md: 4 }} px={{ xs: 1, sm: 2 }}>
+        <Typography
+          variant="h6"
+          fontWeight={600}
+          sx={{
+            fontSize: {
+              xs: '1rem',  // phones
+              sm: '1.5rem',  // small tablets
+              md: '2rem',    // desktops
+            },
+          }}
+        >
+          MTG Scanner
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mt: 0.5, fontSize: { xs: '0.85rem', sm: '1rem' } }}
+        >
+          Scan cards using a phone or webcam
+        </Typography>
+      </Box>
+
+      <Box
+        sx={{
+          width: '100%',
+          borderBottom: '2px solid',
+          borderColor: 'divider',
+          my: { xs: 2, md: 3 },
+          borderRadius: 1,
+          opacity: 0.7,
+        }}
+      />
+      
+      <Stack spacing={2} alignItems="center" my={3}>
+        <MobileScanToggleButton isOpen={mobileDropdownOpen} onClick={handleToggleMobileDropdown} />
+
+        {mobileDropdownOpen && mobileSessionId && (
+          <MobileQRCodePanel
+            sessionId={mobileSessionId}
+            waiting={mobileWaiting}
+            onRefresh={handleManualRefresh}
+          />
+        )}
+      </Stack>
 
       <Box className="scan-page-container">
-        {/* Main Content Area */}
         <Box className="scan-page-main">
-          <Card elevation={3} className="camera-card">
-            <Box className="camera-wrapper">
-              <CameraStream
-                canvasRef={canvasRef}
-                cameraReady={cameraReady}
-                videoWidth={videoDimensions.width}
-                videoHeight={videoDimensions.height}
-              />
-              {/* Hidden video element used for processing */}
-              <video ref={videoRef} style={{ display: 'none' }} />
-              <Box className="status-overlay">
-                <Typography variant="body2">{status}</Typography>
-              </Box>
-            </Box>
-          </Card>
+          <CameraPanel
+            canvasRef={canvasRef}
+            videoRef={videoRef}
+            videoWidth={videoDimensions.width}
+            videoHeight={videoDimensions.height}
+            cameraReady={cameraReady}
+            status={status}
+          />
 
-          {/* Last Scanned Card with Alternate Printings Button */}
           {lastCard && (
             <Box className="last-scanned-card-section">
               <Typography variant="h6" gutterBottom>
@@ -221,13 +407,11 @@ const ScanPage: React.FC = () => {
             </Box>
           )}
 
-          {/* Debug Information */}
           <Box className="debug-section">
             <DebugInfo roiSnapshot={roiSnapshot} inferenceResult={inferenceResult} />
           </Box>
         </Box>
 
-        {/* Drawer for Card List */}
         <Drawer
           anchor="right"
           open={drawerOpen}
@@ -249,7 +433,6 @@ const ScanPage: React.FC = () => {
         </Drawer>
       </Box>
 
-      {/* Alternate Printings Dialog */}
       <AlternatePrintingsDialog
         open={alternateDialogOpen}
         onClose={() => setAlternateDialogOpen(false)}

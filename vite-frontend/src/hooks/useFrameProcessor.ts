@@ -23,13 +23,13 @@ export interface ScannedCard {
   foil: boolean;
   quantity: number;
   hasFoil: boolean;
-  cardId: string; // ← changed from number to string
+  cardId: string;
   collectorNumber: string;
 }
 
-const FOCUS_THRESHOLD = 100;
-const CONFIDENCE_THRESHOLD = 0.8;       // new: minimum per-keypoint confidence lower means more lenient
-const REQUIRED_CONSECUTIVE_FRAMES = 6;
+const FOCUS_THRESHOLD = 98;
+const CONFIDENCE_THRESHOLD = 0.83;
+const REQUIRED_CONSECUTIVE_FRAMES = 5;
 const SKIP_FRAMES = 1;
 const WINDOW_SIZE = 8;
 
@@ -40,6 +40,8 @@ interface Props {
   setRoiSnapshot: (dataUrl: string | null) => void;
   setInferenceResult: (r: InferenceResult | null) => void;
   setScannedCards: React.Dispatch<React.SetStateAction<ScannedCard[]>>;
+  onValidROI?: (roiCanvas: HTMLCanvasElement) => void;
+  onScannedCard?: (card: ScannedCard) => void;
 }
 
 const useFrameProcessor = ({
@@ -48,7 +50,8 @@ const useFrameProcessor = ({
   setStatus,
   setRoiSnapshot,
   setInferenceResult,
-  setScannedCards,
+  onValidROI,
+  onScannedCard,
 }: Props) => {
   const modelRef = useRef<tf.GraphModel | null>(null);
   const modelLoaded = useRef(false);
@@ -58,13 +61,11 @@ const useFrameProcessor = ({
   const cooldownRef = useRef(false);
   const raf = useRef(0);
 
-  // ─── Highlight flash on successful scan ──────────────────────────────────
   const highlightRef = useRef<[number, number][] | null>(null);
 
   const offCanvas = useRef<HTMLCanvasElement | null>(null);
   const infCanvas = useRef<HTMLCanvasElement | null>(null);
 
-  // ─── Audio setup ────────────────────────────────────────────────────────────
   const audioCtxRef = useRef<AudioContext>(
     new (window.AudioContext ||
       (window as typeof window & { webkitAudioContext?: typeof AudioContext })
@@ -110,7 +111,6 @@ const useFrameProcessor = ({
     });
   };
 
-  // ─── Load the TFJS GraphModel ──────────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
       setStatus('Loading TFJS GraphModel…');
@@ -130,7 +130,6 @@ const useFrameProcessor = ({
     load();
   }, [setStatus]);
 
-  // ─── Prepare offscreen canvases ────────────────────────────────────────────
   useEffect(() => {
     offCanvas.current = document.createElement('canvas');
     infCanvas.current = document.createElement('canvas');
@@ -155,21 +154,18 @@ const useFrameProcessor = ({
       return;
     }
 
-    // ─── Frame skipping ──────────────────────────────────────────────────────
     frameSkipRef.current++;
     if (frameSkipRef.current % (SKIP_FRAMES + 1) !== 0) {
       raf.current = requestAnimationFrame(process);
       return;
     }
 
-    // ─── Draw to offscreen ───────────────────────────────────────────────────
     const off = offCanvas.current!;
     off.width = video.videoWidth;
     off.height = video.videoHeight;
     const offCtx = off.getContext('2d')!;
     offCtx.drawImage(video, 0, 0);
 
-    // ─── Crop & scale ───────────────────────────────────────────────────────
     const { canvas: crop, scale, cropX, cropY } = scaleAndCropImage(
       off,
       TARGET_SIZE,
@@ -183,18 +179,14 @@ const useFrameProcessor = ({
         .expandDims(0)
     );
 
-    // ─── Inference via GraphModel ────────────────────────────────────────────
     const [heatmaps, coordsT] = modelRef.current.execute(x) as tf.Tensor[];
 
-    // ─── Extract per-keypoint confidences ────────────────────────────────────
-    const heat = heatmaps.squeeze();                      // [H,W,K]
-    const confTensor = heat.max([0, 1]) as tf.Tensor1D;    // [K]
+    const heat = heatmaps.squeeze();
+    const confTensor = heat.max([0, 1]) as tf.Tensor1D;
     const confidences = confTensor.arraySync() as number[];
     const minConf = Math.min(...confidences);
-    // clean up heatmap tensors
     tf.dispose([heatmaps, heat, confTensor]);
 
-    // ─── Map back to original frame coords ────────────────────────────────────
     const coordsArr = (coordsT.squeeze().arraySync() as number[][]) as [
       number,
       number
@@ -202,7 +194,6 @@ const useFrameProcessor = ({
     tf.dispose(coordsT);
     const quad = coordsArr.map(pt => uncropPoint(pt, scale, cropX, cropY));
 
-    // ─── ROI & focus & confidence logic ──────────────────────────────────────
     let valid = false;
     const validROI = isROIValid(quad, video.videoWidth, video.videoHeight);
     const centered =
@@ -226,11 +217,13 @@ const useFrameProcessor = ({
         } else {
           valid = true;
           setStatus('Valid frame');
+          if (onValidROI) {
+            onValidROI(roi);
+          }
         }
       }
     }
 
-    // ─── Draw overlay ────────────────────────────────────────────────────────
     const canvas = canvasRef.current!;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -239,7 +232,6 @@ const useFrameProcessor = ({
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     if (highlightRef.current) {
-      // draw green highlight for 1 second
       ctx.strokeStyle = 'lime';
       ctx.lineWidth = 4;
       ctx.beginPath();
@@ -249,7 +241,6 @@ const useFrameProcessor = ({
       ctx.closePath();
       ctx.stroke();
     } else if (centered) {
-      // normal red outline when centered
       ctx.strokeStyle = '#f44336';
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -260,15 +251,13 @@ const useFrameProcessor = ({
       ctx.stroke();
     }
 
-    // ─── Rolling window & snapshot logic ─────────────────────────────────────
     validBuffer.current.push(valid);
     if (validBuffer.current.length > WINDOW_SIZE) {
       validBuffer.current.shift();
     }
 
     if (
-      validBuffer.current.filter(Boolean).length >=
-        REQUIRED_CONSECUTIVE_FRAMES &&
+      validBuffer.current.filter(Boolean).length >= REQUIRED_CONSECUTIVE_FRAMES &&
       !cooldownRef.current
     ) {
       cooldownRef.current = true;
@@ -276,7 +265,6 @@ const useFrameProcessor = ({
         cooldownRef.current = false;
       }, 2000);
 
-      // flash highlight
       highlightRef.current = quad;
       setTimeout(() => {
         highlightRef.current = null;
@@ -309,36 +297,27 @@ const useFrameProcessor = ({
             const price = priceStr ? parseFloat(priceStr) : 0;
             playChord(price);
 
-            setScannedCards(prev => {
-              const idx = prev.findIndex(c => c.id === res.predicted_card_id);
-              if (idx >= 0) {
-                const next = [...prev];
-                next[idx].quantity++;
-                return next;
-              }
-              return [
-                ...prev,
-                {
-                  id: res.predicted_card_id!,
-                  name: res.predicted_card_name,
-                  finishes: res.finishes,
-                  set: res.set,
-                  setName: res.set_name,
-                  prices: {
-                    normal: res.prices.usd,
-                    foil: res.prices.usd_foil,
-                  },
-                  imageUri: res.image_uris.normal,
-                  foil: false,
-                  quantity: 1,
-                  hasFoil:
-                    res.finishes.includes('foil') &&
-                    res.prices.usd_foil != null,
-                    cardId: res.predicted_card_id!, // ← Make sure this exists in the backend response
-                  collectorNumber: res.collector_number?.replace(/^0+/, '') || '',
+            if (onScannedCard) {
+              onScannedCard({
+                id: res.predicted_card_id!,
+                name: res.predicted_card_name,
+                finishes: res.finishes,
+                set: res.set,
+                setName: res.set_name,
+                prices: {
+                  normal: res.prices.usd,
+                  foil: res.prices.usd_foil,
                 },
-              ];
-            });
+                imageUri: res.image_uris.normal,
+                foil: false,
+                quantity: 1,
+                hasFoil:
+                  res.finishes.includes('foil') &&
+                  res.prices.usd_foil != null,
+                cardId: res.predicted_card_id!,
+                collectorNumber: res.collector_number?.replace(/^0+/, '') || '',
+              });
+            }
           }
         })
         .catch(err => {
@@ -348,16 +327,8 @@ const useFrameProcessor = ({
     }
 
     raf.current = requestAnimationFrame(process);
-  }, [
-    videoRef,
-    canvasRef,
-    setStatus,
-    setRoiSnapshot,
-    setInferenceResult,
-    setScannedCards,
-  ]);
+  }, [videoRef, canvasRef, setStatus, onValidROI, setRoiSnapshot, setInferenceResult, onScannedCard]);
 
-  // ─── Kick off loop ─────────────────────────────────────────────────────────
   useEffect(() => {
     raf.current = requestAnimationFrame(process);
     return () => cancelAnimationFrame(raf.current);

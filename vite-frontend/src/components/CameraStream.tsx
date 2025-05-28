@@ -1,50 +1,101 @@
-// src/components/CameraStream.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box, Paper, CircularProgress, Typography } from '@mui/material';
 import { OverlayMarker } from 'over-lib';
 
 interface CameraStreamProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  videoRef?: React.RefObject<HTMLVideoElement>;
   cameraReady: boolean;
   videoWidth: number;
   videoHeight: number;
+  quad?: { x: number; y: number }[] | null;
 }
 
-const CameraStream: React.FC<CameraStreamProps> = ({ canvasRef, cameraReady, videoWidth, videoHeight }) => {
+const CameraStream: React.FC<CameraStreamProps> = ({
+  canvasRef,
+  cameraReady,
+  videoWidth,
+  videoHeight,
+  quad,
+}) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [displaySize, setDisplaySize] = useState({ width: videoWidth, height: videoHeight });
+
+  // Recalculate displayed canvas size on resize
   useEffect(() => {
-    if (canvasRef.current && cameraReady) {
-      const dpr = window.devicePixelRatio || 1;
-      const canvasElement = canvasRef.current;
-      // Set the intrinsic dimensions to the video size multiplied by the device pixel ratio.
-      canvasElement.width = videoWidth * dpr;
-      canvasElement.height = videoHeight * dpr;
-      // Set the CSS display size to the actual video dimensions.
-      canvasElement.style.width = `${videoWidth}px`;
-      canvasElement.style.height = `${videoHeight}px`;
-      const ctx = canvasElement.getContext('2d');
-      if (ctx) {
-        // Scale all drawing operations so they work with the intrinsic dimensions.
-        ctx.scale(dpr, dpr);
+    const updateSize = () => {
+      if (!containerRef.current) return;
+      const width = containerRef.current.clientWidth;
+      const aspect = videoHeight / videoWidth;
+      const height = width * aspect;
+      setDisplaySize({ width, height });
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [videoWidth, videoHeight]);
+
+  // Draw quad
+  useEffect(() => {
+    if (!canvasRef.current || !cameraReady || !quad) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const { width, height } = displaySize;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+    ctx.scale(dpr, dpr);
+
+    if (quad.length === 4) {
+      ctx.strokeStyle = 'lime';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(quad[0].x, quad[0].y);
+      for (let i = 1; i < 4; i++) {
+        ctx.lineTo(quad[i].x, quad[i].y);
       }
+      ctx.closePath();
+      ctx.stroke();
     }
-  }, [canvasRef, cameraReady, videoWidth, videoHeight]);
+  }, [canvasRef, cameraReady, displaySize, quad]);
 
   return (
-    <Box position="relative">
+    <Box ref={containerRef} position="relative" width="100%" maxWidth="100%" sx={{ aspectRatio: `${videoWidth} / ${videoHeight}` }}>
       <canvas
         ref={canvasRef}
-        style={{ width: `${videoWidth}px`, height: `${videoHeight}px`, display: 'block' }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: `${displaySize.width}px`,
+          height: `${displaySize.height}px`,
+        }}
       />
       <OverlayMarker
-        width="250px"
-        height="350px"
+  width="42%"
+  height="84%"
         markerColor="white"
         markerThickness={3}
         markerLength="25px"
-        perspective={true}
+        perspective
         perspectiveDistance="800px"
         rotateX="50deg"
         rotateY="0deg"
+        style={{
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+        }}
       />
       {!cameraReady && (
         <Paper
@@ -59,6 +110,7 @@ const CameraStream: React.FC<CameraStreamProps> = ({ canvasRef, cameraReady, vid
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
+            zIndex: 10,
           }}
         >
           <CircularProgress />

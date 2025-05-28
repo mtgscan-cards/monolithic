@@ -5,7 +5,7 @@ import { getCurrentCollectionValue } from '../api/price'
 
 interface CollectionValueProps {
   collectionId: number
-  refreshSignal: number // 👈 Add this to force re-fetch
+  refreshSignal: number // force re-fetch
 }
 
 const CollectionValue: React.FC<CollectionValueProps> = ({ collectionId, refreshSignal }) => {
@@ -29,7 +29,7 @@ const CollectionValue: React.FC<CollectionValueProps> = ({ collectionId, refresh
     }
 
     fetchValue()
-  }, [collectionId, refreshSignal]) // 👈 Refetch when signal changes
+  }, [collectionId, refreshSignal]) // Refetch when signal changes
 
   if (loading) return <CircularProgress size={24} />
   if (error) return <Alert severity="error">{error}</Alert>

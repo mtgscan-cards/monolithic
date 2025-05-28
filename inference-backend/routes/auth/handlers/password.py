@@ -14,6 +14,7 @@ from utils.cookies import set_refresh_cookie
 from jwt_helpers import create_access_token, create_refresh_token
 from datetime import datetime, timedelta, timezone
 from utils.cors import get_cors_origin
+from flask_jwt_extended import set_access_cookies
 
 # Only allow 3–30 characters, no slashes, question marks, hashes or whitespace
 USERNAME_REGEX = re.compile(r'^[^\/\?#\s]{3,30}$')
@@ -103,6 +104,7 @@ def login():
             "github_linked": github_linked,
             "has_password":  has_password,
         }))
+        set_access_cookies(resp, access_token)  # Add this line to set the access token in cookies
         set_refresh_cookie(resp, refresh_token)
         return resp
 

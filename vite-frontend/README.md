@@ -1,54 +1,59 @@
-# React + TypeScript + Vite
+# Frontend – React + Vite + SWC
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend module of the monorepo. It leverages modern React (TypeScript), Vite, and SWC.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Stack Overview
 
-## Expanding the ESLint configuration
+* **Framework**: React 18 (TypeScript)
+* **Bundler**: [Vite](https://vitejs.dev/)
+* **Compiler**: [SWC](https://swc.rs/)
+* **State**: React Context + local state
+* **Routing**: React Router v6
+* **UI**: MUI (Material UI)
+* **Camera + CV**: OpenCV.js + TensorFlow\.js (WebWorker)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+### Install dependencies
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Start development server
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+```bash
+npm run dev
 ```
+
+---
+
+## Environment Variables
+
+Create a `.env` file with the following placeholder values set to match the development env:
+
+```
+VITE_HCAPTCHA_SITEKEY=1234-1234-1234-1234
+VITE_GOOGLE_CLIENT_ID=4321-4321-4321-4321.apps.googleusercontent.com
+VITE_API_URL=http://localhost:5000
+VITE_GITHUB_APP_CLIENT_ID=0987654321
+VITE_FRONTEND_URL=http://localhost:5173
+```
+
+---
+
+## Deployment
+
+This portion of the app is deployed via workflow dispatch:
+
+* **Cloudflare Pages** (static assets)
+* **GitHub Actions** (manual `workflow_dispatch` on `prod` branch)
+
+---
+
+## LICENSE
+
+This project is licensed under the GNU General Public License v3.0.  
+See the [LICENSE](../LICENSE) file for full details.

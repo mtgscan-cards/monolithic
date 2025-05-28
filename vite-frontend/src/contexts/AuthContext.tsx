@@ -154,9 +154,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isOnPublicAuthPage,
     })
 
+    const isMobileScanRoute = !!matchPath(
+      { path: '/mobile-scan/:session_id/*', end: false },
+      pathname
+    )
+
     const shouldRedirectToLogin =
       !hasToken &&
       !isPublicCollectionRoute &&
+      !isMobileScanRoute &&
       !isOnPublicAuthPage &&
       !(isSetupRoute && isEligibleForSetup)
 

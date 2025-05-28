@@ -1,5 +1,5 @@
 // src/components/CardList.tsx
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   List,
   ListItem,
@@ -48,26 +48,34 @@ const CardList: React.FC<CardListProps> = ({
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [collectionsFetched, setCollectionsFetched] = useState(false)
 
-  useEffect(() => {
-    getCollections()
-      .then(cols => {
-        setCollections(cols)
-        if (cols.length === 1) {
-          setSelectedCollection(cols[0])
-        } else if (cols.length > 1) {
-          setSelectDialogOpen(true)
-        } else {
-          setCreateDialogOpen(true)
-        }
-      })
-      .catch(err => {
-        console.error('Failed to fetch collections', err)
-      })
-  }, [])
+  const fetchCollectionsIfNeeded = async () => {
+    if (collectionsFetched) return
+    try {
+      const cols = await getCollections()
+      setCollections(cols)
+      setCollectionsFetched(true)
+
+      if (cols.length === 1) {
+        setSelectedCollection(cols[0])
+        return true
+      } else if (cols.length > 1) {
+        setSelectDialogOpen(true)
+        return false
+      } else {
+        setCreateDialogOpen(true)
+        return false
+      }
+    } catch (err) {
+      console.error('Failed to fetch collections', err)
+      return false
+    }
+  }
 
   const handleBulkAdd = async () => {
-    if (!selectedCollection || scannedCards.length === 0) return
+    const ready = selectedCollection || (await fetchCollectionsIfNeeded())
+    if (!ready || !selectedCollection || scannedCards.length === 0) return
 
     setBulkLoading(true)
 
@@ -96,7 +104,7 @@ const CardList: React.FC<CardListProps> = ({
     }
   }
 
-  const handleSelectCollection = async (col: CollectionData) => {
+  const handleSelectCollection = (col: CollectionData) => {
     setSelectedCollection(col)
     setSelectDialogOpen(false)
   }
@@ -195,9 +203,7 @@ const CardList: React.FC<CardListProps> = ({
               variant="contained"
               color="primary"
               disabled={
-                !selectedCollection ||
-                scannedCards.every(card => addedMap[card.id]) ||
-                bulkLoading
+                scannedCards.every(card => addedMap[card.id]) || bulkLoading
               }
               onClick={handleBulkAdd}
             >
