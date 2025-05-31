@@ -16,43 +16,69 @@ const MobileScanPage: React.FC = () => {
   const [status, setStatus] = useState('Initializing camera...');
   const [roiSnapshot, setRoiSnapshot] = useState<string | null>(null);
   const [, setIsUploading] = useState(false);
-  const [quad] = useState<{ x: number; y: number }[] | null>(null);
+  const [quad] = useState<[number, number][] | undefined>(undefined);
   const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const lastScanTimeRef = useRef<number>(0);
   const lastSeenCardIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+useEffect(() => {
+  const video = videoRef.current;
+  if (!video) return;
 
-    navigator.mediaDevices
-      .getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-        },
-      })
-      .then((stream) => {
-        video.srcObject = stream;
+  let didAbort = false;
+  let localStream: MediaStream | null = null;
+
+  const initCameraWithRetry = async (retries = 3, delay = 400) => {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+          },
+        });
+
+        if (didAbort) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        localStream = stream;
+        video.srcObject = localStream;
         video.onloadedmetadata = () => {
           setVideoDimensions({
             width: video.videoWidth,
             height: video.videoHeight,
           });
+          video.play().then(() => setStatus('Camera ready')).catch(() => {
+            setStatus('Error playing video stream');
+          });
         };
-        return video.play();
-      })
-      .then(() => setStatus('Camera ready'))
-      .catch((err) => {
-        console.error('Camera error:', err);
-        setStatus('Error accessing camera');
-      });
 
-    return () => {
-      if (video?.srcObject instanceof MediaStream) {
-        video.srcObject.getTracks().forEach((track) => track.stop());
+        return; // ✅ success, exit loop
+      } catch (err) {
+        console.warn(`Camera attempt ${attempt + 1} failed:`, err);
+        if (attempt === retries - 1) {
+          setStatus('Failed to access camera. Please refresh or close other apps.');
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
       }
-    };
-  }, []);
+    }
+  };
+
+  initCameraWithRetry();
+
+  return () => {
+    didAbort = true;
+    if (localStream) {
+      localStream.getTracks().forEach((track) => track.stop());
+    }
+    if (video) {
+      video.srcObject = null;
+    }
+  };
+}, []);
+
 
   useEffect(() => {
     if (!session_id) return;
@@ -154,7 +180,7 @@ const MobileScanPage: React.FC = () => {
         Mobile Card Scanner
       </Typography>
       <Typography variant="body2" align="center" mb={2}>
-        Point your phone at a MTG card. It will scan automatically.
+        Point your phone at a MTG card then tap to scan it.
       </Typography>
 
       <Box

@@ -130,7 +130,7 @@ const CardList: React.FC<CardListProps> = ({
   }
 
   return (
-    <Box mt={2}>
+     <Box mt={2} sx={{ zIndex: 9999, position: 'relative' }}>
       <Divider sx={{ mb: 2 }} />
       {scannedCards.length === 0 ? (
         <Typography variant="body2" color="textSecondary">

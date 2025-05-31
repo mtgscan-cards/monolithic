@@ -31,7 +31,6 @@ const drawerWidth = 300;
 const ScanPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
   const videoRef = useRef<HTMLVideoElement>(null) as React.RefObject<HTMLVideoElement>;
   const canvasRef = useRef<HTMLCanvasElement>(null) as React.RefObject<HTMLCanvasElement>;
@@ -57,18 +56,21 @@ const ScanPage: React.FC = () => {
 
   const lastCard = scannedCards.length > 0 ? scannedCards[scannedCards.length - 1] : null;
 
-  useEffect(() => {
-    let didAbort = false;
-    let localStream: MediaStream | null = null;
-    const videoElement = videoRef.current;
+useEffect(() => {
+  let didAbort = false;
+  let localStream: MediaStream | null = null;
 
-    async function initCamera() {
+  const videoElement = videoRef.current;
+
+  async function initCameraWithRetry(retries = 3, delay = 500) {
+    for (let i = 0; i < retries; i++) {
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         if (didAbort) {
-          localStream.getTracks().forEach((track) => track.stop());
+          stream.getTracks().forEach((track) => track.stop());
           return;
         }
+        localStream = stream;
         if (videoElement) {
           videoElement.srcObject = localStream;
           videoElement.onloadedmetadata = async () => {
@@ -97,40 +99,51 @@ const ScanPage: React.FC = () => {
             }
           };
         }
+        return;
       } catch (err) {
-        console.error('Error accessing webcam:', err);
-        setStatus(
-          <>
-            Error accessing webcam. {' '}
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                window.location.reload();
-              }}
-              style={{ textDecoration: 'underline', color: 'inherit' }}
-            >
-              Refresh?
-            </a>
-          </>
-        );
+        console.warn(`Camera allocation failed (attempt ${i + 1}):`, err);
+        if (i === retries - 1) {
+          setStatus(
+            <>
+              Failed to access webcam. Another app or tab may be using it.{' '}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.reload();
+                }}
+                style={{ textDecoration: 'underline', color: 'inherit' }}
+              >
+                Try Again?
+              </a>
+            </>
+          );
+        } else {
+          await new Promise((r) => setTimeout(r, delay));
+        }
       }
     }
+  }
 
-    initCamera();
+  initCameraWithRetry();
 
-    return () => {
-      didAbort = true;
-      if (localStream) {
-        localStream.getTracks().forEach((track) => track.stop());
-      }
-      if (videoElement) {
-        videoElement.srcObject = null;
-      }
-    };
-  }, []);
+  return () => {
+    didAbort = true;
+    if (localStream) {
+      localStream.getTracks().forEach((track) => track.stop());
+    }
+    if (videoElement) {
+      videoElement.srcObject = null;
+    }
+  };
+}, []);
 
- useFrameProcessor({
+const [showOverlayMarker, setShowOverlayMarker] = useState(false);
+
+// ✅ Then safely use it inside the processor hook
+const {
+  manualSnapshotFromOverlay
+} = useFrameProcessor({
   videoRef,
   canvasRef,
   setStatus,
@@ -150,6 +163,10 @@ const ScanPage: React.FC = () => {
         return [...prev, { ...card, quantity: 1 }];
       }
     });
+
+    // ✅ Now this works
+    setShowOverlayMarker(true);
+    setTimeout(() => setShowOverlayMarker(false), 2000);
   },
 });
 
@@ -370,7 +387,7 @@ const ScanPage: React.FC = () => {
           opacity: 0.7,
         }}
       />
-      
+
       <Stack spacing={2} alignItems="center" my={3}>
         <MobileScanToggleButton isOpen={mobileDropdownOpen} onClick={handleToggleMobileDropdown} />
 
@@ -385,14 +402,16 @@ const ScanPage: React.FC = () => {
 
       <Box className="scan-page-container">
         <Box className="scan-page-main">
-          <CameraPanel
-            canvasRef={canvasRef}
-            videoRef={videoRef}
-            videoWidth={videoDimensions.width}
-            videoHeight={videoDimensions.height}
-            cameraReady={cameraReady}
-            status={status}
-          />
+<CameraPanel
+  canvasRef={canvasRef}
+  videoRef={videoRef}
+  videoWidth={videoDimensions.width}
+  videoHeight={videoDimensions.height}
+  cameraReady={cameraReady}
+  status={status}
+  onTapSnapshot={manualSnapshotFromOverlay}
+  showOverlayMarker={showOverlayMarker}
+/>
 
           {lastCard && (
             <Box className="last-scanned-card-section">
