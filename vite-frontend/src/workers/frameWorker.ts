@@ -8,11 +8,10 @@ setWasmPaths('/');
 let model: tf.GraphModel | null = null;
 let backendReady = false;
 let modelReady = false;
-
 const inferQueue: MessageEvent[] = [];
 
-// === Load Backend and Model Immediately ===
-(async () => {
+// === Load Backend and Model ===
+async function initBackendAndModel() {
   if (!backendReady) {
     console.log('[Worker] Setting backend to webgl...');
     await tf.setBackend('webgl');
@@ -21,28 +20,34 @@ const inferQueue: MessageEvent[] = [];
     console.log('[Worker] Backend ready.');
   }
 
-  try {
-    console.log('[Worker] Loading model...');
-    model = await tf.loadGraphModel('/web_model/model.json');
-    modelReady = true;
-    console.log('[Worker] Model loaded.');
-    self.postMessage({ type: 'model-loaded' });
+  if (!modelReady) {
+    try {
+      console.log('[Worker] Loading model...');
+      model = await tf.loadGraphModel('/web_model/model.json');
+      modelReady = true;
+      console.log('[Worker] Model loaded.');
+      self.postMessage({ type: 'model-loaded' });
 
-    // Drain any queued inference requests
-    while (inferQueue.length > 0) {
-      handleMessage(inferQueue.shift()!);
+      // Drain queued inferences
+      while (inferQueue.length > 0) {
+        handleMessage(inferQueue.shift()!);
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      console.error('[Worker] Model load failed:', error);
+      self.postMessage({ type: 'error', error });
     }
-  } catch (err) {
-    const error = err instanceof Error ? err.message : String(err);
-    console.error('[Worker] Model load failed:', error);
-    self.postMessage({ type: 'error', error });
   }
-})();
+}
 
-// === Handle Messages ===
 self.onmessage = (e: MessageEvent) => {
-  if (e.data.type === 'infer' && !modelReady) {
-    inferQueue.push(e); // Queue until ready
+  if (e.data.type === 'loadModel') {
+    initBackendAndModel();
+    return;
+  }
+
+  if (!modelReady) {
+    inferQueue.push(e);
   } else {
     handleMessage(e);
   }
@@ -58,15 +63,16 @@ function handleMessage(e: MessageEvent) {
     }
 
     try {
-      console.log('[Worker] Running inference...');
       const input = tf.tidy(() =>
         tf.browser.fromPixels(bitmap).toFloat().div(255).expandDims(0)
       );
 
+      bitmap.close(); // Important: release memory
+
       const [heatmaps, coordsT] = model.execute(input) as tf.Tensor[];
 
-      const heat = heatmaps.squeeze();
-      const confTensor = heat.max([0, 1]);
+      const heat = heatmaps.squeeze(); // [H, W, 4]
+      const confTensor = heat.max([0, 1]); // [4]
       confTensor.array().then((confidences) => {
         coordsT.squeeze().array().then((coords) => {
           tf.dispose([input, heatmaps, coordsT, heat, confTensor]);
