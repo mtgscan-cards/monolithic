@@ -32,7 +32,6 @@ const CameraPanel: React.FC<CameraPanelProps> = ({
           cameraReady={cameraReady}
           quad={quad}
         />
-        <video ref={videoRef} style={{ display: 'none' }} />
         <Box
           sx={{
             position: 'absolute',

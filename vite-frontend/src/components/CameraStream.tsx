@@ -13,6 +13,7 @@ interface CameraStreamProps {
 
 const CameraStream: React.FC<CameraStreamProps> = ({
   canvasRef,
+  videoRef,
   cameraReady,
   videoWidth,
   videoHeight,
@@ -21,7 +22,6 @@ const CameraStream: React.FC<CameraStreamProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [displaySize, setDisplaySize] = useState({ width: videoWidth, height: videoHeight });
 
-  // Recalculate displayed canvas size on resize
   useEffect(() => {
     const updateSize = () => {
       if (!containerRef.current) return;
@@ -36,7 +36,6 @@ const CameraStream: React.FC<CameraStreamProps> = ({
     return () => window.removeEventListener('resize', updateSize);
   }, [videoWidth, videoHeight]);
 
-  // Draw quad
   useEffect(() => {
     if (!canvasRef.current || !cameraReady || !quad) return;
     const canvas = canvasRef.current;
@@ -51,7 +50,7 @@ const CameraStream: React.FC<CameraStreamProps> = ({
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
 
-    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
     ctx.scale(dpr, dpr);
 
     if (quad.length === 4) {
@@ -68,7 +67,26 @@ const CameraStream: React.FC<CameraStreamProps> = ({
   }, [canvasRef, cameraReady, displaySize, quad]);
 
   return (
-    <Box ref={containerRef} position="relative" width="100%" maxWidth="100%" sx={{ aspectRatio: `${videoWidth} / ${videoHeight}` }}>
+    <Box
+      ref={containerRef}
+      position="relative"
+      width="100%"
+      maxWidth="100%"
+      sx={{ aspectRatio: `${videoWidth} / ${videoHeight}` }}
+    >
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        style={{
+          width: `${displaySize.width}px`,
+          height: `${displaySize.height}px`,
+          objectFit: 'cover',
+          display: 'block',
+        }}
+      />
+
       <canvas
         ref={canvasRef}
         style={{
@@ -77,11 +95,13 @@ const CameraStream: React.FC<CameraStreamProps> = ({
           left: 0,
           width: `${displaySize.width}px`,
           height: `${displaySize.height}px`,
+          pointerEvents: 'none',
         }}
       />
+
       <OverlayMarker
-  width="42%"
-  height="84%"
+        width="42%"
+        height="84%"
         markerColor="white"
         markerThickness={3}
         markerLength="25px"
@@ -90,13 +110,14 @@ const CameraStream: React.FC<CameraStreamProps> = ({
         rotateX="50deg"
         rotateY="0deg"
         style={{
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
         }}
       />
+
       {!cameraReady && (
         <Paper
           sx={{

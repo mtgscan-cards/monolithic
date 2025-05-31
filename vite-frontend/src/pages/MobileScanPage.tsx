@@ -103,7 +103,7 @@ const MobileScanPage: React.FC = () => {
     setStatus,
     setInferenceResult: () => { },
     setRoiSnapshot: () => { },
-    setScannedCards: () => { },
+    onScannedCard: () => { },
     onValidROI: async (roiCanvas) => {
       if (!session_id) return;
 
