@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   scaleAndCropImage,
   uncropPoint,
@@ -285,73 +285,40 @@ useEffect(() => {
 ]);
 
 
-  const process = useCallback(() => {
-  const now = performance.now();
 
-  if (now - lastProcessTimeRef.current < MIN_FRAME_INTERVAL_MS) {
-    raf.current = requestAnimationFrame(process);
-    return;
-  }
-
-  lastProcessTimeRef.current = now;
-
-  const video = videoRef.current;
-  if (!video || video.videoWidth === 0) {
-    raf.current = requestAnimationFrame(process);
-    return;
-  }
-
-  frameSkipRef.current++;
-  if (frameSkipRef.current % (SKIP_FRAMES + 1) !== 0) {
-    raf.current = requestAnimationFrame(process);
-    return;
-  }
-
-  const off = offCanvas.current!;
-  off.width = video.videoWidth;
-  off.height = video.videoHeight;
-  const ctx = off.getContext('2d')!;
-  ctx.drawImage(video, 0, 0);
-
-  const { canvas: crop, scale, cropX, cropY } = scaleAndCropImage(off, TARGET_SIZE, TARGET_SIZE);
-  createImageBitmap(crop).then(bitmap => {
-    workerRef.current?.postMessage(
-      { type: 'infer', bitmap, scale, cropX, cropY },
-      [bitmap]
-    );
-  });
-
-  raf.current = requestAnimationFrame(process);
-}, [videoRef]);
 
 useEffect(() => {
-  const interval = setInterval(() => {
+  raf.current = requestAnimationFrame(function loop() {
     const now = performance.now();
-    if (now - lastProcessTimeRef.current < MIN_FRAME_INTERVAL_MS) return;
-    lastProcessTimeRef.current = now;
 
-    const video = videoRef.current;
-    if (!video || video.videoWidth === 0) return;
+    if (now - lastProcessTimeRef.current >= MIN_FRAME_INTERVAL_MS) {
+      lastProcessTimeRef.current = now;
 
-    frameSkipRef.current++;
-    if (frameSkipRef.current % (SKIP_FRAMES + 1) !== 0) return;
+      const video = videoRef.current;
+      if (video && video.videoWidth !== 0) {
+        frameSkipRef.current++;
+        if (frameSkipRef.current % (SKIP_FRAMES + 1) === 0) {
+          const off = offCanvas.current!;
+          off.width = video.videoWidth;
+          off.height = video.videoHeight;
+          const ctx = off.getContext('2d')!;
+          ctx.drawImage(video, 0, 0);
 
-    const off = offCanvas.current!;
-    off.width = video.videoWidth;
-    off.height = video.videoHeight;
-    const ctx = off.getContext('2d')!;
-    ctx.drawImage(video, 0, 0);
+          const { canvas: crop, scale, cropX, cropY } = scaleAndCropImage(off, TARGET_SIZE, TARGET_SIZE);
+          createImageBitmap(crop).then(bitmap => {
+            workerRef.current?.postMessage(
+              { type: 'infer', bitmap, scale, cropX, cropY },
+              [bitmap]
+            );
+          });
+        }
+      }
+    }
 
-    const { canvas: crop, scale, cropX, cropY } = scaleAndCropImage(off, TARGET_SIZE, TARGET_SIZE);
-    createImageBitmap(crop).then(bitmap => {
-      workerRef.current?.postMessage(
-        { type: 'infer', bitmap, scale, cropX, cropY },
-        [bitmap]
-      );
-    });
-  }, 100); // Run at ~10 FPS
+    raf.current = requestAnimationFrame(loop);
+  });
 
-  return () => clearInterval(interval);
+  return () => cancelAnimationFrame(raf.current);
 }, [videoRef]);
 
   return null;
