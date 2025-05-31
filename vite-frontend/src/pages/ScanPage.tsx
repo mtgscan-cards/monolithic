@@ -130,29 +130,29 @@ const ScanPage: React.FC = () => {
     };
   }, []);
 
-  useFrameProcessor({
-    videoRef,
-    canvasRef,
-    setStatus,
-    setInferenceResult,
-    setRoiSnapshot,
-    setScannedCards,
-    onScannedCard: (card: ScannedCard) => {
-      setScannedCards((prev) => {
-        const existingIndex = prev.findIndex((c) => c.id === card.id);
-        if (existingIndex !== -1) {
-          const updated = [...prev];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            quantity: updated[existingIndex].quantity + 1,
-          };
-          return updated;
-        } else {
-          return [...prev, { ...card, quantity: 1 }];
-        }
-      });
-    },
-  });
+ useFrameProcessor({
+  videoRef,
+  canvasRef,
+  setStatus,
+  setInferenceResult,
+  setRoiSnapshot,
+  onScannedCard: (card: ScannedCard) => {
+    setScannedCards((prev) => {
+      const existingIndex = prev.findIndex((c) => c.id === card.id);
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: updated[existingIndex].quantity + 1,
+        };
+        return updated;
+      } else {
+        return [...prev, { ...card, quantity: 1 }];
+      }
+    });
+  },
+});
+
 
   const handleToggleFoil = (cardId: string) => {
     setScannedCards((prev) =>
