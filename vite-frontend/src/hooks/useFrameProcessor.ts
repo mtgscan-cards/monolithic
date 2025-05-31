@@ -54,18 +54,21 @@ const useFrameProcessor = ({
   onValidROI,
   onScannedCard,
 }: Props) => {
-  const lastProcessTimeRef = useRef<number>(0);
-  const raf = useRef(0);
-  const offCanvas = useRef<HTMLCanvasElement | null>(null);
-  const infCanvas = useRef<HTMLCanvasElement | null>(null);
-  const workerRef = useRef<Worker | null>(null);
-  const modelLoadedRef = useRef(false);
-  const inferRunningRef = useRef(false);
+const manualQuadRef = useRef<{ x: number; y: number }[] | null>(null);
+const manualQuadTimeoutRef = useRef<number | null>(null);
+const lastManualSnapshotTimeRef = useRef(0);
+const lastProcessTimeRef = useRef<number>(0);
+const raf = useRef(0);
+const offCanvas = useRef<HTMLCanvasElement | null>(null);
+const infCanvas = useRef<HTMLCanvasElement | null>(null);
+const workerRef = useRef<Worker | null>(null);
+const modelLoadedRef = useRef(false);
+const inferRunningRef = useRef(false);
 
-  const frameSkipRef = useRef(0);
-  const validBuffer = useRef<boolean[]>([]);
-  const cooldownRef = useRef(false);
-  const highlightRef = useRef<[number, number][] | null>(null);
+const frameSkipRef = useRef(0);
+const validBuffer = useRef<boolean[]>([]);
+const cooldownRef = useRef(false);
+const highlightRef = useRef<[number, number][] | null>(null);
 
 
   const audioCtxRef = useRef<AudioContext>(
@@ -178,31 +181,38 @@ useEffect(() => {
     }
   }
 
-  const canvas = canvasRef.current!;
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d')!;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+const canvas = canvasRef.current!;
+canvas.width = video.videoWidth;
+canvas.height = video.videoHeight;
+const ctx = canvas.getContext('2d')!;
+ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (highlightRef.current) {
-    ctx.strokeStyle = 'lime';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    highlightRef.current.forEach(([x, y]: [number, number], i: number) =>
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
-    );
-    ctx.closePath();
-    ctx.stroke();
-  } else if (centered) {
-    ctx.strokeStyle = '#f44336';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    quad.forEach(([x, y]: [number, number], i: number) =>
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
-    );
-    ctx.closePath();
-    ctx.stroke();
-  }
+// Always draw the inference quad
+if (centered) {
+  const inferenceQuad = quad.map(([x, y]: [number, number]) => ({ x, y }));
+  ctx.strokeStyle = highlightRef.current ? 'lime' : '#f44336';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  inferenceQuad.forEach(({ x, y }: { x: number; y: number }, i: number) => {
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.stroke();
+}
+
+// Only draw highlight overlay if present (green)
+if (highlightRef.current) {
+  ctx.strokeStyle = 'lime';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  highlightRef.current.forEach(([x, y], i) => {
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.stroke();
+}
 
   validBuffer.current.push(valid);
   if (validBuffer.current.length > WINDOW_SIZE) validBuffer.current.shift();
@@ -320,8 +330,120 @@ useEffect(() => {
 
   return () => cancelAnimationFrame(raf.current);
 }, [videoRef]);
+const manualSnapshotFromOverlay = () => {
+  const now = performance.now();
+  if (now - lastManualSnapshotTimeRef.current < MIN_FRAME_INTERVAL_MS) {
+    console.warn('[Manual Snapshot] Skipped due to cooldown');
+    return;
+  }
+  lastManualSnapshotTimeRef.current = now;
 
-  return null;
+  const video = videoRef.current;
+  const off = offCanvas.current;
+
+  if (!video || !off || video.videoWidth === 0 || video.videoHeight === 0) {
+    console.warn('[Manual Snapshot] Video or canvas not ready');
+    return;
+  }
+
+  off.width = video.videoWidth;
+  off.height = video.videoHeight;
+  const ctx = off.getContext('2d');
+  if (!ctx) {
+    console.error('[Manual Snapshot] Failed to get 2D context');
+    return;
+  }
+
+  ctx.drawImage(video, 0, 0);
+
+  const cropWidth = video.videoWidth * 0.42;
+  const cropHeight = video.videoHeight * 0.84;
+  const cropX = (video.videoWidth - cropWidth) / 2;
+  const cropY = (video.videoHeight - cropHeight) / 2;
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = TARGET_SIZE;
+  tempCanvas.height = TARGET_SIZE;
+
+  const tempCtx = tempCanvas.getContext('2d');
+  if (!tempCtx) {
+    console.error('[Manual Snapshot] Failed to get temp 2D context');
+    return;
+  }
+
+  tempCtx.drawImage(
+    off,
+    cropX,
+    cropY,
+    cropWidth,
+    cropHeight,
+    0,
+    0,
+    TARGET_SIZE,
+    TARGET_SIZE
+  );
+
+  const cx = video.videoWidth / 2;
+  const cy = video.videoHeight / 2;
+  const leftX = cx - cropWidth / 2;
+  const rightX = cx + cropWidth / 2;
+  const topY = cy - cropHeight / 2;
+  const bottomY = cy + cropHeight / 2;
+  const perspectiveShift = cropHeight * 0.25;
+
+  manualQuadRef.current = [
+    { x: leftX, y: topY + perspectiveShift },
+    { x: rightX, y: topY + perspectiveShift },
+    { x: rightX, y: bottomY },
+    { x: leftX, y: bottomY },
+  ];
+
+  if (manualQuadTimeoutRef.current !== null) {
+    clearTimeout(manualQuadTimeoutRef.current);
+  }
+  manualQuadTimeoutRef.current = window.setTimeout(() => {
+    manualQuadRef.current = null;
+  }, 2000);
+
+  const url = tempCanvas.toDataURL();
+  setRoiSnapshot(url);
+  setStatus('Manual snapshot');
+
+  sendROIToBackend(url)
+    .then(res => {
+      if (!res.predicted_card_id) {
+        setStatus('No match');
+        setInferenceResult(null);
+      } else {
+        setInferenceResult(res);
+        setStatus(`Found ${res.predicted_card_name}`);
+        playChord(parseFloat(res.prices.usd_foil ?? res.prices.usd ?? '0'));
+        onScannedCard?.({
+          id: res.predicted_card_id!,
+          name: res.predicted_card_name,
+          finishes: res.finishes,
+          set: res.set,
+          setName: res.set_name,
+          prices: {
+            normal: res.prices.usd,
+            foil: res.prices.usd_foil,
+          },
+          imageUri: res.image_uris.normal,
+          foil: false,
+          quantity: 1,
+          hasFoil: res.finishes.includes('foil') && !!res.prices.usd_foil,
+          cardId: res.predicted_card_id!,
+          collectorNumber: res.collector_number?.replace(/^0+/, '') || '',
+        });
+      }
+    })
+    .catch(err => {
+      console.error('[Manual Snapshot] Backend error', err);
+      setStatus('Backend error');
+    });
+};
+
+return { manualSnapshotFromOverlay };
 };
 
 export default useFrameProcessor;
