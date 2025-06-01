@@ -21,63 +21,63 @@ const MobileScanPage: React.FC = () => {
   const lastScanTimeRef = useRef<number>(0);
   const lastSeenCardIdRef = useRef<string | null>(null);
 
-useEffect(() => {
-  const video = videoRef.current;
-  if (!video) return;
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
 
-  let didAbort = false;
-  let localStream: MediaStream | null = null;
+    let didAbort = false;
+    let localStream: MediaStream | null = null;
 
-  const initCameraWithRetry = async (retries = 3, delay = 400) => {
-    for (let attempt = 0; attempt < retries; attempt++) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-          },
-        });
-
-        if (didAbort) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-
-        localStream = stream;
-        video.srcObject = localStream;
-        video.onloadedmetadata = () => {
-          setVideoDimensions({
-            width: video.videoWidth,
-            height: video.videoHeight,
+    const initCameraWithRetry = async (retries = 3, delay = 400) => {
+      for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+            },
           });
-          video.play().then(() => setStatus('Camera ready')).catch(() => {
-            setStatus('Error playing video stream');
-          });
-        };
 
-        return; // ✅ success, exit loop
-      } catch (err) {
-        console.warn(`Camera attempt ${attempt + 1} failed:`, err);
-        if (attempt === retries - 1) {
-          setStatus('Failed to access camera. Please refresh or close other apps.');
-        } else {
-          await new Promise((resolve) => setTimeout(resolve, delay));
+          if (didAbort) {
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+          }
+
+          localStream = stream;
+          video.srcObject = localStream;
+          video.onloadedmetadata = () => {
+            setVideoDimensions({
+              width: video.videoWidth,
+              height: video.videoHeight,
+            });
+            video.play().then(() => setStatus('Camera ready')).catch(() => {
+              setStatus('Error playing video stream');
+            });
+          };
+
+          return; // ✅ success, exit loop
+        } catch (err) {
+          console.warn(`Camera attempt ${attempt + 1} failed:`, err);
+          if (attempt === retries - 1) {
+            setStatus('Failed to access camera. Please refresh or close other apps.');
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
         }
       }
-    }
-  };
+    };
 
-  initCameraWithRetry();
+    initCameraWithRetry();
 
-  return () => {
-    didAbort = true;
-    if (localStream) {
-      localStream.getTracks().forEach((track) => track.stop());
-    }
-    if (video) {
-      video.srcObject = null;
-    }
-  };
-}, []);
+    return () => {
+      didAbort = true;
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+      }
+      if (video) {
+        video.srcObject = null;
+      }
+    };
+  }, []);
 
 
   useEffect(() => {
@@ -139,7 +139,7 @@ useEffect(() => {
     };
   }, [session_id]);
 
-  useFrameProcessor({
+  const { manualSnapshotFromOverlay } = useFrameProcessor({
     videoRef,
     canvasRef,
     setStatus,
@@ -220,6 +220,8 @@ useEffect(() => {
           cameraReady={true}
           status={status}
           quad={quad}
+          onTapSnapshot={manualSnapshotFromOverlay}  // ✅ Add this
+          showOverlayMarker={true}                   // (optional: if you want the red flash)
         />
       </Box>
 
@@ -235,22 +237,22 @@ useEffect(() => {
       />
 
       {roiSnapshot && (
-  <Box sx={{ mt: 1, mb: 1, textAlign: 'center' }}>
-    <Typography variant="subtitle2">ROI Preview</Typography>
-    <Box
-      component="img"
-      src={roiSnapshot}
-      alt="ROI Snapshot"
-      sx={{
-        width: '100%',
-        maxWidth: 160,
-        height: 'auto',
-        borderRadius: 1,
-        mt: 1,
-      }}
-    />
-  </Box>
-)}
+        <Box sx={{ mt: 1, mb: 1, textAlign: 'center' }}>
+          <Typography variant="subtitle2">ROI Preview</Typography>
+          <Box
+            component="img"
+            src={roiSnapshot}
+            alt="ROI Snapshot"
+            sx={{
+              width: '100%',
+              maxWidth: 160,
+              height: 'auto',
+              borderRadius: 1,
+              mt: 1,
+            }}
+          />
+        </Box>
+      )}
 
 
     </Container>
