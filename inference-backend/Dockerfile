@@ -23,5 +23,5 @@ COPY . .
 # Expose port
 EXPOSE 5000
 
-# Start the app using Gunicorn w/ 1 woker initally for resource downloading then we can scale up
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "app:app"]
+# Start the app with logging to stdout/stderr
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "--access-logfile", "-", "--error-logfile", "-", "app:app"]

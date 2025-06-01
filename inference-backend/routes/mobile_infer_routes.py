@@ -186,9 +186,14 @@ def mobile_infer_submit(session_id):
         }
 
         cur.execute("""
-            INSERT INTO mobile_scan_results (id, session_id, result)
-            VALUES (%s, %s, %s)
-        """, (str(uuid.uuid4()), session_id, json.dumps(scan_data)))
+            INSERT INTO mobile_scan_results (id, session_id, result, created_at)
+            VALUES (%s, %s, %s, %s)
+        """, (
+            str(uuid.uuid4()),
+            session_id,
+            json.dumps(scan_data),
+            datetime.now(timezone.utc)
+        ))
 
         conn.commit()
         cur.close()
