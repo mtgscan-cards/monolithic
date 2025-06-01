@@ -38,3 +38,5 @@ JWT_IDENTITY_CLAIM      = "user_id"
 JWT_ACCESS_COOKIE_NAME  = "access_token"
 JWT_REFRESH_COOKIE_NAME = "refresh_token"
 JWT_COOKIE_CSRF_PROTECT = False
+IS_PRODUCTION = os.getenv("FLASK_ENV") == "production"
+JWT_COOKIE_DOMAIN   = ".mtgscan.cards" if IS_PRODUCTION else None

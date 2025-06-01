@@ -21,7 +21,7 @@ from db.postgres_pool import pg_pool
 from scryfall_update.update import main as update_main
 from werkzeug.middleware.proxy_fix import ProxyFix
 import config
-from config import FRONTEND_URL
+from config import FRONTEND_URL, JWT_COOKIE_DOMAIN
 
 
 app = Flask(__name__)
@@ -46,7 +46,8 @@ is_production = os.environ.get("FLASK_ENV") == "production"
 
 app.config['JWT_COOKIE_SAMESITE'] = 'None' if is_production else 'Lax'
 app.config['JWT_COOKIE_SECURE']   = True if is_production else False
-
+if JWT_COOKIE_DOMAIN:
+    app.config["JWT_COOKIE_DOMAIN"] = JWT_COOKIE_DOMAIN
 
 # now initialize the JWT extension
 jwt = JWTManager(app)
