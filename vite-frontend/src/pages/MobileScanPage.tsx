@@ -172,6 +172,7 @@ useEffect(() => {
         const res = await fetch(`${apiUrl}/api/mobile-infer/submit/${session_id}`, {
           method: 'POST',
           body: formData,
+          credentials: 'include',
         });
 
         const json = await res.json();
