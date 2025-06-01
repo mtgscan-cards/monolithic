@@ -81,38 +81,53 @@ useEffect(() => {
 
 
   useEffect(() => {
-    if (!session_id) return;
+    if (!session_id) {
+      console.log('[Polling] No session_id provided, skipping polling.');
+      return;
+    }
 
     let active = true;
 
     const interval = setInterval(async () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const pollUrl = `${apiUrl}/api/mobile-infer/result/${session_id}`;
       try {
-        const res = await fetch(`${apiUrl}/api/mobile-infer/result/${session_id}`, {
+        console.log(`[Polling] Fetching scan result from: ${pollUrl}`);
+        const res = await fetch(pollUrl, {
           credentials: 'include',
         });
 
+        console.log(`[Polling] Response status: ${res.status}`);
+
         if (res.status === 403) {
           setStatus('Session expired. Please return and restart scan.');
+          console.warn('[Polling] Session expired (403). Stopping polling.');
           clearInterval(interval);
           return;
         }
 
         if (res.status === 404) {
           setStatus('Session not found.');
+          console.warn('[Polling] Session not found (404). Stopping polling.');
           clearInterval(interval);
           return;
         }
 
         const data = await res.json();
+        console.log('[Polling] Response data:', data);
 
         if (active && data?.completed && data.result) {
           const cardId = data.result.predicted_card_id;
           setStatus(`Last Matched: ${data.result.predicted_card_name}`);
           lastSeenCardIdRef.current = cardId;
+          console.log(`[Polling] Match found: ${data.result.predicted_card_name} (ID: ${cardId})`);
+        } else if (active && data?.completed && !data.result) {
+          console.log('[Polling] Scan completed but no result found.');
+        } else if (active) {
+          console.log('[Polling] Scan not completed yet.');
         }
       } catch (err) {
-        console.error("Polling error:", err);
+        console.error('[Polling] Error polling scan result:', err);
         setStatus('Error polling scan result');
       }
     }, 3000);
@@ -120,6 +135,7 @@ useEffect(() => {
     return () => {
       active = false;
       clearInterval(interval);
+      console.log('[Polling] Polling stopped/cleaned up.');
     };
   }, [session_id]);
 
