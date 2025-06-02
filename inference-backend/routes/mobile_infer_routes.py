@@ -148,6 +148,7 @@ def mobile_infer_submit(session_id):
         roi_image, faiss_index, hf, id_map, k=3
     )
 
+    conn = None
     try:
         conn = pg_pool.getconn()
         cur = conn.cursor()
@@ -156,8 +157,10 @@ def mobile_infer_submit(session_id):
         cur.execute("SELECT expires_at FROM mobile_scan_sessions WHERE id = %s", (session_id,))
         session_row = cur.fetchone()
         if not session_row:
+            cur.close()
             return jsonify({'error': 'Session not found'}), 404
         if session_row[0] and session_row[0] < datetime.now(timezone.utc):
+            cur.close()
             return jsonify({'error': 'Session expired'}), 403
 
         # Look up card
@@ -168,6 +171,7 @@ def mobile_infer_submit(session_id):
         """, (best_candidate,))
         row = cur.fetchone()
         if not row:
+            cur.close()
             raise Exception("Card ID not found")
 
         name, finishes, set_, set_name, prices, image_uris, collector_number = row
@@ -197,12 +201,14 @@ def mobile_infer_submit(session_id):
 
         conn.commit()
         cur.close()
-        pg_pool.putconn(conn)
-
         return jsonify({"status": "inference stored"}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+    finally:
+        if conn:
+            pg_pool.putconn(conn)
 
 @mobile_infer_bp.route("/result/<session_id>", methods=["GET"])
 @swag_from({
@@ -253,6 +259,7 @@ def mobile_infer_submit(session_id):
     }
 })
 def get_mobile_scan_result(session_id):
+    conn = None
     try:
         conn = pg_pool.getconn()
         cur = conn.cursor()
@@ -268,7 +275,6 @@ def get_mobile_scan_result(session_id):
         row = cur.fetchone()
 
         cur.close()
-        pg_pool.putconn(conn)
 
         if not row:
             return jsonify({"error": "Session not found"}), 404
@@ -289,3 +295,7 @@ def get_mobile_scan_result(session_id):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+    finally:
+        if conn:
+            pg_pool.putconn(conn)

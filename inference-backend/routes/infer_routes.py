@@ -90,10 +90,11 @@ def infer():
     
     # Query Postgres for card details including the card name.
     db_query_start = time.perf_counter()
+    conn = None
     try:
         conn = pg_pool.getconn()
         cur = conn.cursor()
-        oracle_id = best_candidate  # best_candidate now holds the scryfall id
+        oracle_id = best_candidate
         query = """
             SELECT name, finishes, "set", set_name, prices, image_uris, collector_number
             FROM cards
@@ -103,15 +104,17 @@ def infer():
         row = cur.fetchone()
         if row:
             card_name, finishes, set_field, set_name, prices, image_uris, collector_number = row
-            # Normalize collector_number by removing leading zeros
             if collector_number is not None:
                 collector_number = collector_number.lstrip('0')
         else:
-            card_name, finishes, set_field, set_name, prices, image_uris, collector_number = (None, None, None, None, None, None, None)
+            card_name = finishes = set_field = set_name = prices = image_uris = collector_number = None
         cur.close()
-        pg_pool.putconn(conn)
     except Exception as e:
         return jsonify({'error': 'Error fetching card details', 'details': str(e)}), 500
+    finally:
+        if conn:
+            pg_pool.putconn(conn)
+
     db_query_time = time.perf_counter() - db_query_start
     print(f"Database query took: {db_query_time:.3f} seconds")
     

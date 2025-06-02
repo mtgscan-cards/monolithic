@@ -13,11 +13,29 @@ const inferQueue: MessageEvent[] = [];
 // === Load Backend and Model ===
 async function initBackendAndModel() {
   if (!backendReady) {
-    console.log('[Worker] Setting backend to webgl...');
-    await tf.setBackend('webgl');
-    await tf.ready();
+    try {
+      console.log('[Worker] Setting backend to webgl...');
+      await tf.setBackend('webgl');
+      await tf.ready();
+      console.log('[Worker] WebGL backend ready.');
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      console.warn('[Worker] WebGL backend failed:', error);
+      console.log('[Worker] Falling back to WASM backend...');
+
+      try {
+        await tf.setBackend('wasm');
+        await tf.ready();
+        console.log('[Worker] WASM backend ready.');
+      } catch (wasmErr) {
+        const wasmError = wasmErr instanceof Error ? wasmErr.message : String(wasmErr);
+        console.error('[Worker] WASM backend also failed:', wasmError);
+        self.postMessage({ type: 'error', error: 'All TFJS backends failed to initialize' });
+        return;
+      }
+    }
+
     backendReady = true;
-    console.log('[Worker] Backend ready.');
   }
 
   if (!modelReady) {
@@ -73,6 +91,7 @@ function handleMessage(e: MessageEvent) {
 
       const heat = heatmaps.squeeze(); // [H, W, 4]
       const confTensor = heat.max([0, 1]); // [4]
+
       confTensor.array().then((confidences) => {
         coordsT.squeeze().array().then((coords) => {
           tf.dispose([input, heatmaps, coordsT, heat, confTensor]);
