@@ -1,8 +1,9 @@
 // src/components/CameraStream.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Paper, CircularProgress, Typography } from '@mui/material';
+import { Box, Paper, Typography } from '@mui/material';
 import { OverlayMarker } from 'over-lib';
 import '../styles/CameraStream.css';
+import VideocamOffIcon from '@mui/icons-material/VideocamOff';
 
 interface CameraStreamProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -17,8 +18,8 @@ interface CameraStreamProps {
   overlayHeightRatio: number;
 }
 
-const MIN_ROI_WIDTH = 260;
-const MIN_ROI_HEIGHT = 340;
+const MIN_ROI_WIDTH = 280;
+const MIN_ROI_HEIGHT = 360;
 
 const CameraStream: React.FC<CameraStreamProps> = ({
   canvasRef,
@@ -97,7 +98,7 @@ const CameraStream: React.FC<CameraStreamProps> = ({
 
     const audio = new Audio('/sounds/shutter.wav');
     audio.volume = 0.45;
-    audio.play().catch(() => {});
+    audio.play().catch(() => { });
 
     const video = videoRef?.current;
     if (!video || !cameraReady) return;
@@ -236,7 +237,7 @@ const CameraStream: React.FC<CameraStreamProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(255,255,255,0.85)',
+            backgroundColor: 'rgba(0, 0, 0, 0.94)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -244,7 +245,7 @@ const CameraStream: React.FC<CameraStreamProps> = ({
             zIndex: 20,
           }}
         >
-          <CircularProgress />
+          <VideocamOffIcon sx={{ fontSize: 48, color: 'white' }} />
           <Typography variant="body1" sx={{ mt: 2 }}>
             Accessing camera...
           </Typography>

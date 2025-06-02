@@ -30,8 +30,8 @@ import { AuthContext } from '../contexts/AuthContext'
 
 /** Preload the GLTFs on mount */
 const PreloadModels: FC = () => {
-  useGLTF.preload('mtgcardstack.glb')
-  useGLTF.preload('untexturedunmattedbox_min.glb')
+  useGLTF.preload('mtgcardstack_min.glb')
+  useGLTF.preload('compressed_box.glb')
   return null
 }
 
