@@ -17,8 +17,8 @@ interface CameraStreamProps {
   overlayHeightRatio: number;
 }
 
-const MIN_ROI_WIDTH = 480;
-const MIN_ROI_HEIGHT = 640;
+const MIN_ROI_WIDTH = 260;
+const MIN_ROI_HEIGHT = 340;
 
 const CameraStream: React.FC<CameraStreamProps> = ({
   canvasRef,
@@ -83,6 +83,12 @@ const CameraStream: React.FC<CameraStreamProps> = ({
 
   const handleManualTap = async () => {
     console.log('[CameraStream] Tap detected, creating snapshot');
+
+    const { width: displayWidth, height: displayHeight } = displaySize;
+    const markerWidthPx = displayWidth * overlayWidthRatio;
+    const markerHeightPx = displayHeight * overlayHeightRatio;
+    console.log(`[CameraStream] Overlay marker size: ${Math.round(markerWidthPx)}×${Math.round(markerHeightPx)} px`);
+
     setShowManualQuad(true);
     setFlash(true);
 
@@ -99,7 +105,6 @@ const CameraStream: React.FC<CameraStreamProps> = ({
     const actualWidth = video.videoWidth;
     const actualHeight = video.videoHeight;
 
-    // Calculate ROI size based on props
     let roiWidth = actualWidth * overlayWidthRatio;
     let roiHeight = actualHeight * overlayHeightRatio;
 
@@ -123,6 +128,11 @@ const CameraStream: React.FC<CameraStreamProps> = ({
       onTapSnapshot?.(roiSnapshot);
     }
   };
+
+  const markerWidthPx = Math.max(displaySize.width * overlayWidthRatio, MIN_ROI_WIDTH);
+  const markerHeightPx = Math.max(displaySize.height * overlayHeightRatio, MIN_ROI_HEIGHT);
+  const clampedOverlayWidthRatio = markerWidthPx / displaySize.width;
+  const clampedOverlayHeightRatio = markerHeightPx / displaySize.height;
 
   return (
     <Box
@@ -159,8 +169,8 @@ const CameraStream: React.FC<CameraStreamProps> = ({
       />
 
       <OverlayMarker
-        width={`${overlayWidthRatio * 100}%`}
-        height={`${overlayHeightRatio * 100}%`}
+        width={`${clampedOverlayWidthRatio * 100}%`}
+        height={`${clampedOverlayHeightRatio * 100}%`}
         markerColor="white"
         markerThickness={3}
         markerLength="25px"
@@ -181,8 +191,8 @@ const CameraStream: React.FC<CameraStreamProps> = ({
 
       {showManualQuad && (
         <OverlayMarker
-          width={`${overlayWidthRatio * 100}%`}
-          height={`${overlayHeightRatio * 100}%`}
+          width={`${clampedOverlayWidthRatio * 100}%`}
+          height={`${clampedOverlayHeightRatio * 100}%`}
           markerColor="#f44336"
           markerThickness={4}
           markerLength="100%"
