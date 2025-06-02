@@ -1,16 +1,16 @@
-// CameraPanel.tsx
+// src/components/CameraPanel.tsx
 import React from 'react';
 import { Box, Card, Typography } from '@mui/material';
 import CameraStream from './CameraStream';
 
 interface CameraPanelProps {
-  videoRef: React.RefObject<HTMLVideoElement>;
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
   videoWidth: number;
   videoHeight: number;
   cameraReady: boolean;
   status: React.ReactNode;
-  onTapSnapshot?: () => void;
+  onTapSnapshot?: (roiSnapshot: string) => void;
   showOverlayMarker?: boolean;
   quad?: [number, number][];
 }
@@ -26,28 +26,9 @@ const CameraPanel: React.FC<CameraPanelProps> = ({
   showOverlayMarker,
   quad,
 }) => {
-  const handleTap = () => {
-    console.log('[CameraPanel] Overlay tap detected');
-    onTapSnapshot?.();
-  };
-
   return (
     <Card elevation={3} sx={{ position: 'relative', width: '100%', height: 'auto' }}>
       <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
-        <Box
-          onClick={handleTap}
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 5,
-            cursor: 'pointer',
-            pointerEvents: 'auto',
-          }}
-        />
-
         <CameraStream
           canvasRef={canvasRef}
           videoRef={videoRef}
@@ -56,10 +37,7 @@ const CameraPanel: React.FC<CameraPanelProps> = ({
           cameraReady={cameraReady}
           quad={quad ? quad.map(([x, y]) => ({ x, y })) : undefined}
           showOverlayMarker={showOverlayMarker}
-          onTapSnapshot={() => {
-            console.log('[CameraStream] onTapSnapshot triggered');
-            onTapSnapshot?.();
-          }}
+          onTapSnapshot={onTapSnapshot}
         />
 
         <Box

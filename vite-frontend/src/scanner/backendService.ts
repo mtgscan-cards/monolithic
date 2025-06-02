@@ -22,17 +22,36 @@ export interface InferenceResult {
     png: string;
     small: string;
   };
-  card_id: number;               // ← required for ScannedCard.cardId
-  collector_number: string;     // ← required for bulk add formatting
+  card_id: number;
+  collector_number: string;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+/**
+ * Sends a base64 data URL (e.g. canvas snapshot) to the backend for inference.
+ */
 export const sendROIToBackend = async (dataUrl: string): Promise<InferenceResult> => {
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
+  if (!dataUrl.startsWith('data:image/')) {
+    throw new Error('Invalid image data URL provided.');
+  }
+
+  const [header, base64] = dataUrl.split(',');
+  const mimeMatch = header.match(/data:(image\/[^;]+);base64/);
+  if (!mimeMatch) {
+    throw new Error('Unsupported image format in data URL.');
+  }
+
+  const mimeType = mimeMatch[1];
+  const binary = atob(base64);
+  const byteArray = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    byteArray[i] = binary.charCodeAt(i);
+  }
+
+  const blob = new Blob([byteArray], { type: mimeType });
   const formData = new FormData();
-  formData.append('roi_image', blob, 'roi.png');
+  formData.append('roi_image', blob, 'roi.' + mimeType.split('/')[1]);
 
   const response = await fetch(`${API_BASE_URL}/infer`, {
     method: 'POST',

@@ -54,28 +54,26 @@ const useFrameProcessor = ({
   onValidROI,
   onScannedCard,
 }: Props) => {
-const manualQuadRef = useRef<{ x: number; y: number }[] | null>(null);
-const manualQuadTimeoutRef = useRef<number | null>(null);
-const lastManualSnapshotTimeRef = useRef(0);
-const lastProcessTimeRef = useRef<number>(0);
-const raf = useRef(0);
-const offCanvas = useRef<HTMLCanvasElement | null>(null);
-const infCanvas = useRef<HTMLCanvasElement | null>(null);
-const workerRef = useRef<Worker | null>(null);
-const modelLoadedRef = useRef(false);
-const inferRunningRef = useRef(false);
+  const manualQuadRef = useRef<{ x: number; y: number }[] | null>(null);
+  const manualQuadTimeoutRef = useRef<number | null>(null);
+  const lastManualSnapshotTimeRef = useRef(0);
+  const lastProcessTimeRef = useRef<number>(0);
+  const raf = useRef(0);
+  const offCanvas = useRef<HTMLCanvasElement | null>(null);
+  const infCanvas = useRef<HTMLCanvasElement | null>(null);
+  const workerRef = useRef<Worker | null>(null);
+  const modelLoadedRef = useRef(false);
+  const inferRunningRef = useRef(false);
 
-const frameSkipRef = useRef(0);
-const validBuffer = useRef<boolean[]>([]);
-const cooldownRef = useRef(false);
-const highlightRef = useRef<[number, number][] | null>(null);
-
+  const frameSkipRef = useRef(0);
+  const validBuffer = useRef<boolean[]>([]);
+  const cooldownRef = useRef(false);
+  const highlightRef = useRef<[number, number][] | null>(null);
 
   const audioCtxRef = useRef<AudioContext>(
     new (
       window.AudioContext ||
-      // @ts-expect-error: webkitAudioContext is not in the standard Window type
-      (window as Window & typeof globalThis).webkitAudioContext
+      (window as Window & typeof globalThis).AudioContext
     )()
   );
 
@@ -117,6 +115,7 @@ const highlightRef = useRef<[number, number][] | null>(null);
       };
     });
   };
+
 useEffect(() => {
   offCanvas.current = document.createElement('canvas');
   infCanvas.current = document.createElement('canvas');
@@ -127,12 +126,13 @@ useEffect(() => {
     const video = videoRef.current;
     if (!video || video.videoWidth === 0 || workerRef.current) return;
 
-    // ✅ Create and initialize the worker *after* camera is ready
+    // Create and initialize the worker *after* camera is ready
     const worker = createFrameWorker(); // changed from getFrameWorker()
     workerRef.current = worker;
 
     modelLoadedRef.current = false;
     inferRunningRef.current = false;
+    if (!worker) return;
 
     worker.postMessage({ type: 'loadModel' });
     setStatus('Loading TFJS model...');
@@ -443,7 +443,10 @@ const manualSnapshotFromOverlay = () => {
     });
 };
 
-return { manualSnapshotFromOverlay };
+return {
+  manualSnapshotFromOverlay,
+  manualQuadRef,
+};
 };
 
 export default useFrameProcessor;

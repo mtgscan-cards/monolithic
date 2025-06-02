@@ -39,37 +39,39 @@ def me():
     conn = pg_pool.getconn()
     try:
         cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT
-              COALESCE(full_name, username)     AS display_name,
-              COALESCE(picture_url, '')         AS avatar_url,
-              (google_sub IS NOT NULL)          AS google_linked,
-              (github_id IS NOT NULL)           AS github_linked,
-              (password_hash IS NOT NULL)       AS has_password,
-              username
-            FROM users
-            WHERE id = %s;
-            """,
-            (user_id,),
-        )
-        result = cur.fetchone()
-        if result is None:
-            return jsonify({"message": "User not found"}), 404
+        try:
+            cur.execute(
+                """
+                SELECT
+                  COALESCE(full_name, username)     AS display_name,
+                  COALESCE(picture_url, '')         AS avatar_url,
+                  (google_sub IS NOT NULL)          AS google_linked,
+                  (github_id IS NOT NULL)           AS github_linked,
+                  (password_hash IS NOT NULL)       AS has_password,
+                  username
+                FROM users
+                WHERE id = %s;
+                """,
+                (user_id,),
+            )
+            result = cur.fetchone()
+            if result is None:
+                return jsonify({"message": "User not found"}), 404
 
-        display_name, avatar_url, google_linked, github_linked, has_password, username = result
+            display_name, avatar_url, google_linked, github_linked, has_password, username = result
 
-        return jsonify({
-            "display_name":  display_name,
-            "avatar_url":    avatar_url,
-            "google_linked": google_linked,
-            "github_linked": github_linked,
-            "has_password":  has_password,
-            "username":      username,
-        }), 200
+            return jsonify({
+                "display_name":  display_name,
+                "avatar_url":    avatar_url,
+                "google_linked": google_linked,
+                "github_linked": github_linked,
+                "has_password":  has_password,
+                "username":      username,
+            }), 200
+        finally:
+            cur.close()
     finally:
         pg_pool.putconn(conn)
-
 
 @auth_bp.route("/username_available", methods=["GET"])
 def username_available():
@@ -104,11 +106,14 @@ def username_available():
     conn = pg_pool.getconn()
     try:
         cur = conn.cursor()
-        cur.execute(
-            "SELECT 1 FROM users WHERE LOWER(username) = LOWER(%s) LIMIT 1;",
-            (raw,),
-        )
-        taken = cur.fetchone() is not None
-        return jsonify({"available": not taken}), 200
+        try:
+            cur.execute(
+                "SELECT 1 FROM users WHERE LOWER(username) = LOWER(%s) LIMIT 1;",
+                (raw,),
+            )
+            taken = cur.fetchone() is not None
+            return jsonify({"available": not taken}), 200
+        finally:
+            cur.close()
     finally:
         pg_pool.putconn(conn)

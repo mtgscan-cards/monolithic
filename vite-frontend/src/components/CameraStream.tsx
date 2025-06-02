@@ -1,3 +1,4 @@
+// src/components/CameraStream.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Paper, CircularProgress, Typography } from '@mui/material';
 import { OverlayMarker } from 'over-lib';
@@ -5,14 +6,17 @@ import '../styles/CameraStream.css';
 
 interface CameraStreamProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
-  videoRef?: React.RefObject<HTMLVideoElement>;
+  videoRef?: React.RefObject<HTMLVideoElement | null>;
   cameraReady: boolean;
   videoWidth: number;
   videoHeight: number;
   quad?: { x: number; y: number }[] | null;
-  showOverlayMarker?: boolean; // ✅ Add this line back
-  onTapSnapshot?: () => void;
+  showOverlayMarker?: boolean;
+  onTapSnapshot?: (roiSnapshot: string) => void;
 }
+
+const MIN_ROI_WIDTH = 480;
+const MIN_ROI_HEIGHT = 640;
 
 const CameraStream: React.FC<CameraStreamProps> = ({
   canvasRef,
@@ -73,8 +77,8 @@ const CameraStream: React.FC<CameraStreamProps> = ({
     }
   }, [canvasRef, cameraReady, displaySize, quad]);
 
-  const handleManualTap = () => {
-    console.log('[CameraStream] Tap detected, calling onTapSnapshot...');
+  const handleManualTap = async () => {
+    console.log('[CameraStream] Tap detected, creating snapshot');
     setShowManualQuad(true);
     setFlash(true);
 
@@ -84,7 +88,52 @@ const CameraStream: React.FC<CameraStreamProps> = ({
     const audio = new Audio('/sounds/shutter.wav');
     audio.volume = 0.45;
     audio.play().catch(() => {});
-    onTapSnapshot?.();
+
+    const video = videoRef?.current;
+    if (!video || !cameraReady) return;
+
+    const actualWidth = video.videoWidth;
+    const actualHeight = video.videoHeight;
+
+    const overlayWidthRatio = 0.42;
+    const overlayHeightRatio = 0.84;
+
+    // Calculate initial ROI size based on ratios
+    let roiWidth = actualWidth * overlayWidthRatio;
+    let roiHeight = actualHeight * overlayHeightRatio;
+
+    // Enforce minimum ROI dimensions
+    roiWidth = Math.max(roiWidth, MIN_ROI_WIDTH);
+    roiHeight = Math.max(roiHeight, MIN_ROI_HEIGHT);
+
+    // Clamp to video frame dimensions
+    roiWidth = Math.min(roiWidth, actualWidth);
+    roiHeight = Math.min(roiHeight, actualHeight);
+
+    // Center the ROI
+    const roiX = (actualWidth - roiWidth) / 2;
+    const roiY = (actualHeight - roiHeight) / 2;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = roiWidth;
+    tempCanvas.height = roiHeight;
+    const ctx = tempCanvas.getContext('2d');
+
+    if (ctx) {
+      ctx.drawImage(
+        video,
+        roiX,
+        roiY,
+        roiWidth,
+        roiHeight,
+        0,
+        0,
+        roiWidth,
+        roiHeight
+      );
+      const roiSnapshot = tempCanvas.toDataURL('image/jpeg');
+      onTapSnapshot?.(roiSnapshot);
+    }
   };
 
   return (
@@ -121,7 +170,6 @@ const CameraStream: React.FC<CameraStreamProps> = ({
         }}
       />
 
-      {/* Persistent white scan guide */}
       <OverlayMarker
         width="42%"
         height="84%"
@@ -143,7 +191,6 @@ const CameraStream: React.FC<CameraStreamProps> = ({
         }}
       />
 
-      {/* Red overlay on manual snapshot */}
       {showManualQuad && (
         <OverlayMarker
           width="42%"
@@ -167,10 +214,8 @@ const CameraStream: React.FC<CameraStreamProps> = ({
         />
       )}
 
-      {/* Flash animation */}
       {flash && <div className="camera-flash" />}
 
-      {/* Tap area */}
       <Box
         onClick={handleManualTap}
         sx={{
@@ -185,7 +230,6 @@ const CameraStream: React.FC<CameraStreamProps> = ({
         }}
       />
 
-      {/* Loading overlay */}
       {!cameraReady && (
         <Paper
           sx={{

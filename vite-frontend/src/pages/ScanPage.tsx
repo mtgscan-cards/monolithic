@@ -164,7 +164,6 @@ const {
       }
     });
 
-    // ✅ Now this works
     setShowOverlayMarker(true);
     setTimeout(() => setShowOverlayMarker(false), 2000);
   },
