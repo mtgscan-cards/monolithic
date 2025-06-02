@@ -6,13 +6,15 @@ import '../styles/CameraStream.css';
 
 interface CameraStreamProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
-  videoRef?: React.RefObject<HTMLVideoElement | null>;
-  cameraReady: boolean;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
   videoWidth: number;
   videoHeight: number;
-  quad?: { x: number; y: number }[] | null;
+  cameraReady: boolean;
+  quad?: { x: number; y: number }[];
   showOverlayMarker?: boolean;
   onTapSnapshot?: (roiSnapshot: string) => void;
+  overlayWidthRatio: number;
+  overlayHeightRatio: number;
 }
 
 const MIN_ROI_WIDTH = 480;
@@ -26,6 +28,8 @@ const CameraStream: React.FC<CameraStreamProps> = ({
   videoHeight,
   quad,
   onTapSnapshot,
+  overlayWidthRatio,
+  overlayHeightRatio,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [displaySize, setDisplaySize] = useState({ width: videoWidth, height: videoHeight });
@@ -95,22 +99,16 @@ const CameraStream: React.FC<CameraStreamProps> = ({
     const actualWidth = video.videoWidth;
     const actualHeight = video.videoHeight;
 
-    const overlayWidthRatio = 0.42;
-    const overlayHeightRatio = 0.84;
-
-    // Calculate initial ROI size based on ratios
+    // Calculate ROI size based on props
     let roiWidth = actualWidth * overlayWidthRatio;
     let roiHeight = actualHeight * overlayHeightRatio;
 
-    // Enforce minimum ROI dimensions
     roiWidth = Math.max(roiWidth, MIN_ROI_WIDTH);
     roiHeight = Math.max(roiHeight, MIN_ROI_HEIGHT);
 
-    // Clamp to video frame dimensions
     roiWidth = Math.min(roiWidth, actualWidth);
     roiHeight = Math.min(roiHeight, actualHeight);
 
-    // Center the ROI
     const roiX = (actualWidth - roiWidth) / 2;
     const roiY = (actualHeight - roiHeight) / 2;
 
@@ -120,17 +118,7 @@ const CameraStream: React.FC<CameraStreamProps> = ({
     const ctx = tempCanvas.getContext('2d');
 
     if (ctx) {
-      ctx.drawImage(
-        video,
-        roiX,
-        roiY,
-        roiWidth,
-        roiHeight,
-        0,
-        0,
-        roiWidth,
-        roiHeight
-      );
+      ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, roiWidth, roiHeight);
       const roiSnapshot = tempCanvas.toDataURL('image/jpeg');
       onTapSnapshot?.(roiSnapshot);
     }
@@ -171,8 +159,8 @@ const CameraStream: React.FC<CameraStreamProps> = ({
       />
 
       <OverlayMarker
-        width="42%"
-        height="84%"
+        width={`${overlayWidthRatio * 100}%`}
+        height={`${overlayHeightRatio * 100}%`}
         markerColor="white"
         markerThickness={3}
         markerLength="25px"
@@ -187,14 +175,14 @@ const CameraStream: React.FC<CameraStreamProps> = ({
           width: '100%',
           height: '100%',
           pointerEvents: 'none',
-          zIndex: 10,
+          zIndex: 12,
         }}
       />
 
       {showManualQuad && (
         <OverlayMarker
-          width="42%"
-          height="84%"
+          width={`${overlayWidthRatio * 100}%`}
+          height={`${overlayHeightRatio * 100}%`}
           markerColor="#f44336"
           markerThickness={4}
           markerLength="100%"

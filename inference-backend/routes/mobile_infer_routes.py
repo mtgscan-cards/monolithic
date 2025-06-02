@@ -121,7 +121,7 @@ def mobile_infer_create():
             }
         },
         404: {
-            'description': 'Session not found',
+            'description': 'Session not found or card not found',
             'schema': {
                 '$ref': '#/definitions/ErrorResponse'
             }
@@ -149,6 +149,7 @@ def mobile_infer_submit(session_id):
     )
 
     conn = None
+    cur = None
     try:
         conn = pg_pool.getconn()
         cur = conn.cursor()
@@ -157,10 +158,8 @@ def mobile_infer_submit(session_id):
         cur.execute("SELECT expires_at FROM mobile_scan_sessions WHERE id = %s", (session_id,))
         session_row = cur.fetchone()
         if not session_row:
-            cur.close()
             return jsonify({'error': 'Session not found'}), 404
         if session_row[0] and session_row[0] < datetime.now(timezone.utc):
-            cur.close()
             return jsonify({'error': 'Session expired'}), 403
 
         # Look up card
@@ -171,8 +170,7 @@ def mobile_infer_submit(session_id):
         """, (best_candidate,))
         row = cur.fetchone()
         if not row:
-            cur.close()
-            raise Exception("Card ID not found")
+            return jsonify({'error': 'Card ID not found'}), 404  # no exception; return cleanly
 
         name, finishes, set_, set_name, prices, image_uris, collector_number = row
         if collector_number:
@@ -200,13 +198,14 @@ def mobile_infer_submit(session_id):
         ))
 
         conn.commit()
-        cur.close()
         return jsonify({"status": "inference stored"}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
     finally:
+        if cur:
+            cur.close()
         if conn:
             pg_pool.putconn(conn)
 

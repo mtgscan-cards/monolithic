@@ -3,6 +3,10 @@ import React from 'react';
 import { Box, Card, Typography } from '@mui/material';
 import CameraStream from './CameraStream';
 
+// Shared constants for ROI and overlay dimensions
+export const OVERLAY_WIDTH_RATIO = 0.42;
+export const OVERLAY_HEIGHT_RATIO = 0.84;
+
 interface CameraPanelProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -38,6 +42,8 @@ const CameraPanel: React.FC<CameraPanelProps> = ({
           quad={quad ? quad.map(([x, y]) => ({ x, y })) : undefined}
           showOverlayMarker={showOverlayMarker}
           onTapSnapshot={onTapSnapshot}
+          overlayWidthRatio={OVERLAY_WIDTH_RATIO}
+          overlayHeightRatio={OVERLAY_HEIGHT_RATIO}
         />
 
         <Box

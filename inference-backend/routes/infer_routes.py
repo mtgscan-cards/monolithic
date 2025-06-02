@@ -58,6 +58,8 @@ def infer():
                   type: string
       400:
         description: Image missing or invalid
+      404:
+        description: Card not found
       500:
         description: Server error during inference or database access
     """
@@ -87,31 +89,36 @@ def infer():
     )
     sift_time = time.perf_counter() - sift_start
     print(f"SIFT/RANSAC processing took: {sift_time:.3f} seconds")
+
+    if not best_candidate:
+        return jsonify({'error': 'No matching card found.'}), 404
     
     # Query Postgres for card details including the card name.
     db_query_start = time.perf_counter()
     conn = None
+    cur = None
     try:
         conn = pg_pool.getconn()
         cur = conn.cursor()
-        oracle_id = best_candidate
         query = """
             SELECT name, finishes, "set", set_name, prices, image_uris, collector_number
             FROM cards
             WHERE id = %s
         """
-        cur.execute(query, (oracle_id,))
+        cur.execute(query, (best_candidate,))
         row = cur.fetchone()
-        if row:
-            card_name, finishes, set_field, set_name, prices, image_uris, collector_number = row
-            if collector_number is not None:
-                collector_number = collector_number.lstrip('0')
-        else:
-            card_name = finishes = set_field = set_name = prices = image_uris = collector_number = None
-        cur.close()
+        if not row:
+            return jsonify({'error': 'Card not found in database.'}), 404
+
+        card_name, finishes, set_field, set_name, prices, image_uris, collector_number = row
+        if collector_number is not None:
+            collector_number = collector_number.lstrip('0')
+
     except Exception as e:
         return jsonify({'error': 'Error fetching card details', 'details': str(e)}), 500
     finally:
+        if cur:
+            cur.close()
         if conn:
             pg_pool.putconn(conn)
 
@@ -131,4 +138,4 @@ def infer():
         'image_uris': image_uris,
         'collector_number': collector_number
     }
-    return jsonify(result)
+    return jsonify(result), 200
