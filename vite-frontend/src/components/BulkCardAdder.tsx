@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef } from 'react'
 import {
   Box,
   Typography,
@@ -31,15 +31,8 @@ const BulkCardAdder: React.FC<BulkCardAdderProps> = ({ username, collectionId, o
 
   // Tooltip state
   const [tooltipOpen, setTooltipOpen] = useState(false)
-  const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tooltipTimeout = useRef<NodeJS.Timeout | null>(null)
 
-  useEffect(() => {
-    return () => {
-      if (tooltipTimeout.current) {
-        clearTimeout(tooltipTimeout.current);
-      }
-    };
-  }, []);
   const handleTooltipToggle = () => {
     setTooltipOpen(true)
     if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current)
@@ -100,12 +93,7 @@ const BulkCardAdder: React.FC<BulkCardAdderProps> = ({ username, collectionId, o
                 disableHoverListener
                 disableTouchListener
               >
-                <IconButton
-                  aria-label="Help about bulk add format"
-                  size="small"
-                  sx={{ ml: 1 }}
-                  onClick={handleTooltipToggle}
-                >
+                <IconButton size="small" sx={{ ml: 1 }} onClick={handleTooltipToggle}>
                   <HelpOutlineIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
