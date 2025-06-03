@@ -7,10 +7,13 @@ import secrets
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 import requests as httpx
+import logging
 
 from config import HCAPTCHA_SECRET, GOOGLE_CLIENT_ID
 
 ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+logger = logging.getLogger(__name__)
 
 
 def verify_hcaptcha(token: str, remote_ip: str) -> bool:
@@ -22,7 +25,7 @@ def verify_hcaptcha(token: str, remote_ip: str) -> bool:
         ).json()
         return res.get("success", False)
     except Exception as exc:
-        print("hCaptcha error", exc)
+        logger.error("hCaptcha error", exc)
         return False
 
 

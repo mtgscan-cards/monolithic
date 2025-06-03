@@ -347,7 +347,7 @@ def main():
     batch_size = 10000
     batch = []
     total_count = 0
-    print("Streaming and processing card JSON file...")
+    logger.info("Streaming and processing card JSON file...")
     with open(json_file, 'rb') as f:
         cards = ijson.items(f, 'item')
         for card in cards:

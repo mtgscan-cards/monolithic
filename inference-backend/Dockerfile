@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /app
 
+# Create default logs directory (will be bind-mounted in prod)
+RUN mkdir -p /app/logs
+
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
@@ -23,5 +26,5 @@ COPY . .
 # Expose port
 EXPOSE 5000
 
-# Start the app with logging to stdout/stderr
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
+# Start the app with logging to stdout/stderr and enable print() capture
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "--access-logfile", "-", "--error-logfile", "-", "--capture-output", "app:app"]

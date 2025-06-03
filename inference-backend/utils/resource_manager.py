@@ -6,6 +6,9 @@ from tqdm import tqdm
 import faiss
 import h5py
 from filelock import FileLock
+import logging
+
+logger = logging.getLogger(__name__)
 
 RESOURCE_DIR = "/app/resources"
 LOCK_DIR = "/tmp/locks"
@@ -23,7 +26,7 @@ def download_and_extract_resources():
     url = "https://huggingface.co/datasets/JakeTurner616/mtg-cards-SIFT-Features/resolve/main/resourcesV4.zip?download=true"
     zip_path = os.path.join(RESOURCE_DIR, "resources.zip")
 
-    print("Resource files missing. Downloading...")
+    logger.info("Resource files missing. Downloading...")
     os.makedirs(RESOURCE_DIR, exist_ok=True)
 
     response = requests.get(url, stream=True)
@@ -34,11 +37,11 @@ def download_and_extract_resources():
                 if chunk:
                     f.write(chunk)
                     pbar.update(len(chunk))
-        print("Download complete. Extracting resources...")
+        logger.info("Download complete. Extracting resources...")
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(RESOURCE_DIR)
         os.remove(zip_path)
-        print("Resources extracted to", RESOURCE_DIR)
+        logger.info("Resources extracted to", RESOURCE_DIR)
     else:
         raise Exception(f"Failed to download resources. Status code: {response.status_code}")
 
@@ -48,12 +51,12 @@ def download_and_extract_resources_once():
         if not _resource_files_exist():
             download_and_extract_resources()
         else:
-            print("Resource files already present. Skipping download.")
+            logger.info("Resource files already present. Skipping download.")
 
 def load_resources():
     download_and_extract_resources_once()
 
-    print("Loading FAISS index and HDF5 features...")
+    logger.info("Loading FAISS index and HDF5 features...")
     run_dir = os.path.join(RESOURCE_DIR, "run")
     faiss_path = os.path.join(run_dir, "faiss_ivf.index")
     h5_path = os.path.join(run_dir, "candidate_features.h5")
@@ -68,9 +71,9 @@ def load_resources():
     with open(map_path, 'r') as f:
         id_map = json.load(f)
 
-    print("FAISS index ntotal:", faiss_index.ntotal)
-    print("ID map length:", len(id_map))
-    print("HDF5 groups loaded:", len(hf.keys()))
+    logger.info("FAISS index ntotal:", faiss_index.ntotal)
+    logger.info("ID map length:", len(id_map))
+    logger.info("HDF5 groups loaded:", len(hf.keys()))
     
     assert len(id_map) == faiss_index.ntotal, "Mismatch between id_map and FAISS index"
 
