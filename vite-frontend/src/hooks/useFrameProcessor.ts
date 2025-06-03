@@ -149,7 +149,11 @@ useEffect(() => {
   if (type !== 'result') return;
   inferRunningRef.current = false;
 
-  const video = videoRef.current!;
+  const video = videoRef.current;
+  if (!video) {
+    console.warn('[onmessage] videoRef.current is null, skipping frame');
+    return;
+  }
   const minConf = Math.min(...confidences);
   const quad = coords.map(([x, y]: [number, number]) =>
     uncropPoint([x, y], scale, cropX, cropY)

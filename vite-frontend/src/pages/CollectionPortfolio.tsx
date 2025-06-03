@@ -63,7 +63,11 @@ const CollectionPortfolioPage: React.FC = () => {
   const [portfolioData, setPortfolioData] = useState<CollectionHistory[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
+  useEffect(() => {
+  if (collections.length > 0 && selectedCollectionId == null) {
+    setSelectedCollectionId(collections[0].user_collection_id);
+  }
+}, [collections, selectedCollectionId]);
   // Fetch user's collections on mount
   useEffect(() => {
     const fetchCollections = async () => {
@@ -235,7 +239,7 @@ useEffect(() => {
     return [current, change, label];
   }, [mergedData, portfolioData, timeRange]);
 
-  return (
+   return (
     <Container sx={{ mt: 4, color: '#fff' }}>
       <Typography variant="h4" gutterBottom>
         Collection Portfolio Overview
@@ -253,10 +257,9 @@ useEffect(() => {
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#36A2EB' },
             color: '#fff'
           }}
+          disabled={collections.length === 0}
         >
-          <MenuItem value="">(None)</MenuItem>
           {collections.map((coll) => (
-            // Use the per‑user identifier here.
             <MenuItem key={coll.user_collection_id} value={coll.user_collection_id}>
               {coll.label}
             </MenuItem>
@@ -320,6 +323,58 @@ useEffect(() => {
         <Box sx={{ mt: 2, backgroundColor: '#222', p: 2, borderRadius: 2 }}>
           <Line data={chartData} options={chartOptions} />
         </Box>
+      )}
+
+      {/* No collections exist at all */}
+      {!loading && !error && collections.length === 0 && (
+        <Paper
+          elevation={3}
+          sx={{
+            mt: 4,
+            p: 3,
+            textAlign: 'center',
+            backgroundColor: '#1E1E1E',
+            borderRadius: 2,
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            No collections yet
+          </Typography>
+            <Typography variant="body1" sx={{ color: '#aaa' }}>
+            <a
+              href="/collections"
+              style={{
+              color: '#36A2EB',
+              textDecoration: 'underline',
+              fontWeight: 500,
+              }}
+            >
+              Create a collection
+            </a>{' '}
+            and add some cards to start tracking prices over time.
+            </Typography>
+        </Paper>
+      )}
+
+      {/* Collection selected, but no history data yet */}
+      {!loading && !error && selectedCollectionId && collections.length > 0 && mergedData.length === 0 && (
+        <Paper
+          elevation={3}
+          sx={{
+            mt: 4,
+            p: 3,
+            textAlign: 'center',
+            backgroundColor: '#1E1E1E',
+            borderRadius: 2,
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Nothing to show here yet
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#aaa' }}>
+            Add some cards to your collection to enable price tracking over time.
+          </Typography>
+        </Paper>
       )}
     </Container>
   );

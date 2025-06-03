@@ -1,11 +1,16 @@
 from flask import Blueprint, request, jsonify
 import json
+
+from flask_cors import cross_origin
 from db.postgres_pool import pg_pool
 import os
-
+from utils.cors import get_cors_origin
+from jwt_helpers import jwt_required
 search_bp = Blueprint('search_bp', __name__)
 
 @search_bp.route('/api/tags', methods=['GET'])
+@cross_origin(**get_cors_origin())
+@jwt_required
 def get_tags():
     """
     Get popular keyword tags
@@ -41,7 +46,10 @@ def get_tags():
             return jsonify({"error": "Unable to retrieve tags from cache."}), 500
     else:
         return jsonify({"error": "Tag cache not found."}), 500
+    
 @search_bp.route('/api/search', methods=['POST'])
+@cross_origin(**get_cors_origin())
+@jwt_required
 def search_cards():
     """
     Search for cards using various filters
@@ -191,6 +199,8 @@ def search_cards():
             pg_pool.putconn(conn)
 
 @search_bp.route('/api/cards/<string:card_id>/alternate', methods=['GET'])
+@cross_origin(**get_cors_origin())
+@jwt_required
 def get_alternate_printings(card_id):
     """
     Get alternate printings for a given card ID

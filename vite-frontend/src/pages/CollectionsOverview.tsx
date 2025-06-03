@@ -224,7 +224,6 @@ const CollectionsOverview: React.FC = () => {
               variant="filled"
               value={label}
               onChange={e => setLabel(e.target.value)}
-              InputProps={{ sx: { bgcolor: 'white', borderRadius: 1 } }}
             />
           </Grid>
           <Grid item xs={6}>
@@ -251,7 +250,7 @@ const CollectionsOverview: React.FC = () => {
           </Grid>
           <Grid item xs={12}>
             <Button onClick={handleAdd} variant="contained" fullWidth>
-              Add Collection
+              Create Collection
             </Button>
           </Grid>
         </Grid>

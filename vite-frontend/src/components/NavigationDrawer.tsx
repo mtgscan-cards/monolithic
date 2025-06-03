@@ -2,7 +2,7 @@
 import React, { useContext, useState } from 'react';
 import {
   Box,
-  Drawer,
+  SwipeableDrawer,
   List,
   ListItem,
   ListItemButton,
@@ -12,8 +12,10 @@ import {
   Divider,
   IconButton,
   Link as MuiLink,
+  useMediaQuery,
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useTheme } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { AuthContext } from '../contexts/AuthContext';
@@ -29,6 +31,7 @@ export interface NavItem {
 interface NavigationDrawerProps {
   open: boolean;
   onClose: () => void;
+  onOpen?: () => void;
   navItems: NavItem[];
   drawerWidth?: number;
 }
@@ -36,11 +39,14 @@ interface NavigationDrawerProps {
 const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   open,
   onClose,
+  onOpen = () => {},
   navItems,
   drawerWidth = 280,
 }) => {
   const { user, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const signedIn = Boolean(user);
   const displayName = user?.display_name ?? '';
@@ -68,22 +74,25 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
   return (
     <>
-      <Drawer
+      <SwipeableDrawer
         anchor="left"
         open={open}
         onClose={onClose}
+        onOpen={onOpen}
+        disableSwipeToOpen={!isMobile}
         ModalProps={{ keepMounted: true }}
-        sx={{
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            background: 'linear-gradient(180deg, #1e1e1e, #121212)',
-            color: 'text.primary',
-            boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
-            borderRight: 'none',
-            display: 'flex',
-            flexDirection: 'column',
-          },
-        }}
+PaperProps={{
+  sx: {
+    width: drawerWidth, // <- always 280px (default or custom)
+    background: 'linear-gradient(180deg, #1e1e1e, #121212)',
+    color: 'text.primary',
+    borderRight: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+}}
+        role="navigation"
+        aria-label="Main navigation menu"
       >
         {/* Header */}
         <Box
@@ -116,6 +125,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                     transition: 'background-color 0.3s ease',
                     '&:hover': { backgroundColor: 'primary.dark' },
                   }}
+                  aria-label={`Navigate to ${item.text}`}
                 >
                   <ListItemIcon sx={{ color: 'text.primary', minWidth: 40 }}>
                     {item.icon}
@@ -127,7 +137,6 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
           </List>
         </Box>
 
-        {/* Divider to separate nav from user info */}
         <Divider sx={{ borderColor: 'divider' }} />
 
         {/* User info section, bottom-aligned */}
@@ -146,7 +155,9 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                 component="img"
                 src={avatarUrl}
                 referrerPolicy="no-referrer"
-                alt={displayName}
+                alt={`Avatar of ${displayName}`}
+                role="img"
+                aria-label={`Signed in as ${displayName}`}
                 sx={{
                   width: 32,
                   height: 32,
@@ -180,12 +191,16 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             </Box>
           </Box>
           {signedIn && (
-            <IconButton size="small" onClick={openLinkDialog}>
+            <IconButton
+              size="small"
+              onClick={openLinkDialog}
+              aria-label="Manage linked accounts"
+            >
               <SettingsIcon fontSize="small" />
             </IconButton>
           )}
         </Box>
-      </Drawer>
+      </SwipeableDrawer>
 
       <LinkAccountDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </>
