@@ -13,56 +13,36 @@ from config import JWT_SECRET, JWT_ALGORITHM
 from utils.cors import get_cors_origin
 
 REFRESH_TOKEN_EXPIRE_DAYS = 30  # Keep this in sync with cookie max-age
-
+logger = current_app.logger
 
 @auth_bp.route("/refresh", methods=["POST", "OPTIONS"])
 @cross_origin(**get_cors_origin())
 def refresh():
-    """
-    ---
-    tags:
-      - Authentication
-    summary: Issue new access and refresh tokens from a valid refresh token cookie
-    responses:
-      200:
-        description: Tokens refreshed successfully
-        schema:
-          type: object
-          properties:
-            message: { type: string, example: "Token refreshed" }
-            access_token: { type: string }
-      401:
-        description: Invalid or expired refresh token
-      500:
-        description: Server error during refresh
-    """
     if request.method == "OPTIONS":
         return jsonify({}), 200
 
-    current_app.logger.debug(f"→ Incoming headers: {dict(request.headers)}")
-    current_app.logger.debug(f"→ Incoming cookies: {request.cookies}")
+    logger.debug("↪ Refresh token request received")
+    logger.debug(f"↪ Headers: {dict(request.headers)}")
+    logger.debug(f"↪ Cookies: {request.cookies}")
 
     old_rt = request.cookies.get("refresh_token")
     if not old_rt:
-        current_app.logger.error("Refresh token cookie missing")
+        logger.warning("❌ Missing refresh_token cookie")
         return jsonify({"message": "refresh token cookie missing"}), 401
 
     conn = pg_pool.getconn()
     try:
         cur = conn.cursor()
-        cur.execute(
-            "SELECT expires_at FROM tokens WHERE token_hash = %s;",
-            (old_rt,),
-        )
+        cur.execute("SELECT expires_at FROM tokens WHERE token_hash = %s;", (old_rt,))
         row = cur.fetchone()
         if not row:
-            current_app.logger.error("Invalid refresh token")
+            logger.warning("❌ Refresh token not found in DB")
             return jsonify({"message": "Invalid refresh token"}), 401
 
         db_expires_at = row[0]
         now_utc = datetime.now(timezone.utc)
         if db_expires_at < now_utc:
-            current_app.logger.error("Session has expired.")
+            logger.warning(f"❌ Refresh token expired at {db_expires_at.isoformat()}")
             return jsonify({"message": "Session has expired."}), 401
 
         try:
@@ -72,8 +52,9 @@ def refresh():
                 algorithms=[JWT_ALGORITHM],
                 options={"verify_exp": False}
             )
+            logger.info(f"🔐 Refresh token verified for user_id={payload.get('user_id')}")
         except jwt.PyJWTError as e:
-            current_app.logger.error(f"Invalid refresh token: {e}")
+            logger.error(f"❌ JWT decode failed: {e}")
             return jsonify({"message": "Invalid refresh token", "error": str(e)}), 401
 
         new_access  = create_access_token(payload)
@@ -86,6 +67,8 @@ def refresh():
         )
         conn.commit()
 
+        logger.info(f"✅ Refreshed token for user_id={payload.get('user_id')}, new expiration: {new_expires.isoformat()}")
+
         resp = make_response(jsonify({
             "message": "Token refreshed",
             "access_token": new_access,
@@ -94,9 +77,8 @@ def refresh():
         return resp
 
     except Exception as exc:
-        current_app.logger.error(f"Error during token refresh: {exc}")
+        logger.exception(f"🔥 Error during refresh: {exc}")
         return jsonify({"message": "Token refresh failed", "error": str(exc)}), 500
-
     finally:
         pg_pool.putconn(conn)
 
@@ -104,28 +86,14 @@ def refresh():
 @auth_bp.route("/logout", methods=["POST", "OPTIONS"])
 @cross_origin(**get_cors_origin())
 def logout_route():
-    """
-    ---
-    tags:
-      - Authentication
-    summary: Log out and revoke the refresh token
-    responses:
-      200:
-        description: Logout successful
-        schema:
-          type: object
-          properties:
-            message: { type: string, example: "Logout successful" }
-      400:
-        description: No refresh token cookie
-      500:
-        description: Server error during logout
-    """
     if request.method == "OPTIONS":
         return jsonify({}), 200
 
+    logger.debug("↪ Logout request received")
+
     rt = request.cookies.get("refresh_token")
     if not rt:
+        logger.warning("❌ Logout request missing refresh_token cookie")
         return jsonify({"message": "refresh token cookie missing"}), 400
 
     conn = pg_pool.getconn()
@@ -133,8 +101,10 @@ def logout_route():
         cur = conn.cursor()
         cur.execute("DELETE FROM tokens WHERE token_hash = %s;", (rt,))
         conn.commit()
+        logger.info("✅ Refresh token revoked during logout")
     except Exception as exc:
         conn.rollback()
+        logger.exception(f"🔥 Logout error: {exc}")
         return jsonify({"message": "Logout failed", "error": str(exc)}), 500
     finally:
         pg_pool.putconn(conn)

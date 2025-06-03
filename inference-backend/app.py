@@ -1,4 +1,7 @@
+import logging
+from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 import os
+import sys
 from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager
 
@@ -23,6 +26,39 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import config
 from config import FRONTEND_URL, JWT_COOKIE_DOMAIN
 
+log_path = os.getenv("LOG_FILE_PATH", "/app/logs/app.log")
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+
+handlers = []
+
+# File logging (rotate daily)
+# Use the following cron job to delete old logs on the server: 
+# 0 3 * * * find /path/to/logs -name "app.log.*" -mtime +7 -delete
+if log_path:
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    file_handler = TimedRotatingFileHandler(
+        log_path,
+        when="midnight",       # Rotate daily
+        interval=1,
+        backupCount=0,         # Let cron handle cleanup
+        utc=True               # Optional: use UTC timestamps
+    )
+    file_handler.suffix = "%Y-%m-%d"
+    file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    ))
+    handlers.append(file_handler)
+
+# Stdout logging (Docker-safe)
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(logging.Formatter(
+    "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+))
+handlers.append(stream_handler)
+
+logging.basicConfig(level=log_level, handlers=handlers)
+logger = logging.getLogger(__name__)
+logger.info("Daily log rotation is active.")
 
 app = Flask(__name__)
 
@@ -203,10 +239,10 @@ def init_auth_tables():
             """)
 
         conn.commit()
-        print("Authentication tables ensured.")
+        logger.info("Authentication tables ensured.")
     except Exception as e:
         conn.rollback()
-        print("Error ensuring auth tables:", e)
+        logger.error("Error ensuring auth tables:", e)
     finally:
         pg_pool.putconn(conn)
 
@@ -228,10 +264,10 @@ def init_security_tables():
             );
             """)
             conn.commit()
-            print("Security tables ensured.")
+            logger.info("Security tables ensured.")
     except Exception as e:
         conn.rollback()
-        print("Error ensuring security tables:", e)
+        logger.error("Error ensuring security tables:", e)
     finally:
         pg_pool.putconn(conn)
 
@@ -290,10 +326,10 @@ def init_collection_tables():
             """)
 
         conn.commit()
-        print("Collection tables ensured.")
+        logger.info("Collection tables ensured.")
     except Exception as e:
         conn.rollback()
-        print("Error ensuring collection tables:", e)
+        logger.error("Error ensuring collection tables:", e)
     finally:
         pg_pool.putconn(conn)
 
@@ -303,7 +339,7 @@ def build_tag_cache():
     """
     cache_path = 'tags_cache.json'
     if os.path.exists(cache_path):
-        print("Tag cache already exists; skipping build.")
+        logger.info("Tag cache already exists; skipping build.")
         return
 
     conn = pg_pool.getconn()
@@ -325,9 +361,9 @@ def build_tag_cache():
         tags = [{'keyword': row[0], 'count': row[1]} for row in cur.fetchall()]
         with open(cache_path, 'w') as f:
             json.dump({"tags": tags}, f)
-        print("Tag cache built.")
+        logger.info("Tag cache built.")
     except Exception as e:
-        print("Error building tag cache:", e)
+        logger.error("Error building tag cache:", e)
     finally:
         pg_pool.putconn(conn)
 
@@ -351,7 +387,7 @@ scheduler.start()
 def job_listener(event):
     job = scheduler.get_job('daily_scryfall_update')
     if event.exception:
-        print("Database update job encountered an error.")
+        logger.info("Database update job encountered an error.")
     else:
         next_run = job.next_run_time.strftime("%Y-%m-%d %H:%M:%S") if job.next_run_time else "unknown"
         print(f"Database update complete. Next update scheduled for {next_run}.")
@@ -387,7 +423,7 @@ def init_mobile_scan_tables():
                     result JSONB
                 );
             """)
-            print("✅ mobile_scan_sessions table created.")
+            logger.info("✅ mobile_scan_sessions table created.")
         else:
             # Ensure missing columns are added (ALTER TABLE is idempotent if column already exists)
             cur.execute("""
@@ -409,7 +445,7 @@ def init_mobile_scan_tables():
                 END
                 $$;
             """)
-            print("✅ mobile_scan_sessions table updated with missing columns.")
+            logger.info("✅ mobile_scan_sessions table updated with missing columns.")
 
         # ── Result Table ──────────────────────────────────────────────
         cur.execute("SELECT to_regclass('public.mobile_scan_results');")
@@ -422,12 +458,12 @@ def init_mobile_scan_tables():
                     created_at TIMESTAMPTZ DEFAULT NOW()
                 );
             """)
-            print("✅ mobile_scan_results table created.")
+            logger.info("✅ mobile_scan_results table created.")
 
         conn.commit()
     except Exception as e:
         conn.rollback()
-        print("❌ Error ensuring mobile scan tables:", e)
+        logger.error("❌ Error ensuring mobile scan tables:", e)
     finally:
         pg_pool.putconn(conn)
 
@@ -457,9 +493,9 @@ def take_collection_price_snapshot():
         cur.execute(sql)
         conn.commit()
         cur.close()
-        print("Daily collection price snapshots taken where changes were detected.")
+        logger.info("Daily collection price snapshots taken where changes were detected.")
     except Exception as e:
-        print("Error taking collection price snapshot:", e)
+        logger.error("Error taking collection price snapshot:", e)
     finally:
         pg_pool.putconn(conn)
 
@@ -481,6 +517,6 @@ build_tag_cache()
 update_main()  # download scryfall bulk data and populate the database
 
 if __name__ == '__main__':
-    print("Flask app starting…")
+    logger.info("Flask app starting…")
     app.run(debug=True, threaded=True, port=5000)
-    print("Flask app is now running and ready to accept requests at http://127.0.0.1:5000")
+    logger.info("Flask app is now running and ready to accept requests at http://127.0.0.1:5000")

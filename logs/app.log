@@ -1,0 +1,9 @@
+2025-06-03 11:54:01,931 [INFO] app: Daily log rotation is active.
+2025-06-03 11:54:02,342 [INFO] apscheduler.scheduler: Scheduler started
+2025-06-03 11:54:02,347 [INFO] apscheduler.scheduler: Added job "daily_scryfall_update" to job store "default"
+2025-06-03 11:54:02,348 [INFO] apscheduler.scheduler: Added job "daily_collection_price_snapshot" to job store "default"
+2025-06-03 11:54:02,350 [INFO] app: Authentication tables ensured.
+2025-06-03 11:54:02,351 [INFO] app: Collection tables ensured.
+2025-06-03 11:54:02,361 [INFO] app: ✅ mobile_scan_sessions table updated with missing columns.
+2025-06-03 11:54:02,362 [INFO] app: Tag cache already exists; skipping build.
+2025-06-03 11:54:02,454 [INFO] scryfall_update.update: ✅ Cards already present — skipping import.
