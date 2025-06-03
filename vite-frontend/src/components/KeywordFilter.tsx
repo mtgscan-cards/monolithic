@@ -1,5 +1,6 @@
 // src/components/KeywordFilter.tsx
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import {
   Box,
@@ -9,6 +10,7 @@ import {
   Button,
   CircularProgress,
 } from '@mui/material';
+import { AuthContext } from '../contexts/AuthContext';
 
 interface Tag {
   keyword: string;
@@ -31,12 +33,15 @@ const computeInitialTagCount = () => {
 let cachedTags: Tag[] | null = null;
 
 const KeywordFilter: React.FC<KeywordFilterProps> = ({ selectedKeywords = [], onChange }) => {
+  const { user } = useContext(AuthContext);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [visibleTagCount, setVisibleTagCount] = useState<number>(computeInitialTagCount());
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Fetch available tags on mount.
+  // Fetch available tags when user is loaded
   useEffect(() => {
+    if (!user) return;
+
     const fetchTags = async () => {
       if (cachedTags) {
         setAvailableTags(cachedTags);
@@ -44,12 +49,12 @@ const KeywordFilter: React.FC<KeywordFilterProps> = ({ selectedKeywords = [], on
       } else {
         try {
           const API_URL = import.meta.env.VITE_API_URL || 'https://api.mtgscan.cards';
-const token = localStorage.getItem('access_token');
-const response = await axios.get(`${API_URL}/api/tags`, {
-  headers: {
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  },
-});
+          const token = localStorage.getItem('access_token');
+          const response = await axios.get(`${API_URL}/api/tags`, {
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          });
           const tags: Tag[] = Array.isArray(response.data.tags) ? response.data.tags : [];
           cachedTags = tags;
           setAvailableTags(tags);
@@ -60,8 +65,9 @@ const response = await axios.get(`${API_URL}/api/tags`, {
         }
       }
     };
+
     fetchTags();
-  }, []);
+  }, [user]);
 
   // Update visible tag count on window resize.
   useEffect(() => {
