@@ -29,6 +29,7 @@ services:
     volumes:
       - ./inference-backend/resources:/app/resources  # Mount local resources folder
       - scryfall_data:/app/data
+      - ./inference-backend/logs:/app/logs   # backend logs
     networks:
       - backend-net
 
