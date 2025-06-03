@@ -6,6 +6,8 @@ from db.postgres_pool import pg_pool
 import os
 from utils.cors import get_cors_origin
 from jwt_helpers import jwt_required
+import logging
+logger = logging.getLogger(__name__)
 search_bp = Blueprint('search_bp', __name__)
 
 @search_bp.route('/api/tags', methods=['GET'])
@@ -42,7 +44,7 @@ def get_tags():
                 cached_data = json.load(f)
             return jsonify(cached_data)
         except Exception as e:
-            print("Error reading tag cache:", e)
+            logger.error("Error reading tag cache:", e)
             return jsonify({"error": "Unable to retrieve tags from cache."}), 500
     else:
         return jsonify({"error": "Tag cache not found."}), 500
@@ -178,8 +180,8 @@ def search_cards():
     queryParams.append(limit)
 
     query = "SELECT *, id AS card_id " + baseQuery + orderClause + paginationClause
-    print("SQL Query:", query)
-    print("Params:", queryParams)
+    logger.info("SQL Query:", query)
+    logger.info("Params:", queryParams)
 
     conn = None
     try:
@@ -192,7 +194,7 @@ def search_cards():
         cur.close()
         return jsonify({"results": results})
     except Exception as e:
-        print("Error in search route:", e)
+        logger.error("Error in search route:", e)
         return jsonify({"error": "Error processing search request"}), 500
     finally:
         if conn:
@@ -266,7 +268,7 @@ def get_alternate_printings(card_id):
     except Exception as e:
         if conn:
             conn.rollback()
-        print("Error retrieving alternate printings:", e)
+        logger.error("Error retrieving alternate printings:", e)
         return jsonify({"error": "Error retrieving alternate printings"}), 500
     finally:
         if conn:

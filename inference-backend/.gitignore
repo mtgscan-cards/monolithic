@@ -9,3 +9,4 @@ __pycache__/
 *.pyo
 *.pyd
 data/scryfall-all_prints.json
+logs/

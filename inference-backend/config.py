@@ -40,3 +40,7 @@ JWT_REFRESH_COOKIE_NAME = "refresh_token"
 JWT_COOKIE_CSRF_PROTECT = False
 IS_PRODUCTION = os.getenv("FLASK_ENV") == "production"
 JWT_COOKIE_DOMAIN   = ".mtgscan.cards" if IS_PRODUCTION else None
+
+# ─── Logging configuration ──────────────────────────────────────────────────
+LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "/app/logs/app.log")
+LOG_LEVEL     = os.getenv("LOG_LEVEL", "INFO")

@@ -4,7 +4,9 @@ import time
 import json
 from collections import Counter
 import concurrent.futures  # for parallel candidate processing
+import logging
 
+logger = logging.getLogger(__name__)
 # Pre-initialize expensive objects outside the functions.
 global_sift = cv2.SIFT_create(nfeatures=250)
 global_CLAHE = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
@@ -58,7 +60,7 @@ def extract_features_sift(roi_image, max_features=250):
         debug_timings['normalization'] = time.perf_counter() - start
 
     total_time = time.perf_counter() - overall_start
-    print("SIFT extraction timings:")
+    logger.info("SIFT extraction timings:")
     for step, t in debug_timings.items():
         print(f"  {step}: {t:.3f} seconds")
     print(f"Total SIFT extraction time: {total_time:.3f} seconds")
@@ -181,7 +183,7 @@ def find_closest_card_ransac(roi_image, faiss_index, hf, id_map,
     debug_info['candidate_sort_time'] = time.perf_counter() - sort_start
 
     print(f"Candidate sorting took: {debug_info['candidate_sort_time']:.3f} seconds")
-    print("Top candidate inlier counts:")
+    logger.info("Top candidate inlier counts:")
     for idx, (cand, dbg) in enumerate(reversed(sorted_candidates[:3]), start=1):
         print(f"  {idx}. Candidate {cand} - {dbg['total_inliers']} inliers")
 
