@@ -14,7 +14,6 @@ import {
 import MenuIcon from '@mui/icons-material/Menu'
 import SearchIcon from '@mui/icons-material/Search'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import { Routes, Route } from 'react-router-dom'
 
 import NavigationDrawer, { NavItem } from './components/NavigationDrawer'
@@ -77,9 +76,20 @@ const modernTheme = createTheme({
 
 const navItems: NavItem[] = [
   { text: 'Search', icon: <SearchIcon />, path: '/' },
-  { text: 'Collections', icon: <MenuIcon />, path: '/collections' },
+{
+  text: 'Collections',
+  icon: (
+    <span
+      className="material-symbols-outlined"
+      style={{ fontSize: 24, lineHeight: 1 }}
+    >
+      deployed_code
+    </span>
+  ),
+  path: '/collections',
+},
   { text: 'Portfolio', icon: <TrendingUpIcon />, path: '/portfolio' },
-  { text: 'Scan', icon: <PhotoCameraIcon />, path: '/scan' },
+  { text: 'Scan', icon: <span className="material-symbols-outlined" style={{ fontSize: 24 }}>document_scanner</span>, path: '/scan' },
 ]
 
 const App: React.FC = () => {

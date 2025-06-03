@@ -1,20 +1,25 @@
 // src/api/FilterBackend.tsx
 import { FilterCriteria } from '../components/FilterPanel';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.mtgscan.cards';
+
 export async function sendFilterCriteria(criteria: FilterCriteria) {
   console.log('Sending criteria to backend:', criteria);
   try {
-    
-    const response = await fetch('https://api.mtgscan.cards/api/search', {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_URL}/api/search`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(criteria)
+      body: JSON.stringify(criteria),
     });
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
     const data = await response.json();
     console.log('Received response from backend:', data);
     return data;

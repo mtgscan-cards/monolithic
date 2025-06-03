@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import {
   Box,
   Typography,
@@ -9,7 +9,8 @@ import {
   Stack,
   Tooltip,
   IconButton,
-  Alert
+  Alert,
+  ClickAwayListener,
 } from '@mui/material'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -27,6 +28,20 @@ const BulkCardAdder: React.FC<BulkCardAdderProps> = ({ username, collectionId, o
   const [text, setText] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Tooltip state
+  const [tooltipOpen, setTooltipOpen] = useState(false)
+  const tooltipTimeout = useRef<NodeJS.Timeout | null>(null)
+
+  const handleTooltipToggle = () => {
+    setTooltipOpen(true)
+    if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current)
+    tooltipTimeout.current = setTimeout(() => setTooltipOpen(false), 4000)
+  }
+
+  const handleTooltipClose = () => {
+    setTooltipOpen(false)
+  }
 
   const handleSubmit = async () => {
     if (!text.trim()) return
@@ -67,11 +82,22 @@ const BulkCardAdder: React.FC<BulkCardAdderProps> = ({ username, collectionId, o
         <Paper elevation={2} sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
             <Typography variant="h6">Add Cards via MTG Text Format</Typography>
-            <Tooltip title="Used to automatically add multiple cards at once using MTG text format.">
-              <IconButton size="small" sx={{ ml: 1 }}>
-                <HelpOutlineIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+
+            <ClickAwayListener onClickAway={handleTooltipClose}>
+              <Tooltip
+                title="Used to automatically add multiple cards at once using MTG text format."
+                open={tooltipOpen}
+                onOpen={() => setTooltipOpen(true)}
+                onClose={handleTooltipClose}
+                disableFocusListener
+                disableHoverListener
+                disableTouchListener
+              >
+                <IconButton size="small" sx={{ ml: 1 }} onClick={handleTooltipToggle}>
+                  <HelpOutlineIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </ClickAwayListener>
           </Box>
 
           <TextField

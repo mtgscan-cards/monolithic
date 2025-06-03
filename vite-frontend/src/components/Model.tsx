@@ -12,14 +12,14 @@ import { useGLTF, useCursor, Text } from '@react-three/drei';
 import { AnimationMixer, LoopOnce, Group, Color, Mesh, Object3D } from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils';
 
-// Define the MtgCardStack component (or import it if defined elsewhere)
 interface MtgCardStackProps {
   cardStackScale?: number;
   xOffset?: number;
 }
 const MtgCardStack: React.FC<MtgCardStackProps> = ({ cardStackScale = 1, xOffset = 0 }) => {
-  const gltf = useGLTF('mtgcardstack_min.glb'); // Ensure this path is correct.
+  const gltf = useGLTF('mtgcardstack_min.glb');
   const clonedStack = useMemo(() => SkeletonUtils.clone(gltf.scene), [gltf.scene]);
+
   useEffect(() => {
     clonedStack.traverse((child: Object3D) => {
       if (child instanceof Mesh) {
@@ -28,6 +28,7 @@ const MtgCardStack: React.FC<MtgCardStackProps> = ({ cardStackScale = 1, xOffset
       }
     });
   }, [clonedStack]);
+
   return (
     <group position={[xOffset, 0, 0]} scale={[cardStackScale, 1, 1]}>
       <group position={[0, 0.083, 0]} scale={[0.05, 0.025, 0.05]}>
@@ -95,13 +96,17 @@ const Model = forwardRef<Group, ModelProps>(
       mixerRef.current?.update(delta);
     });
 
-    const handlePointerOver = () => {
-      setHovered(true);
+    const playHoverAnimation = () => {
       const action = mixerRef.current?.clipAction(gltf.animations[0]);
       if (action) {
         action.timeScale = 1;
         action.paused = false;
       }
+    };
+
+    const handlePointerOver = () => {
+      setHovered(true);
+      playHoverAnimation();
     };
 
     const handlePointerOut = () => {
@@ -113,7 +118,13 @@ const Model = forwardRef<Group, ModelProps>(
       }
     };
 
-    // Define card stack states
+    const handleClick = () => {
+      playHoverAnimation();
+      setTimeout(() => {
+        onClick?.();
+      }, 1600); // Allow ~1.6s for the hover animation to finish
+    };
+
     const cardStackStates = [
       { xOffset: -0.235, cardStackScale: 0.04 },
       { xOffset: -0.23, cardStackScale: 0.1 },
@@ -124,7 +135,6 @@ const Model = forwardRef<Group, ModelProps>(
       { xOffset: -0.001, cardStackScale: 2.35 },
       { xOffset: -0.001, cardStackScale: 2.35 },
     ];
-    // Use the server returned value directly (or adjust if needed)
     const stateIndex = cardStackStateIndex ?? 0;
     const selectedState = cardStackStates[stateIndex % cardStackStates.length - 1];
 
@@ -134,11 +144,10 @@ const Model = forwardRef<Group, ModelProps>(
         position={initialPosition}
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
-        onClick={onClick}
+        onClick={handleClick}
         scale={[scaleX, scaleY, scaleZ]}
       >
         <primitive object={clonedScene} />
-        {/* Render the card stack using the MtgCardStack component */}
         {stateIndex > 0 && (
           <MtgCardStack
             cardStackScale={selectedState.cardStackScale}
@@ -146,7 +155,7 @@ const Model = forwardRef<Group, ModelProps>(
           />
         )}
         {label && (
-          <Text position={[0, .5, 0]} fontSize={0.09} color="black" anchorX="center" anchorY="middle">
+          <Text position={[0, 0.5, 0]} fontSize={0.09} color="black" anchorX="center" anchorY="middle">
             {label}
           </Text>
         )}
