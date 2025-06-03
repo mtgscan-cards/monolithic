@@ -31,7 +31,8 @@ const BulkCardAdder: React.FC<BulkCardAdderProps> = ({ username, collectionId, o
 
   // Tooltip state
   const [tooltipOpen, setTooltipOpen] = useState(false)
-  const tooltipTimeout = useRef<number | null>(null)
+
+  const tooltipTimeout = useRef<NodeJS.Timeout | null>(null)
 
   React.useEffect(() => {
     return () => {
@@ -40,6 +41,7 @@ const BulkCardAdder: React.FC<BulkCardAdderProps> = ({ username, collectionId, o
       }
     }
   }, [])
+
   const handleTooltipToggle = () => {
     setTooltipOpen(true)
     if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current)
