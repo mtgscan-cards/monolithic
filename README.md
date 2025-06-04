@@ -63,6 +63,10 @@ REFRESH_TOKEN_EXPIRE_DAYS=30
 
 JWT_SECRET=replace-this-with-a-secure-key
 FLASK_SECRET_KEY=replace-this-with-a-secure-key
+
+FLASK_ENV=development
+LOG_FILE_PATH=/app/logs/app.log
+LOG_LEVEL=INFO
 ```
 
 ### 3. Deploy

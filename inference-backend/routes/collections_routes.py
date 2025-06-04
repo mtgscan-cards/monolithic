@@ -62,6 +62,7 @@ In your `app.py` you must initialise Flasgger:
 
 """
 
+import logging
 import re
 from uuid import UUID
 from flask import Blueprint, current_app, request, jsonify
@@ -69,6 +70,7 @@ from flask_cors import cross_origin
 from db.postgres_pool import pg_pool
 from jwt_helpers import jwt_required
 from utils.cors import get_cors_origin
+logger = logging.getLogger(__name__)
 
 
 collections_bp = Blueprint("collections_bp", __name__, url_prefix="/collections")
@@ -331,11 +333,11 @@ def get_collection(
             try:
                 verify_jwt_in_request()
             except Exception as err:
-                current_app.logger.debug(f"verify_jwt failed: {err}")
+                logger.debug(f"verify_jwt failed: {err}")
                 return jsonify({"message": "Unauthorized"}), 401
 
             user_id = get_jwt_identity()
-            current_app.logger.debug(f"JWT identity (user_id): {user_id}, owner_id: {owner_id}")
+            logger.debug(f"JWT identity (user_id): {user_id}, owner_id: {owner_id}")
             if user_id != owner_id:
                 return jsonify({"message": "Forbidden"}), 403
 
@@ -355,7 +357,7 @@ def get_collection(
 
     except Exception as e:
         conn.rollback()
-        current_app.logger.exception("Error retrieving collection metadata")
+        logger.exception("Error retrieving collection metadata")
         return jsonify({"message": "Error retrieving collection", "error": str(e)}), 500
 
     finally:
@@ -544,11 +546,11 @@ def list_cards_in_collection(username: str, user_collection_id: int):
             try:
                 verify_jwt_in_request()
             except Exception as err:
-                current_app.logger.debug(f"verify_jwt failed in list_cards: {err}")
+                logger.debug(f"verify_jwt failed in list_cards: {err}")
                 return jsonify({"message": "Unauthorized"}), 401
 
             user_id = get_jwt_identity()
-            current_app.logger.debug(f"JWT identity (user_id): {user_id}, owner_id: {owner_id}")
+            logger.debug(f"JWT identity (user_id): {user_id}, owner_id: {owner_id}")
             if user_id != owner_id:
                 return jsonify({"message": "Forbidden"}), 403
 
@@ -587,7 +589,7 @@ def list_cards_in_collection(username: str, user_collection_id: int):
     except Exception as e:
         if conn:
             conn.rollback()
-        current_app.logger.exception("Error retrieving cards")
+        logger.exception("Error retrieving cards")
         return jsonify({"message": "Error retrieving cards", "error": str(e)}), 500
 
     finally:
@@ -718,7 +720,7 @@ def bulk_add_cards(username, user_collection_id):
         for line in lines:
             match = re.match(r"(\d+)\s+(.*?)\s+\((\w+)\)\s+(\d+)", line.strip())
             if not match:
-                current_app.logger.warning(f"[bulk-add] Regex failed: {line.strip()}")
+                logger.warning(f"[bulk-add] Regex failed: {line.strip()}")
                 failed += 1
                 continue
 
@@ -728,7 +730,7 @@ def bulk_add_cards(username, user_collection_id):
             set_code = set_code.lower()
             collector_number = collector.lstrip("0")  # ← Key fix
 
-            current_app.logger.debug(
+            logger.debug(
                 f"[bulk-add] Parsed → qty: {qty}, name: {normalized_name}, set: {set_code}, collector: {collector_number}, lang: {lang}"
             )
 
@@ -758,7 +760,7 @@ def bulk_add_cards(username, user_collection_id):
                 card = cur.fetchone()
 
             if not card:
-                current_app.logger.warning(
+                logger.warning(
                     f"[bulk-add] Not found: name='{normalized_name}', set='{set_code}', collector='{collector_number}', lang='{lang}'"
                 )
                 failed += 1
@@ -783,7 +785,7 @@ def bulk_add_cards(username, user_collection_id):
 
     except Exception as e:
         conn.rollback()
-        current_app.logger.exception("Error during bulk add")
+        logger.exception("Error during bulk add")
         return jsonify({"message": "Failed to add cards", "error": str(e)}), 500
 
     finally:

@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request, jsonify
 import cv2
 import numpy as np
@@ -5,6 +6,7 @@ import time
 from utils.sift_features import find_closest_card_ransac
 from utils.resource_manager import load_resources
 from db.postgres_pool import pg_pool  # Import the connection pool
+logger = logging.getLogger(__name__)
 
 infer_bp = Blueprint('infer_bp', __name__)
 
@@ -72,7 +74,7 @@ def infer():
     file = request.files['roi_image']
     file_bytes = np.frombuffer(file.read(), np.uint8)
     file_read_time = time.perf_counter() - file_read_start
-    print(f"File read took: {file_read_time:.3f} seconds")
+    logger.info(f"File read took: {file_read_time:.3f} seconds")
     
     # Decode the image.
     roi_decode_start = time.perf_counter()
@@ -80,7 +82,7 @@ def infer():
     if roi_image is None:
         return jsonify({'error': 'Invalid image format.'}), 400
     roi_decode_time = time.perf_counter() - roi_decode_start
-    print(f"Image decode took: {roi_decode_time:.3f} seconds")
+    logger.info(f"Image decode took: {roi_decode_time:.3f} seconds")
     
     # Process the image using SIFT/RANSAC.
     sift_start = time.perf_counter()
@@ -88,9 +90,10 @@ def infer():
         roi_image, faiss_index, hf, id_map, k=3
     )
     sift_time = time.perf_counter() - sift_start
-    print(f"SIFT/RANSAC processing took: {sift_time:.3f} seconds")
+    logger.info(f"SIFT/RANSAC processing took: {sift_time:.3f} seconds")
 
     if not best_candidate:
+        logger.debug("SIFT/RANSAC found no matching card in ROI")
         return jsonify({'error': 'No matching card found.'}), 404
     
     # Query Postgres for card details including the card name.
@@ -123,10 +126,10 @@ def infer():
             pg_pool.putconn(conn)
 
     db_query_time = time.perf_counter() - db_query_start
-    print(f"Database query took: {db_query_time:.3f} seconds")
+    logger.info(f"Database query took: {db_query_time:.3f} seconds")
     
     overall_time = time.perf_counter() - overall_start
-    print(f"Overall inference took: {overall_time:.3f} seconds")
+    logger.info(f"Overall inference took: {overall_time:.3f} seconds")
     
     result = {
         'predicted_card_id': best_candidate,

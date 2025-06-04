@@ -1,3 +1,21 @@
+from config import FRONTEND_URL, JWT_COOKIE_DOMAIN
+import config
+from werkzeug.middleware.proxy_fix import ProxyFix
+from scryfall_update.update import main as update_main
+from db.postgres_pool import pg_pool
+from routes.mobile_infer_routes import mobile_infer_bp
+from routes.collection_value_routes import collection_value_bp
+from routes.collections_routes import collections_bp
+from routes.auth import auth_bp
+from routes.infer_routes import infer_bp
+from routes.search_routes import search_bp
+from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
+from datetime import datetime, timezone, timedelta
+import json
+from flask_apscheduler import APScheduler
+from flask_cors import CORS
+from flask import Flask
+from flasgger import Swagger
 import logging
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 import os
@@ -6,25 +24,7 @@ from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager
 
 load_dotenv()  # Reads variables from .env
-from flasgger import Swagger
-from flask import Flask
-from flask_cors import CORS
-from flask_apscheduler import APScheduler
-import json
-from datetime import datetime, timezone, timedelta
-from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 
-from routes.search_routes import search_bp
-from routes.infer_routes import infer_bp
-from routes.auth import auth_bp
-from routes.collections_routes import collections_bp
-from routes.collection_value_routes import collection_value_bp
-from routes.mobile_infer_routes import mobile_infer_bp
-from db.postgres_pool import pg_pool
-from scryfall_update.update import main as update_main
-from werkzeug.middleware.proxy_fix import ProxyFix
-import config
-from config import FRONTEND_URL, JWT_COOKIE_DOMAIN
 
 log_path = os.getenv("LOG_FILE_PATH", "/app/logs/app.log")
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -32,7 +32,7 @@ log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 handlers = []
 
 # File logging (rotate daily)
-# Use the following cron job to delete old logs on the server: 
+# Use the following cron job to delete old logs on the server:
 # 0 3 * * * find /path/to/logs -name "app.log.*" -mtime +7 -delete
 if log_path:
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
@@ -70,18 +70,18 @@ app.config.from_object('config')    # or however you load your base config
 
 # ─── HERE is where you add all the JWT-Extended settings ────────────────
 # ─── HERE is where you add all the JWT-Extended settings ────────────────
-app.config['JWT_SECRET_KEY']           = app.config['JWT_SECRET']
-app.config['JWT_TOKEN_LOCATION']       = ['headers', 'cookies']
-app.config['JWT_IDENTITY_CLAIM']       = 'user_id'
-app.config['JWT_ACCESS_COOKIE_NAME']   = 'access_token'
-app.config['JWT_REFRESH_COOKIE_NAME']  = 'refresh_token'
-app.config['JWT_COOKIE_CSRF_PROTECT']  = False
+app.config['JWT_SECRET_KEY'] = app.config['JWT_SECRET']
+app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
+app.config['JWT_IDENTITY_CLAIM'] = 'user_id'
+app.config['JWT_ACCESS_COOKIE_NAME'] = 'access_token'
+app.config['JWT_REFRESH_COOKIE_NAME'] = 'refresh_token'
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 
 # ─── Required for cross-site cookie usage ────────────────
 is_production = os.environ.get("FLASK_ENV") == "production"
 
 app.config['JWT_COOKIE_SAMESITE'] = 'None' if is_production else 'Lax'
-app.config['JWT_COOKIE_SECURE']   = True if is_production else False
+app.config['JWT_COOKIE_SECURE'] = True if is_production else False
 if JWT_COOKIE_DOMAIN:
     app.config["JWT_COOKIE_DOMAIN"] = JWT_COOKIE_DOMAIN
 
@@ -89,9 +89,9 @@ if JWT_COOKIE_DOMAIN:
 jwt = JWTManager(app)
 
 # ─── session & CORS settings ───────────────────────────────────────────
-app.secret_key                           = os.getenv('FLASK_SECRET_KEY', 'your-secret-key')
-app.config['SESSION_COOKIE_SAMESITE']    = 'Lax'
-app.config['SESSION_COOKIE_SECURE']      = False
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key')
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
 
@@ -185,6 +185,8 @@ swagger = Swagger(app, template={
 })
 
 # ─── DB initialisation helpers ───────────────────────────────────────────────
+
+
 def init_auth_tables():
     """
     Creates auth-related tables (users, tokens, recovery_codes) if they don't exist.
@@ -246,6 +248,7 @@ def init_auth_tables():
     finally:
         pg_pool.putconn(conn)
 
+
 def init_security_tables():
     """
     Creates security-related tables if they don't exist.
@@ -270,6 +273,7 @@ def init_security_tables():
         logger.error("Error ensuring security tables:", e)
     finally:
         pg_pool.putconn(conn)
+
 
 def init_collection_tables():
     """
@@ -333,6 +337,7 @@ def init_collection_tables():
     finally:
         pg_pool.putconn(conn)
 
+
 def build_tag_cache():
     """
     Builds tags_cache.json if it doesn't already exist.
@@ -368,29 +373,36 @@ def build_tag_cache():
         pg_pool.putconn(conn)
 
 # ─── Scheduler ───────────────────────────────────────────────────────────────
+
+
 class Config:
     SCHEDULER_API_ENABLED = True
     SCHEDULER_EXECUTORS = {
         'default':    {'type': 'threadpool',  'max_workers': 10},
-        'processpool':{'type': 'processpool', 'max_workers': 2},
+        'processpool': {'type': 'processpool', 'max_workers': 2},
     }
     SCHEDULER_JOB_DEFAULTS = {
         'coalesce': False,
         'max_instances': 1,
     }
 
+
 app.config.from_object(Config())
 scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
+
 
 def job_listener(event):
     job = scheduler.get_job('daily_scryfall_update')
     if event.exception:
         logger.info("Database update job encountered an error.")
     else:
-        next_run = job.next_run_time.strftime("%Y-%m-%d %H:%M:%S") if job.next_run_time else "unknown"
-        print(f"Database update complete. Next update scheduled for {next_run}.")
+        next_run = job.next_run_time.strftime(
+            "%Y-%m-%d %H:%M:%S") if job.next_run_time else "unknown"
+        print(
+            f"Database update complete. Next update scheduled for {next_run}.")
+
 
 scheduler.add_listener(job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
 scheduler.add_job(
@@ -400,6 +412,7 @@ scheduler.add_job(
     hour=0,
     minute=0
 )
+
 
 def init_mobile_scan_tables():
     """
@@ -445,7 +458,8 @@ def init_mobile_scan_tables():
                 END
                 $$;
             """)
-            logger.info("✅ mobile_scan_sessions table updated with missing columns.")
+            logger.info(
+                "✅ mobile_scan_sessions table updated with missing columns.")
 
         # ── Result Table ──────────────────────────────────────────────
         cur.execute("SELECT to_regclass('public.mobile_scan_results');")
@@ -466,6 +480,7 @@ def init_mobile_scan_tables():
         logger.error("❌ Error ensuring mobile scan tables:", e)
     finally:
         pg_pool.putconn(conn)
+
 
 def take_collection_price_snapshot():
     """
@@ -493,11 +508,13 @@ def take_collection_price_snapshot():
         cur.execute(sql)
         conn.commit()
         cur.close()
-        logger.info("Daily collection price snapshots taken where changes were detected.")
+        logger.info(
+            "Daily collection price snapshots taken where changes were detected.")
     except Exception as e:
         logger.error("Error taking collection price snapshot:", e)
     finally:
         pg_pool.putconn(conn)
+
 
 scheduler.add_job(
     id='daily_collection_price_snapshot',
@@ -511,7 +528,7 @@ scheduler.add_job(
 init_auth_tables()
 init_security_tables()
 init_collection_tables()
-init_mobile_scan_tables() 
+init_mobile_scan_tables()
 build_tag_cache()
 
 update_main()  # download scryfall bulk data and populate the database
@@ -519,4 +536,5 @@ update_main()  # download scryfall bulk data and populate the database
 if __name__ == '__main__':
     logger.info("Flask app starting…")
     app.run(debug=True, threaded=True, port=5000)
-    logger.info("Flask app is now running and ready to accept requests at http://127.0.0.1:5000")
+    logger.info(
+        "Flask app is now running and ready to accept requests at http://127.0.0.1:5000")

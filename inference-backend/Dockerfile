@@ -27,4 +27,4 @@ COPY . .
 EXPOSE 5000
 
 # Start the app with logging to stdout/stderr and enable print() capture
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "--access-logfile", "-", "--error-logfile", "-", "--capture-output", "app:app"]
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000","--access-logfile", "/app/logs/app.log","--error-logfile", "/app/logs/app.log","--capture-output", "app:app"]

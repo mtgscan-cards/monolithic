@@ -4,8 +4,9 @@ from flask import Blueprint, request, jsonify, current_app
 from db.postgres_pool import pg_pool
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from flask_cors import cross_origin
-
+import logging
 from utils.cors import get_cors_origin
+logger = logging.getLogger(__name__)
 
 collection_value_bp = Blueprint(
     'collection_value_bp',
@@ -64,7 +65,8 @@ def get_current_collection_value(collection_id):
             try:
                 verify_jwt_in_request()
             except Exception as err:
-                current_app.logger.debug(f"verify_jwt failed: {err}")
+                
+                logger.debug(f"verify_jwt failed: {err}")
                 return jsonify({"message": "Unauthorized"}), 401
 
             user_id = get_jwt_identity()
@@ -176,7 +178,7 @@ def get_collection_value_history(collection_id):
             try:
                 verify_jwt_in_request()
             except Exception as err:
-                current_app.logger.debug(f"verify_jwt failed: {err}")
+                logger.debug(f"verify_jwt failed: {err}")
                 return jsonify({"message": "Unauthorized"}), 401
 
             user_id = get_jwt_identity()

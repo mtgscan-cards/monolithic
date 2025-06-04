@@ -1,5 +1,6 @@
 # routes/auth/handlers/tokens.py
 
+import logging
 from flask_cors import cross_origin
 import jwt
 from datetime import datetime, timezone, timedelta
@@ -13,7 +14,7 @@ from config import JWT_SECRET, JWT_ALGORITHM
 from utils.cors import get_cors_origin
 
 REFRESH_TOKEN_EXPIRE_DAYS = 30  # Keep this in sync with cookie max-age
-logger = current_app.logger
+logger = logging.getLogger(__name__)
 
 @auth_bp.route("/refresh", methods=["POST", "OPTIONS"])
 @cross_origin(**get_cors_origin())

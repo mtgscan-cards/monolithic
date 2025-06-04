@@ -1,5 +1,6 @@
 # src/routes/auth/handlers/password.py
 
+import logging
 import re
 import datetime
 from flask import request, jsonify, session, make_response, current_app
@@ -15,6 +16,7 @@ from jwt_helpers import create_access_token, create_refresh_token
 from datetime import datetime, timedelta, timezone
 from utils.cors import get_cors_origin
 from flask_jwt_extended import set_access_cookies
+
 
 # Only allow 3–30 characters, no slashes, question marks, hashes or whitespace
 USERNAME_REGEX = re.compile(r'^[^\/\?#\s]{3,30}$')
@@ -49,7 +51,7 @@ def login():
     if request.method == "OPTIONS":
         return jsonify({}), 200
 
-    logger = current_app.logger
+    logger = logging.getLogger(__name__)
     data = request.get_json()
     email = data.get("email")
     password = data.get("password")
@@ -151,7 +153,7 @@ def register():
       409: { description: User already exists }
       500: { description: Server error }
     """
-    logger = current_app.logger
+    logger = logging.getLogger(__name__)
     data = request.json or {}
     email          = data.get("email")
     password       = data.get("password")
@@ -216,7 +218,7 @@ def set_password():
       400: { description: Password missing }
       500: { description: Server error }
     """
-    logger = current_app.logger
+    logger = logging.getLogger(__name__)
     new_pw = (request.json or {}).get("new_password")
     if not new_pw:
         logger.warning("Missing new_password field in set_password")
@@ -285,7 +287,7 @@ def set_username():
       404: { description: User not found }
       500: { description: Server error }
     """
-    logger = current_app.logger
+    logger = logging.getLogger(__name__)
     new_name = (request.json or {}).get("username", "").strip()
 
     if not USERNAME_REGEX.match(new_name):
