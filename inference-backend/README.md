@@ -49,7 +49,17 @@ POSTGRES_PORT=5432
 
 JWT_SECRET=super-secret-key
 FLASK_SECRET_KEY=dev-key
-FRONTEND_URL=http://localhost:5173
+
+REFRESH_TOKEN_EXPIRE_DAYS=30
+
+# Flask app config
+JWT_SECRET=replace-this-with-something-secure
+FLASK_SECRET_KEY=also-replace-this-with-something-secure
+
+FLASK_ENV=development
+
+LOG_FILE_PATH=/app/logs/app.log
+LOG_LEVEL=INFO
 ```
 
 ---

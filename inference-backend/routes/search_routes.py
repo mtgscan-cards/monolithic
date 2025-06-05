@@ -38,15 +38,19 @@ def get_tags():
         description: Error retrieving tag cache
     """
     cache_file = 'tags_cache.json'
+    logger.info("[TAGS] Attempting to load tag cache")
+    
     if os.path.exists(cache_file):
         try:
             with open(cache_file, 'r') as f:
                 cached_data = json.load(f)
+            logger.info("[TAGS] Cache loaded successfully")
             return jsonify(cached_data)
         except Exception as e:
-            logger.error("Error reading tag cache:", e)
+            logger.exception("[TAGS] Error reading tag cache")
             return jsonify({"error": "Unable to retrieve tags from cache."}), 500
     else:
+        logger.warning("[TAGS] Cache file does not exist")
         return jsonify({"error": "Tag cache not found."}), 500
     
 @search_bp.route('/api/search', methods=['POST'])
@@ -112,6 +116,8 @@ def search_cards():
       500:
         description: Error during search
     """
+    logger.info("[SEARCH] Search request received")
+
     data = request.get_json()
     keywords = data.get('keywords', [])
     colors = data.get('colors', [])
@@ -121,23 +127,17 @@ def search_cards():
     last_id = data.get('lastId')
     lang = data.get('lang', 'en')
 
-    conditions = []
-    params = []
-
-    conditions.append("lang = %s")
-    params.append(lang)
+    conditions = ["lang = %s"]
+    params = [lang]
 
     if keywords:
-        keyword_conditions = []
         for keyword in keywords:
             params.append(json.dumps([keyword]))
-            keyword_conditions.append("keywords @> %s::jsonb")
-        conditions.append(" AND ".join(keyword_conditions))
+        conditions.append(" AND ".join(["keywords @> %s::jsonb"] * len(keywords)))
 
     if colors:
         has_generic = "C" in colors
-        non_generic_colors = [c for c in colors if c != "C"]
-        for color in non_generic_colors:
+        for color in [c for c in colors if c != "C"]:
             params.append(json.dumps([color]))
             conditions.append("colors @> %s::jsonb")
         if has_generic:
@@ -145,9 +145,7 @@ def search_cards():
 
     if textFilters:
         ts_query = " & ".join(textFilters)
-        conditions.append(
-            "to_tsvector('english', coalesce(name, '') || ' ' || coalesce(oracle_text, '')) @@ plainto_tsquery('english', %s)"
-        )
+        conditions.append("to_tsvector('english', coalesce(name, '') || ' ' || coalesce(oracle_text, '')) @@ plainto_tsquery('english', %s)")
         params.append(ts_query)
 
     if manaCost:
@@ -156,45 +154,37 @@ def search_cards():
         if operator == 'between' and isinstance(value, list) and len(value) == 2:
             conditions.append("cmc BETWEEN %s AND %s")
             params.extend(value)
-        elif operator == '<':
-            conditions.append("cmc < %s")
-            params.append(value)
-        elif operator == '>':
-            conditions.append("cmc > %s")
-            params.append(value)
-        elif operator == '=':
-            conditions.append("cmc = %s")
+        elif operator in ['<', '>', '=']:
+            conditions.append(f"cmc {operator} %s")
             params.append(value)
 
-    baseQuery = "FROM cards"
+    base_query = "FROM cards"
     if conditions:
-        baseQuery += " WHERE " + " AND ".join(conditions)
+        base_query += " WHERE " + " AND ".join(conditions)
 
-    queryParams = params.copy()
     if last_id is not None:
-        baseQuery += " AND id > %s"
-        queryParams.append(last_id)
+        base_query += " AND id > %s"
+        params.append(last_id)
 
-    orderClause = " ORDER BY id ASC"
-    paginationClause = " LIMIT %s"
-    queryParams.append(limit)
+    query = f"SELECT *, id AS card_id {base_query} ORDER BY id ASC LIMIT %s"
+    params.append(limit)
 
-    query = "SELECT *, id AS card_id " + baseQuery + orderClause + paginationClause
-    logger.info("SQL Query:", query)
-    logger.info("Params:", queryParams)
+    logger.debug(f"[SEARCH] SQL: {query}")
+    logger.debug(f"[SEARCH] Params: {params}")
 
     conn = None
     try:
         conn = pg_pool.getconn()
         cur = conn.cursor()
-        cur.execute(query, tuple(queryParams))
+        cur.execute(query, tuple(params))
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
         results = [dict(zip(columns, row)) for row in rows]
         cur.close()
+        logger.info(f"[SEARCH] Found {len(results)} results")
         return jsonify({"results": results})
     except Exception as e:
-        logger.error("Error in search route:", e)
+        logger.exception("[SEARCH] Error executing search")
         return jsonify({"error": "Error processing search request"}), 500
     finally:
         if conn:
@@ -204,32 +194,7 @@ def search_cards():
 @cross_origin(**get_cors_origin())
 @jwt_required
 def get_alternate_printings(card_id):
-    """
-    Get alternate printings for a given card ID
-    ---
-    tags:
-      - Search
-    parameters:
-      - name: card_id
-        in: path
-        type: string
-        required: true
-        description: Card UUID from the main database
-    responses:
-      200:
-        description: Alternate printings returned
-        schema:
-          type: object
-          properties:
-            results:
-              type: array
-              items:
-                type: object
-      404:
-        description: Card not found
-      500:
-        description: Error during retrieval
-    """
+    logger.info(f"[ALTERNATES] Looking up alternates for card ID: {card_id}")
     conn = None
     try:
         conn = pg_pool.getconn()
@@ -238,6 +203,7 @@ def get_alternate_printings(card_id):
         row = cur.fetchone()
         if not row:
             cur.close()
+            logger.warning(f"[ALTERNATES] Card ID not found: {card_id}")
             return jsonify({"error": "Card not found"}), 404
 
         oracle_id = row[0]
@@ -264,11 +230,13 @@ def get_alternate_printings(card_id):
         columns = [desc[0] for desc in cur.description]
         alternate_printings = [dict(zip(columns, r)) for r in rows]
         cur.close()
+
+        logger.info(f"[ALTERNATES] Found {len(alternate_printings)} alternate printings")
         return jsonify({"results": alternate_printings}), 200
     except Exception as e:
         if conn:
             conn.rollback()
-        logger.error("Error retrieving alternate printings:", e)
+        logger.exception("[ALTERNATES] Error retrieving alternate printings")
         return jsonify({"error": "Error retrieving alternate printings"}), 500
     finally:
         if conn:

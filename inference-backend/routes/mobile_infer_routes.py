@@ -12,6 +12,9 @@ from utils.sift_features import find_closest_card_ransac
 from utils.resource_manager import load_resources
 from db.postgres_pool import pg_pool
 from utils.cors import get_cors_origin
+import logging
+
+logger = logging.getLogger(__name__)
 
 mobile_infer_bp = Blueprint('mobile_infer_bp', __name__, url_prefix="/api/mobile-infer")
 
@@ -49,11 +52,12 @@ def mobile_infer_create():
     user_id = get_jwt_identity()
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=55)
 
+    logger.info(f"[CREATE] Generating session {session_id} for user {user_id}")
+
     try:
         conn = pg_pool.getconn()
         cur = conn.cursor()
 
-        # Clean up expired sessions and results
         cur.execute("""
             DELETE FROM mobile_scan_results
             WHERE session_id IN (
@@ -62,20 +66,24 @@ def mobile_infer_create():
         """)
         cur.execute("DELETE FROM mobile_scan_sessions WHERE expires_at < NOW()")
 
-        # Insert new session
         cur.execute("""
             INSERT INTO mobile_scan_sessions (id, user_id, completed, result, expires_at)
             VALUES (%s, %s, FALSE, NULL, %s)
         """, (session_id, user_id, expires_at))
 
         conn.commit()
-        cur.close()
-        pg_pool.putconn(conn)
-
+        logger.info(f"[CREATE] Session {session_id} inserted into DB (expires at {expires_at.isoformat()})")
         return jsonify({"session_id": session_id}), 200
 
     except Exception as e:
+        logger.exception(f"[CREATE] Failed to create session {session_id}")
         return jsonify({"error": str(e)}), 500
+
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            pg_pool.putconn(conn)
 
 @mobile_infer_bp.route("/submit/<session_id>", methods=["POST"])
 @swag_from({
@@ -135,18 +143,25 @@ def mobile_infer_create():
     }
 })
 def mobile_infer_submit(session_id):
+    logger.info(f"[SUBMIT] Received submission for session {session_id}")
+
     if 'roi_image' not in request.files:
+        logger.warning(f"[SUBMIT] No roi_image provided for session {session_id}")
         return jsonify({'error': 'Missing roi_image'}), 400
 
     file = request.files['roi_image']
     file_bytes = np.frombuffer(file.read(), np.uint8)
     roi_image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
     if roi_image is None:
+        logger.warning(f"[SUBMIT] Invalid image format for session {session_id}")
         return jsonify({'error': 'Invalid image'}), 400
 
+    start_time = datetime.now()
     best_candidate, _, keypoints, processed_img, debug_info = find_closest_card_ransac(
         roi_image, faiss_index, hf, id_map, k=3
     )
+    logger.info(f"[SUBMIT] RANSAC inference done for session {session_id}")
 
     conn = None
     cur = None
@@ -154,23 +169,25 @@ def mobile_infer_submit(session_id):
         conn = pg_pool.getconn()
         cur = conn.cursor()
 
-        # Validate session
         cur.execute("SELECT expires_at FROM mobile_scan_sessions WHERE id = %s", (session_id,))
         session_row = cur.fetchone()
+
         if not session_row:
+            logger.warning(f"[SUBMIT] Session not found: {session_id}")
             return jsonify({'error': 'Session not found'}), 404
-        if session_row[0] and session_row[0] < datetime.now(timezone.utc):
+        if session_row[0] < datetime.now(timezone.utc):
+            logger.info(f"[SUBMIT] Session expired: {session_id}")
             return jsonify({'error': 'Session expired'}), 403
 
-        # Look up card
         cur.execute("""
             SELECT name, finishes, "set", set_name, prices, image_uris, collector_number
-            FROM cards
-            WHERE id = %s
+            FROM cards WHERE id = %s
         """, (best_candidate,))
         row = cur.fetchone()
+
         if not row:
-            return jsonify({'error': 'Card ID not found'}), 404  # no exception; return cleanly
+            logger.info(f"[SUBMIT] Card ID not found in DB: {best_candidate}")
+            return jsonify({'error': 'Card ID not found'}), 404
 
         name, finishes, set_, set_name, prices, image_uris, collector_number = row
         if collector_number:
@@ -198,9 +215,12 @@ def mobile_infer_submit(session_id):
         ))
 
         conn.commit()
+        duration = (datetime.now() - start_time).total_seconds()
+        logger.info(f"[SUBMIT] Submission stored for session {session_id} in {duration:.2f}s")
         return jsonify({"status": "inference stored"}), 200
 
     except Exception as e:
+        logger.exception(f"[SUBMIT] Error during submission for session {session_id}")
         return jsonify({'error': str(e)}), 500
 
     finally:
@@ -258,6 +278,7 @@ def mobile_infer_submit(session_id):
     }
 })
 def get_mobile_scan_result(session_id):
+    logger.info(f"[RESULT] Fetching result for session {session_id}")
     conn = None
     try:
         conn = pg_pool.getconn()
@@ -272,20 +293,23 @@ def get_mobile_scan_result(session_id):
             LIMIT 1
         """, (session_id,))
         row = cur.fetchone()
-
         cur.close()
 
         if not row:
+            logger.warning(f"[RESULT] Session not found: {session_id}")
             return jsonify({"error": "Session not found"}), 404
 
         result_id, result_data, expires_at = row
 
         if expires_at and expires_at < datetime.now(timezone.utc):
+            logger.info(f"[RESULT] Session expired: {session_id}")
             return jsonify({"error": "Session expired"}), 403
 
         if result_data is None:
+            logger.info(f"[RESULT] No result yet for session {session_id}")
             return jsonify({"completed": False, "result": None}), 200
 
+        logger.info(f"[RESULT] Returning result for session {session_id}")
         return jsonify({
             "completed": True,
             "result_id": str(result_id),
@@ -293,6 +317,7 @@ def get_mobile_scan_result(session_id):
         }), 200
 
     except Exception as e:
+        logger.exception(f"[RESULT] Error fetching result for session {session_id}")
         return jsonify({'error': str(e)}), 500
 
     finally:
