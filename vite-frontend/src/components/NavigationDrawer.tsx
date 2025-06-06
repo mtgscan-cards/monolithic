@@ -39,7 +39,7 @@ interface NavigationDrawerProps {
 const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   open,
   onClose,
-  onOpen = () => {},
+  onOpen = () => { },
   navItems,
   drawerWidth = 280,
 }) => {
@@ -81,16 +81,16 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
         onOpen={onOpen}
         disableSwipeToOpen={!isMobile}
         ModalProps={{ keepMounted: true }}
-PaperProps={{
-  sx: {
-    width: drawerWidth, // <- always 280px (default or custom)
-    background: 'linear-gradient(180deg, #1e1e1e, #121212)',
-    color: 'text.primary',
-    borderRight: 'none',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-}}
+        PaperProps={{
+          sx: {
+            width: drawerWidth, // <- always 280px (default or custom)
+            background: 'linear-gradient(180deg, #1e1e1e, #121212)',
+            color: 'text.primary',
+            borderRight: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        }}
         role="navigation"
         aria-label="Main navigation menu"
       >

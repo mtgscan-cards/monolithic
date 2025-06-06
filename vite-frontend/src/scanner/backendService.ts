@@ -27,6 +27,7 @@ export interface InferenceResult {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+const MAX_BASE64_LENGTH = 10_000_000; // ~7.5 MB decoded
 
 /**
  * Sends a base64 data URL (e.g. canvas snapshot) to the backend for inference.
@@ -37,6 +38,10 @@ export const sendROIToBackend = async (dataUrl: string): Promise<InferenceResult
   }
 
   const [header, base64] = dataUrl.split(',');
+  if (!base64 || base64.length > MAX_BASE64_LENGTH) {
+    throw new Error('Image data is too large or malformed.');
+  }
+
   const mimeMatch = header.match(/data:(image\/[^;]+);base64/);
   if (!mimeMatch) {
     throw new Error('Unsupported image format in data URL.');
@@ -51,16 +56,29 @@ export const sendROIToBackend = async (dataUrl: string): Promise<InferenceResult
 
   const blob = new Blob([byteArray], { type: mimeType });
   const formData = new FormData();
-  formData.append('roi_image', blob, 'roi.' + mimeType.split('/')[1]);
+  formData.append('roi_image', blob, `roi.${mimeType.split('/')[1]}`);
 
-  const response = await fetch(`${API_BASE_URL}/infer`, {
-    method: 'POST',
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-  if (!response.ok) {
-    throw new Error(`Backend inference failed: ${response.statusText}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}/infer`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Backend inference failed: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (err) {
+    if (typeof err === 'object' && err !== null && 'name' in err && (err as { name?: string }).name === 'AbortError') {
+      throw new Error('Request timed out.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return await response.json();
 };

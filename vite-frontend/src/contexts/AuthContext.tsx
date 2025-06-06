@@ -15,11 +15,13 @@ export interface User {
 interface AuthContextValue {
   user: User | null
   setUser: (u: User | null) => void
+  ready: boolean
 }
 
 export const AuthContext = createContext<AuthContextValue>({
   user: null,
   setUser: () => {},
+  ready: false,
 })
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -46,6 +48,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   })()
 
   const [user, setUser] = useState<User | null>(cachedUser)
+  const [ready, setReady] = useState(false)
   const navigate = useNavigate()
   const { search, hash, pathname } = useLocation()
   const hasFiredRef = useRef(false)
@@ -98,6 +101,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       window.history.replaceState(null, document.title, target)
+      setReady(true) // mark ready even after OAuth redirect
       return
     }
 
@@ -128,6 +132,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .catch(err => {
           console.warn('[AuthContext] ❌ /auth/me failed:', err)
         })
+        .finally(() => {
+          setReady(true) // always set ready, success or fail
+        })
+    } else {
+      setReady(true) // no token — still mark auth as ready
     }
 
     // 3) Check for illegal access and redirect if necessary
@@ -175,7 +184,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [search, hash, pathname, navigate])
 
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
+    <AuthContext.Provider value={{ user, setUser, ready }}>
       {children}
     </AuthContext.Provider>
   )
