@@ -18,7 +18,7 @@ interface Tag {
 }
 
 interface KeywordFilterProps {
-  selectedKeywords?: string[]; // optional prop
+  selectedKeywords?: string[];
   onChange: (selectedKeywords: string[]) => void;
 }
 
@@ -29,18 +29,16 @@ const computeInitialTagCount = () => {
   return 10;
 };
 
-// Frontend cache for tag results
 let cachedTags: Tag[] | null = null;
 
 const KeywordFilter: React.FC<KeywordFilterProps> = ({ selectedKeywords = [], onChange }) => {
-  const { user } = useContext(AuthContext);
+  const { user, ready } = useContext(AuthContext); // ✅ use `ready`
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [visibleTagCount, setVisibleTagCount] = useState<number>(computeInitialTagCount());
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Fetch available tags when user is loaded
   useEffect(() => {
-    if (!user) return;
+    if (!ready || !user) return; // ✅ wait for auth to be ready and user to exist
 
     const fetchTags = async () => {
       if (cachedTags) {
@@ -67,7 +65,7 @@ const KeywordFilter: React.FC<KeywordFilterProps> = ({ selectedKeywords = [], on
     };
 
     fetchTags();
-  }, [user]);
+  }, [user, ready]); // ✅ include `ready` as a dependency
 
   // Update visible tag count on window resize.
   useEffect(() => {
