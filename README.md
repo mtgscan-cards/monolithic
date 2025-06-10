@@ -72,7 +72,7 @@ LOG_LEVEL=INFO
 ### 3. Deploy
 
 ```bash
-docker compose up --build
+docker-compose up --build
 ```
 
 ```bash
