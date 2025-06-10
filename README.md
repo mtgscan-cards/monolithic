@@ -92,4 +92,4 @@ npm run dev
 ## LICENSE
 
 This project is licensed under the GNU General Public License v3.0.  
-See the [LICENSE](./LICENSE) file for full details.
+See the [LICENSE](https://raw.githubusercontent.com/mtgscan-cards/monolithic/refs/heads/main/LICENSE) file for full details.
