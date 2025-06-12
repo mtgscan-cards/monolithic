@@ -28,12 +28,12 @@ import ProtectedRoute from '../components/layout/ProtectedRoute'
 import PublicOrProtectedRoute from '../components/layout/PublicOrProtectedRoute'
 import CollectionsOverview from '../pages/CollectionsOverview/CollectionsOverview.tsx'
 import CollectionDetails from '../pages/CollectionDetails/CollectionDetails.tsx'
-import CollectionPortfolioPage from '../pages/CollectionPortfolio.tsx'
-import NotFoundPage from '../pages/NotFoundPage'
-import MobileScanPage from '../pages/MobileScanPage';
+import CollectionPortfolioPage from '../pages/CollectionPortfolio/CollectionPortfolio.tsx'
+import NotFoundPage from '../pages/NotFoundPage/NotFoundPage.tsx'
+import MobileScanPage from '../pages/MobileScanPage/MobileScanPage.tsx';
 
 import { sendFilterCriteria } from '../api/FilterBackend'
-import '../App.css'
+import '../styles/App.css'
 
 const modernTheme = createTheme({
   palette: {

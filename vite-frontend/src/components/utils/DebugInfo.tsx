@@ -1,7 +1,7 @@
 // src/components/DebugInfo.tsx
 import React from 'react';
 import { Box, Divider, Card, CardContent, CardMedia, Typography } from '@mui/material';
-import { InferenceResult } from '../scanner/backendService';
+import { InferenceResult } from '../../scanner/backendService';
 
 interface DebugInfoProps {
   roiSnapshot: string | null;

@@ -20,14 +20,14 @@ import {
   DialogActions,
   TextField,
 } from '@mui/material'
-import { ScannedCard } from '../hooks/useFrameProcessor'
+import { ScannedCard } from '../../hooks/useFrameProcessor'
 import {
   getCollections,
   createCollection,
   CollectionData,
   CreateCollectionPayload,
   bulkAddToCollection,
-} from '../api/collections'
+} from '../../api/collections'
 
 interface CardListProps {
   scannedCards: ScannedCard[]

@@ -1,10 +1,10 @@
 // src/components/FilterPanel.tsx
 import React, { useState, useMemo, useEffect } from 'react';
 import { Box, Tabs, Tab, Button, Paper, Chip, Typography } from '@mui/material';
-import KeywordFilter from '../KeywordFilter';
+import KeywordFilter from './KeywordFilter';
 import ColorFilter from './ColorFilter';
-import TextFilter from '../TextFilter';
-import ManaCostFilter from '../ManaCostFilter';
+import TextFilter from './TextFilter';
+import ManaCostFilter from './ManaCostFilter';
 import { parseManaCost } from '../utils/parseManaCost';
 
 export type ManaOperator = '<' | '>' | '=' | 'between';

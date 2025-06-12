@@ -25,8 +25,8 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import { getCollectionValueHistory } from '../api/price';
-import { getCollections, CollectionData } from '../api/collections';
+import { getCollectionValueHistory } from '../../api/price';
+import { getCollections, CollectionData } from '../../api/collections';
 
 ChartJS.register(
   CategoryScale,

@@ -10,7 +10,7 @@ import {
   Button,
   CircularProgress,
 } from '@mui/material';
-import { AuthContext } from '../contexts/AuthContext';
+import { AuthContext } from '../../contexts/AuthContext';
 
 interface Tag {
   keyword: string;
