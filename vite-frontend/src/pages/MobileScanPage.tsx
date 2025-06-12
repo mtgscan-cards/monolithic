@@ -6,7 +6,7 @@ import {
   Container
 } from '@mui/material';
 import useFrameProcessor from '../hooks/useFrameProcessor';
-import CameraPanel from '../components/CameraPanel';
+import CameraPanel from '../components/camera/CameraPanel';
 
 const MobileScanPage: React.FC = () => {
   const [roiDims, setRoiDims] = useState<{ width: number; height: number } | null>(null);

@@ -13,18 +13,18 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 
-import CardList from '../components/CardList';
-import DebugInfo from '../components/DebugInfo';
-import LastScannedCard from '../components/LastScannedCard';
-import AlternatePrintingsDialog, { Card as AltCard } from '../components/AlternatePrintingsDialog';
-import useFrameProcessor from '../hooks/useFrameProcessor';
-import { InferenceResult } from '../scanner/backendService';
-import type { ScannedCard } from '../hooks/useFrameProcessor';
-import { getAlternatePrintings } from '../api/cards';
-import MobileScanToggleButton from '../components/MobileScanToggleButton';
-import './ScanPage.css';
-import MobileQRCodePanel from '../components/MobileQRCodePanel';
-import CameraPanel from '../components/CameraPanel';
+import CardList from '../../components/CardList';
+import DebugInfo from '../../components/DebugInfo';
+import LastScannedCard from '../../components/camera/LastScannedCard';
+import AlternatePrintingsDialog, { Card as AltCard } from '../../components/dialogs/AlternatePrintingsDialog';
+import useFrameProcessor from '../../hooks/useFrameProcessor';
+import { InferenceResult } from '../../scanner/backendService';
+import type { ScannedCard } from '../../hooks/useFrameProcessor';
+import { getAlternatePrintings } from '../../api/cards';
+import MobileScanToggleButton from '../../components/MobileScanToggleButton';
+import '../ScanPage.css';
+import MobileQRCodePanel from '../../components/MobileQRCodePanel';
+import CameraPanel from '../../components/camera/CameraPanel';
 
 const drawerWidth = 300;
 

@@ -17,9 +17,9 @@ import CheckIcon from '@mui/icons-material/Check'
 import CloseIcon from '@mui/icons-material/Close'
 import axios from 'axios'
 
-import { register, login } from '../api/auth'
-import api from '../api/axios'
-import { AuthContext, User } from '../contexts/AuthContext'
+import { register, login } from '../../api/auth'
+import api from '../../api/axios'
+import { AuthContext, User } from '../../contexts/AuthContext'
 
 const USERNAME_REGEX = /^[^/?#\s]{3,30}$/
 

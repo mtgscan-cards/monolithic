@@ -18,9 +18,9 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { useTheme } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { AuthContext } from '../contexts/AuthContext';
-import { logout as apiLogout } from '../api/auth';
-import { LinkAccountDialog } from './LinkAccountDialog';
+import { AuthContext } from '../../contexts/AuthContext';
+import { logout as apiLogout } from '../../api/auth';
+import { LinkAccountDialog } from '../dialogs/LinkAccountDialog';
 
 export interface NavItem {
   text: string;

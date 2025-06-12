@@ -17,8 +17,8 @@ import {
   MenuItem,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import ToggleableImage from './ToggleableImage'; // Ensure this path is correct
-import SetSymbol from './utils/SetSymbol';
+import ToggleableImage from '../cards/ToggleableImage'; // Ensure this path is correct
+import SetSymbol from '../utils/SetSymbol';
 
 export interface Card {
   id: string;                    // Scryfall UUID

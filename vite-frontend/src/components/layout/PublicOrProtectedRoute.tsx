@@ -2,8 +2,8 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { Box, CircularProgress, Typography, Button } from '@mui/material'
 import { Link, Outlet, useParams } from 'react-router-dom'
-import api from '../api/axios'
-import { AuthContext } from '../contexts/AuthContext'
+import api from '../../api/axios'
+import { AuthContext } from '../../contexts/AuthContext'
 
 const PublicOrProtectedRoute: React.FC = () => {
   const { user } = useContext(AuthContext)

@@ -1,7 +1,7 @@
 // src/components/CollectionValue.tsx
 import React, { useEffect, useState } from 'react'
 import { Typography, CircularProgress, Alert, Box } from '@mui/material'
-import { getCurrentCollectionValue } from '../api/price'
+import { getCurrentCollectionValue } from '../../api/price'
 
 interface CollectionValueProps {
   collectionId: number

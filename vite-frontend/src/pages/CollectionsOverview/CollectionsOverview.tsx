@@ -24,9 +24,9 @@ import {
   CircularProgress,
 } from '@mui/material'
 
-import Model from '../components/Model'
-import { createCollection, getCollections, CollectionData } from '../api/collections'
-import { AuthContext } from '../contexts/AuthContext'
+import Model from '../../components/shared/Model'
+import { createCollection, getCollections, CollectionData } from '../../api/collections'
+import { AuthContext } from '../../contexts/AuthContext'
 
 /** Preload the GLTFs on mount */
 const PreloadModels: FC = () => {

@@ -16,24 +16,24 @@ import SearchIcon from '@mui/icons-material/Search'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import { Routes, Route } from 'react-router-dom'
 
-import NavigationDrawer, { NavItem } from './components/NavigationDrawer'
-import FilterPanel, { FilterCriteria } from './components/FilterPanel'
-import SearchResults, { Card } from './components/SearchResults'
+import NavigationDrawer, { NavItem } from '../components/layout/NavigationDrawer'
+import FilterPanel, { FilterCriteria } from '../components/filters/FilterPanel'
+import SearchResults, { Card } from '../components/filters/SearchResults'
 
-import ScanPage from './pages/ScanPage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import AccountSetupPage from './pages/AccountSetupPage'
-import ProtectedRoute from './components/ProtectedRoute'
-import PublicOrProtectedRoute from './components/PublicOrProtectedRoute'
-import CollectionsOverview from './pages/CollectionsOverview'
-import CollectionDetails from './pages/CollectionDetails'
-import CollectionPortfolioPage from './pages/CollectionPortfolio'
-import NotFoundPage from './pages/NotFoundPage'
-import MobileScanPage from './pages/MobileScanPage';
+import ScanPage from '../pages/ScanPage/ScanPage.tsx'
+import LoginPage from '../pages/LoginPage/LoginPage.tsx'
+import RegisterPage from '../pages/RegisterPage/RegisterPage.tsx'
+import AccountSetupPage from '../pages/AccountSetupPage/AccountSetupPage.tsx'
+import ProtectedRoute from '../components/layout/ProtectedRoute'
+import PublicOrProtectedRoute from '../components/layout/PublicOrProtectedRoute'
+import CollectionsOverview from '../pages/CollectionsOverview/CollectionsOverview.tsx'
+import CollectionDetails from '../pages/CollectionDetails/CollectionDetails.tsx'
+import CollectionPortfolioPage from '../pages/CollectionPortfolio.tsx'
+import NotFoundPage from '../pages/NotFoundPage'
+import MobileScanPage from '../pages/MobileScanPage';
 
-import { sendFilterCriteria } from './api/FilterBackend'
-import './App.css'
+import { sendFilterCriteria } from '../api/FilterBackend'
+import '../App.css'
 
 const modernTheme = createTheme({
   palette: {

@@ -21,12 +21,12 @@ import {
   deleteCollectionCard,
   CollectionData,
   CardData,
-} from '../api/collections'
-import CollectionValue from '../components/CollectionValue'
-import SetSymbol from '../components/utils/SetSymbol'
-import BulkCardAdder from '../components/BulkCardAdder'
-import { AuthContext } from '../contexts/AuthContext'
-import ToggleableImage from '../components/ToggleableImage'
+} from '../../api/collections'
+import CollectionValue from '../../components/collections/CollectionValue'
+import SetSymbol from '../../components/utils/SetSymbol'
+import BulkCardAdder from '../../components/cards/BulkCardAdder'
+import { AuthContext } from '../../contexts/AuthContext'
+import ToggleableImage from '../../components/cards/ToggleableImage'
 
 const CollectionDetails: React.FC = () => {
   const { user } = useContext(AuthContext)

@@ -21,8 +21,8 @@ import HCaptcha from '@hcaptcha/react-hcaptcha'
 import { useNavigate } from 'react-router-dom'
 import CheckIcon from '@mui/icons-material/Check'
 import CloseIcon from '@mui/icons-material/Close'
-import api from '../api/axios'
-import { AuthContext } from '../contexts/AuthContext'
+import api from '../../api/axios'
+import { AuthContext } from '../../contexts/AuthContext'
 
 const USERNAME_REGEX = /^[^/?#\s]{3,30}$/
 

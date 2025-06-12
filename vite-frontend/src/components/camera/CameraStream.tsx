@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { OverlayMarker } from 'over-lib';
-import '../styles/CameraStream.css';
+import '../../styles/CameraStream.css';
 import VideocamOffIcon from '@mui/icons-material/VideocamOff';
 
 interface CameraStreamProps {

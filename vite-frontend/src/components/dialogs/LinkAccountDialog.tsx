@@ -12,9 +12,9 @@ import {
 } from '@mui/material';
 import GoogleIcon from '@mui/icons-material/Google';
 import GitHubIcon from '@mui/icons-material/GitHub';
-import { AuthContext, User } from '../contexts/AuthContext';
-import { GoogleButton } from './GoogleButton';
-import { GithubButton } from './GithubButton';
+import { AuthContext, User } from '../../contexts/AuthContext';
+import { GoogleButton } from '../auth/GoogleButton';
+import { GithubButton } from '../auth/GithubButton';
 
 interface LinkAccountDialogProps {
   open: boolean;

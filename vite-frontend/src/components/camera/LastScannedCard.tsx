@@ -2,8 +2,8 @@ import React from 'react';
 import { Card, CardMedia, CardContent, Typography, Box, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import SetSymbol from './utils/SetSymbol';
-import { ScannedCard } from '../hooks/useFrameProcessor';
+import SetSymbol from '../utils/SetSymbol';
+import { ScannedCard } from '../../hooks/useFrameProcessor';
 
 interface LastScannedCardProps {
   card: ScannedCard;

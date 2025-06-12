@@ -1,7 +1,7 @@
 // src/components/ColorFilter.tsx
 import React from 'react';
 import { Paper, Typography, ToggleButton, ToggleButtonGroup, Box } from '@mui/material';
-import { parseManaCost } from './utils/parseManaCost';
+import { parseManaCost } from '../utils/parseManaCost';
 
 interface ColorFilterProps {
   selectedColors: string[];

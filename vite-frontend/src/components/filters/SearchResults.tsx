@@ -23,17 +23,17 @@ import {
 } from '@mui/material';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import { parseManaCost } from './utils/parseManaCost';
+import { parseManaCost } from '../utils/parseManaCost';
 import {
   createCollection,
   getCollections,
   addCardToCollection,
   CreateCollectionPayload,
   CollectionData,
-} from '../api/collections';
-import { getAlternatePrintings } from '../api/cards';
-import SetSymbol from './utils/SetSymbol';
-import AlternatePrintingsDialog from './AlternatePrintingsDialog';
+} from '../../api/collections';
+import { getAlternatePrintings } from '../../api/cards';
+import SetSymbol from '../utils/SetSymbol';
+import AlternatePrintingsDialog from '../dialogs/AlternatePrintingsDialog';
 
 export interface Card {
   id: string;               // Scryfall UUID

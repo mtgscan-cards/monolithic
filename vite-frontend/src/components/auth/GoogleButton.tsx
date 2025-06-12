@@ -1,7 +1,7 @@
 import React, { useEffect, useContext } from 'react'
-import api from '../api/axios'
+import api from '../../api/axios'
 import { useNavigate } from 'react-router-dom'
-import { AuthContext } from '../contexts/AuthContext'
+import { AuthContext } from '../../contexts/AuthContext'
 
 declare global {
   interface Window {

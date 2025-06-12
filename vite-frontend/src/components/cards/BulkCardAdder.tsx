@@ -15,7 +15,7 @@ import {
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
-import { bulkAddToCollection } from '../api/collections'
+import { bulkAddToCollection } from '../../api/collections'
 
 interface BulkCardAdderProps {
   username: string

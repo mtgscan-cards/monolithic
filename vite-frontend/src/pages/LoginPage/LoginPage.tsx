@@ -12,12 +12,12 @@ import {
 } from '@mui/material'
 import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
-import api from '../api/axios'
-import { login, LoginResponse } from '../api/auth'
+import api from '../../api/axios'
+import { login, LoginResponse } from '../../api/auth'
 import HCaptcha from '@hcaptcha/react-hcaptcha'
-import { GoogleButton } from '../components/GoogleButton'
-import { GithubButton } from '../components/GithubButton'
-import { AuthContext, User } from '../contexts/AuthContext'
+import { GoogleButton } from '../../components/auth/GoogleButton'
+import { GithubButton } from '../../components/auth/GithubButton'
+import { AuthContext, User } from '../../contexts/AuthContext'
 
 const LoginPage: React.FC = () => {
   const { setUser } = useContext(AuthContext)
