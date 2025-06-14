@@ -1,4 +1,4 @@
-// src/App.tsx
+// src/app/App.tsx
 import React, { useState } from 'react'
 import {
   ThemeProvider,
@@ -34,6 +34,7 @@ import MobileScanPage from '../pages/MobileScanPage/MobileScanPage.tsx';
 
 import { sendFilterCriteria } from '../api/FilterBackend'
 import '../styles/App.css'
+import LandingPage from '../pages/LandingPage/LandingPage.tsx'
 
 const modernTheme = createTheme({
   palette: {
@@ -142,69 +143,65 @@ const App: React.FC = () => {
       setDrawerOpen(open)
     }
 
-  return (
-    <ThemeProvider theme={modernTheme}>
-      <CssBaseline />
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <AppBar position="static" elevation={0}>
-          <Toolbar>
-            <IconButton color="inherit" onClick={toggleDrawer(true)}>
-              <MenuIcon />
-            </IconButton>
-            <Typography variant="h6">mtgscan.cards</Typography>
-          </Toolbar>
-        </AppBar>
+ return (
+  <ThemeProvider theme={modernTheme}>
+    <CssBaseline />
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <AppBar position="static" elevation={0}>
+        <Toolbar>
+          <IconButton color="inherit" onClick={toggleDrawer(true)}>
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6">mtgscan.cards</Typography>
+        </Toolbar>
+      </AppBar>
 
-        <NavigationDrawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          navItems={navItems}
-        />
+      <NavigationDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        navItems={navItems}
+      />
 
-        <Container component="main" sx={{ flexGrow: 1, py: 4 }}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/setup" element={<AccountSetupPage />} />
-            <Route path="*" element={<NotFoundPage />} />
+      <Container component="main" sx={{ flexGrow: 1, py: 4 }}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/setup" element={<AccountSetupPage />} />
+          <Route path="*" element={<NotFoundPage />} />
 
-            <Route element={<PublicOrProtectedRoute />}>
-              <Route
-                path="/:username/collection/:user_collection_id"
-                element={<CollectionDetails />}
-              />
-            </Route>
+          <Route element={<PublicOrProtectedRoute />}>
+            <Route
+              path="/:username/collection/:user_collection_id"
+              element={<CollectionDetails />}
+            />
+          </Route>
 
-            <Route element={<ProtectedRoute />}>
-              <Route
-                path="/"
-                element={
-                  <>
-                    <Box sx={{ mb: 4 }}>
-                      <FilterPanel onSearch={runNewSearch} />
-                    </Box>
-                    <SearchResults
-                      results={results}
-                      onLoadMore={loadMore}
-                      loadingMore={loadingMore}
-                      totalResults={0}
-                    />
-                  </>
-                }
-              />
-              <Route path="/scan" element={<ScanPage />} />
-              <Route path="/collections" element={<CollectionsOverview />} />
-              <Route
-                path="/portfolio"
-                element={<CollectionPortfolioPage />}
-              />
-            </Route>
-            <Route path="/mobile-scan/:session_id/*" element={<MobileScanPage />} />
-          </Routes>
-        </Container>
-      </Box>
-    </ThemeProvider>
-  )
+          <Route element={<ProtectedRoute />}>
+            <Route path="/search" element={
+              <>
+                <Box sx={{ mb: 4 }}>
+                  <FilterPanel onSearch={runNewSearch} />
+                </Box>
+                <SearchResults
+                  results={results}
+                  onLoadMore={loadMore}
+                  loadingMore={loadingMore}
+                  totalResults={0}
+                />
+              </>
+            } />
+            <Route path="/scan" element={<ScanPage />} />
+            <Route path="/collections" element={<CollectionsOverview />} />
+            <Route path="/portfolio" element={<CollectionPortfolioPage />} />
+          </Route>
+
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/mobile-scan/:session_id/*" element={<MobileScanPage />} />
+        </Routes>
+      </Container>
+    </Box>
+  </ThemeProvider>
+)
 }
 
 export default App

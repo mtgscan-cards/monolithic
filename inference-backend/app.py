@@ -186,6 +186,55 @@ swagger = Swagger(app, template={
 
 # ─── DB initialisation helpers ───────────────────────────────────────────────
 
+def init_landing_cards_table():
+    conn = None
+    try:
+        conn = pg_pool.getconn()
+        cur = conn.cursor()
+
+        # Create table if not exists
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS landing_cards (
+                id UUID PRIMARY KEY,
+                name TEXT,
+                image_uris JSONB
+            );
+        """)
+
+        # Check if already populated
+        cur.execute("SELECT COUNT(*) FROM landing_cards;")
+        count = cur.fetchone()[0]
+        if count > 0:
+            logger.info("[INIT] landing_cards already populated")
+            cur.close()
+            return
+
+        # Insert 100 unique, single-faced cards with image_uris
+        cur.execute("""
+            INSERT INTO landing_cards (id, name, image_uris)
+            SELECT id, name, image_uris
+            FROM (
+                SELECT DISTINCT ON (name) id, name, image_uris
+                FROM cards
+                WHERE layout = 'normal'
+                AND lang = 'en'
+                AND highres_image = true
+                AND image_uris IS NOT NULL
+                AND image_uris->>'png' IS NOT NULL
+                ORDER BY name, RANDOM()
+            ) sub
+            LIMIT 100;
+        """)
+        conn.commit()
+        cur.close()
+        logger.info("[INIT] landing_cards table populated with 100 random unique cards")
+    except Exception as e:
+        logger.exception("[INIT] Failed to initialize landing_cards")
+    finally:
+        if conn:
+            pg_pool.putconn(conn)
+
+
 
 def init_auth_tables():
     """
@@ -529,6 +578,7 @@ init_auth_tables()
 init_security_tables()
 init_collection_tables()
 init_mobile_scan_tables()
+init_landing_cards_table()  # Create landing_cards table with 100 random cards
 build_tag_cache()
 
 update_main()  # download scryfall bulk data and populate the database
