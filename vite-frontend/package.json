@@ -13,6 +13,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@hcaptcha/react-hcaptcha": "^1.12.0",
+    "@juggle/resize-observer": "^3.4.0",
     "@mui/icons-material": "^6.4.7",
     "@mui/material": "^6.4.7",
     "@react-spring/three": "^10.0.1",

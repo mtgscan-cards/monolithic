@@ -1,6 +1,7 @@
 // src/pages/LandingPage/LandingPage.tsx
+
 import React, { useEffect, useState } from 'react'
-import { Box, CircularProgress } from '@mui/material'
+import { CircularProgress } from '@mui/material'
 import Deck3DScene from './Deck3DScene'
 import OverlayUI from './OverlayUI'
 
@@ -23,16 +24,35 @@ const LandingPage: React.FC = () => {
   }, [])
 
   return (
-    <Box sx={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+    <div
+      style={{
+        position: 'fixed',      // ⬅️ Ensures it always takes up full screen
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        overflow: 'hidden',
+      }}
+    >
       {loading ? (
-        <CircularProgress sx={{ position: 'absolute', top: '50%', left: '50%' }} />
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 10,
+          }}
+        >
+          <CircularProgress />
+        </div>
       ) : (
         <>
           <Deck3DScene cards={cards} />
           <OverlayUI />
         </>
       )}
-    </Box>
+    </div>
   )
 }
 

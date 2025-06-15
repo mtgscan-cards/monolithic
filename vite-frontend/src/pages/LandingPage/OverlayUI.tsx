@@ -10,7 +10,6 @@ const OverlayUI = () => (
       left: 0,
       width: '100%',
       height: '100%',
-      pointerEvents: 'none',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -18,22 +17,25 @@ const OverlayUI = () => (
       color: '#fff',
       textAlign: 'center',
       px: 2,
+      zIndex: 1, // ⬅️ make sure this stays above the canvas
     }}
   >
-    <Typography variant="h2" gutterBottom sx={{ fontWeight: 600 }}>
-      Your Magic Cards. Instantly Recognized.
-    </Typography>
-    <Typography variant="h5" sx={{ maxWidth: 600, mb: 4 }}>
-      Snap a picture. See your card. Add it to your collection in seconds.
-    </Typography>
-    <Stack spacing={2} direction="row" sx={{ pointerEvents: 'auto' }}>
-      <Button variant="contained" color="primary" href="/scan">
-        Start Scanning
-      </Button>
-      <Button variant="outlined" color="secondary" href="/search">
-        Try Demo
-      </Button>
-    </Stack>
+    <Box sx={{ maxWidth: 800, textAlign: 'center' }}>
+      <Typography variant="h2" gutterBottom sx={{ fontWeight: 600 }}>
+        Your Magic Cards. Instantly Recognized.
+      </Typography>
+      <Typography variant="h5" sx={{ mb: 4 }}>
+        Snap a picture. See your card. Add it to your collection in seconds.
+      </Typography>
+      <Stack spacing={2} direction="row" justifyContent="center">
+        <Button variant="contained" color="primary" href="/scan">
+          Start Scanning
+        </Button>
+        <Button variant="outlined" color="secondary" href="/search">
+          Try Demo
+        </Button>
+      </Stack>
+    </Box>
   </Box>
 )
 
