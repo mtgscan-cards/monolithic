@@ -6,9 +6,11 @@ import Deck3DScene from './Deck3DScene'
 import OverlayUI from './OverlayUI'
 
 export type CardImage = {
-  id: string
+  id?: string
   name: string
-  image_uris: { png: string }
+  number: number
+  front: string
+  back: string
 }
 
 const LandingPage: React.FC = () => {
@@ -16,9 +18,9 @@ const LandingPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/cards/random?limit=8`)
+    fetch('/cards/index.json')
       .then(res => res.json())
-      .then(data => setCards(data.results))
+      .then(data => setCards(data))
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
@@ -26,7 +28,7 @@ const LandingPage: React.FC = () => {
   return (
     <div
       style={{
-        position: 'fixed',      // ⬅️ Ensures it always takes up full screen
+        position: 'fixed',
         top: 0,
         left: 0,
         width: '100vw',

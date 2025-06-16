@@ -1,4 +1,5 @@
 // src/pages/LandingPage/OverlayUI.tsx
+
 import React from 'react'
 import { Box, Typography, Stack, Button } from '@mui/material'
 
@@ -17,7 +18,7 @@ const OverlayUI = () => (
       color: '#fff',
       textAlign: 'center',
       px: 2,
-      zIndex: 1, // ⬅️ make sure this stays above the canvas
+      zIndex: 1,
     }}
   >
     <Box sx={{ maxWidth: 800, textAlign: 'center' }}>

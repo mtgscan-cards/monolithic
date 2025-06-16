@@ -1,38 +1,52 @@
 // src/pages/LandingPage/CardMesh.tsx
+
 import React, { useMemo } from 'react'
 import { useLoader, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
 import { TextureLoader } from 'three'
+import * as THREE from 'three'
 
 interface CardMeshProps {
-  imageUrl: string
-  position?: [number, number, number]
-  rotation?: [number, number, number]
+  frontUrl: string
+  backUrl: string
+  scale?: number
 }
 
-const CardMesh: React.FC<CardMeshProps> = ({ imageUrl, position, rotation }) => {
+const CardMesh: React.FC<CardMeshProps> = ({ frontUrl, backUrl, scale = 1 }) => {
   const gl = useThree(state => state.gl)
-  const texture = useLoader(TextureLoader, imageUrl)
+  const [front, back] = useLoader(TextureLoader, [frontUrl, backUrl])
 
-  // ✅ Ensure texture stays sharp at oblique angles
   useMemo(() => {
-    texture.anisotropy = gl.capabilities.getMaxAnisotropy()
-    texture.minFilter = THREE.LinearMipMapLinearFilter   // Best for angle-preserving clarity
-    texture.magFilter = THREE.LinearFilter               // Smooth magnification
-    texture.generateMipmaps = true                       // Required for mipmap filtering
-    texture.needsUpdate = true
-  }, [texture, gl])
+    [front, back].forEach(tex => {
+      tex.anisotropy = gl.capabilities.getMaxAnisotropy()
+      tex.minFilter = THREE.LinearMipMapLinearFilter
+      tex.magFilter = THREE.LinearFilter
+      tex.generateMipmaps = true
+      tex.needsUpdate = true
+    })
+  }, [front, back, gl])
+
+  const width = 0.7 * scale
+  const height = 1.0 * scale
 
   return (
-    <mesh position={position} rotation={rotation}>
-      <planeGeometry args={[2.5, 3.5]} />
-      <meshBasicMaterial
-        map={texture}
-        transparent
-        alphaTest={0.8}
-        toneMapped={false}
-      />
-    </mesh>
+    <group>
+      <mesh position={[0, 0, 0]}>
+        <planeGeometry args={[width, height]} />
+        <meshPhongMaterial
+          map={front}
+          side={THREE.FrontSide}
+          transparent
+        />
+      </mesh>
+      <mesh position={[0, 0, -0.01]} rotation={[0, Math.PI, 0]}>
+        <planeGeometry args={[width, height]} />
+        <meshPhongMaterial
+          map={back}
+          side={THREE.FrontSide}
+          transparent
+        />
+      </mesh>
+    </group>
   )
 }
 
