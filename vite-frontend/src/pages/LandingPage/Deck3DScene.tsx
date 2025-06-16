@@ -30,8 +30,6 @@ const TrackballCamera: React.FC = () => {
 
   useFrame(({ clock }) => {
     const time = clock.getElapsedTime()
-
-    // Base rotation + cursor offset
     const azimuth = BASE_AZIMUTH + time * 0.1 + mouse.current.x * MOUSE_SENSITIVITY
     const polar = BASE_POLAR + mouse.current.y * MOUSE_SENSITIVITY
 
@@ -56,12 +54,14 @@ const SceneContents: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
   }, [camera, size])
 
   return (
-    <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 10, 5]} />
-      <DeckGroup cards={cards} />
-      <TrackballCamera />
-    </>
+<>
+  <ambientLight intensity={0.7} />
+  <directionalLight position={[5, 10, 5]} intensity={0.8} />
+  <directionalLight position={[-5, 10, -5]} intensity={0.6} />
+  <directionalLight position={[0, 5, 10]} intensity={0.4} />
+  <DeckGroup cards={cards} />
+  <TrackballCamera />
+</>
   )
 }
 
@@ -70,15 +70,11 @@ const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
     <Canvas
       camera={{ position: [0, 0, TRACKBALL_RADIUS], fov: 50 }}
       resize={{ polyfill: ResizeObserver }}
-style={{
-  position: 'absolute',
-  top: '64px',
-  left: 0,
-  width: '100%',
-  height: 'calc(100% - 64px)',
-  zIndex: 0,
-  display: 'block',
-}}
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'block',
+      }}
     >
       <SceneContents cards={cards} />
     </Canvas>

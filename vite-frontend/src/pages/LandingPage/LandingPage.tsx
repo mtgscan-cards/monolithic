@@ -1,7 +1,7 @@
 // src/pages/LandingPage/LandingPage.tsx
 
 import React, { useEffect, useState } from 'react'
-import { CircularProgress } from '@mui/material'
+import { CircularProgress, Typography, Box } from '@mui/material'
 import Deck3DScene from './Deck3DScene'
 import OverlayUI from './OverlayUI'
 
@@ -26,34 +26,46 @@ const LandingPage: React.FC = () => {
   }, [])
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        overflow: 'hidden',
-      }}
-    >
-      {loading ? (
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 10,
-          }}
-        >
-          <CircularProgress />
-        </div>
-      ) : (
-        <>
-          <Deck3DScene cards={cards} />
-          <OverlayUI />
-        </>
-      )}
+    <div style={{ width: '100%', overflowX: 'hidden' }}>
+      {/* Fullscreen canvas section */}
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100vh'
+        }}
+      >
+        {loading ? (
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 10,
+            }}
+          >
+            <CircularProgress />
+          </div>
+        ) : (
+          <>
+            <Deck3DScene cards={cards} />
+            <OverlayUI />
+          </>
+        )}
+      </div>
+
+      {/* Scrollable content below */}
+      <section style={{ padding: '4rem 2rem', background: '#111', color: '#eee' }}>
+        <Box maxWidth="800px" margin="0 auto">
+          <Typography variant="h4" gutterBottom>
+            More Content Below
+          </Typography>
+          <Typography variant="body1">
+            This section is now scrollable beneath the full-screen 3D canvas. Perfect for feature callouts, links, or info.
+          </Typography>
+        </Box>
+      </section>
     </div>
   )
 }
