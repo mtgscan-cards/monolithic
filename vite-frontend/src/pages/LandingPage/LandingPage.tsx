@@ -1,9 +1,11 @@
 // src/pages/LandingPage/LandingPage.tsx
 
 import React, { useEffect, useState } from 'react'
-import { CircularProgress, Typography, Box } from '@mui/material'
+import { CircularProgress } from '@mui/material'
 import Deck3DScene from './Deck3DScene'
 import OverlayUI from './OverlayUI'
+import CardCarousel from './CardCarousel'
+import LandingContent from './LandingContent'
 
 export type CardImage = {
   id?: string
@@ -19,20 +21,20 @@ const LandingPage: React.FC = () => {
 
   useEffect(() => {
     fetch('/cards/index.json')
-      .then(res => res.json())
-      .then(data => setCards(data))
+      .then((res) => res.json())
+      .then((data) => setCards(data))
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
 
   return (
     <div style={{ width: '100%', overflowX: 'hidden' }}>
-      {/* Fullscreen canvas section */}
+      {/* Fullscreen 3D canvas */}
       <div
         style={{
           position: 'relative',
           width: '100%',
-          height: '100vh'
+          height: '100vh',
         }}
       >
         {loading ? (
@@ -55,17 +57,16 @@ const LandingPage: React.FC = () => {
         )}
       </div>
 
-      {/* Scrollable content below */}
-      <section style={{ padding: '4rem 2rem', background: '#111', color: '#eee' }}>
-        <Box maxWidth="800px" margin="0 auto">
-          <Typography variant="h4" gutterBottom>
-            More Content Below
-          </Typography>
-          <Typography variant="body1">
-            This section is now scrollable beneath the full-screen 3D canvas. Perfect for feature callouts, links, or info.
-          </Typography>
-        </Box>
-      </section>
+      {/* Carousel */}
+      {!loading && cards.length > 0 && (
+        <CardCarousel
+          cards={cards}
+          onCardClick={(id) => console.log('Clicked card:', id)}
+        />
+      )}
+
+      {/* Post-3D content */}
+      {!loading && <LandingContent />}
     </div>
   )
 }
