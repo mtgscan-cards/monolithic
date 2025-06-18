@@ -146,7 +146,16 @@ const App: React.FC = () => {
     <ThemeProvider theme={modernTheme}>
       <CssBaseline />
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <AppBar position="static" elevation={0} sx={{ zIndex: theme => theme.zIndex.drawer + 2 }}>
+        <AppBar
+  position="sticky"
+  elevation={0}
+  sx={{
+    top: 0,
+    zIndex: theme => theme.zIndex.drawer + 2,
+    backdropFilter: 'blur(8px)',
+    backgroundColor: 'rgba(28, 28, 28, 0.85)', // nice sticky look
+  }}
+>
           <Toolbar>
             <IconButton color="inherit" onClick={toggleDrawer(true)} edge="start">
               <MenuIcon />

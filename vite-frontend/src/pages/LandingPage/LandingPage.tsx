@@ -1,14 +1,12 @@
-// src/pages/LandingPage/LandingPage.tsx
-
 import React, { useEffect, useState } from 'react'
 import { CircularProgress } from '@mui/material'
+import { motion } from 'framer-motion'
 import Deck3DScene from './Deck3DScene'
 import OverlayUI from './OverlayUI'
-import CardCarousel from './CardCarousel'
 import LandingContent from './LandingContent'
 
 export type CardImage = {
-  id?: string
+  id: string
   name: string
   number: number
   front: string
@@ -29,7 +27,7 @@ const LandingPage: React.FC = () => {
 
   return (
     <div style={{ width: '100%', overflowX: 'hidden' }}>
-      {/* Fullscreen 3D canvas */}
+      {/* Fullscreen 3D Canvas */}
       <div
         style={{
           position: 'relative',
@@ -57,16 +55,28 @@ const LandingPage: React.FC = () => {
         )}
       </div>
 
-      {/* Carousel */}
-      {!loading && cards.length > 0 && (
-        <CardCarousel
-          cards={cards}
-          onCardClick={(id) => console.log('Clicked card:', id)}
-        />
+      {/* Fixed Card Display (no scroll trigger needed) */}
+      {cards.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          style={{
+            position: 'fixed',
+            top: '50%',
+            right: '8%',
+            transform: 'translateY(-50%)',
+            zIndex: 100,
+            pointerEvents: 'none',
+          }}
+        >
+        </motion.div>
       )}
 
-      {/* Post-3D content */}
-      {!loading && <LandingContent />}
+      {/* Landing Content */}
+{!loading && cards.length > 0 && (
+  <LandingContent highlightCard={cards[0]} />
+)}
     </div>
   )
 }

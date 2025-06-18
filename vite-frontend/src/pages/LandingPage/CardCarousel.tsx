@@ -1,120 +1,106 @@
-// src/components/CardCarousel.tsx
-
-import React, { useRef, useState } from 'react'
-import { Canvas, useFrame, useLoader } from '@react-three/fiber'
-import * as THREE from 'three'
-import { TextureLoader } from 'three'
-import { OrbitControls } from '@react-three/drei'
-import { CardImage } from './LandingPage'
+import React, { useEffect, useRef } from 'react'
 import './CardCarousel.css'
 
+export interface CardImage {
+  id: string
+  name: string
+  front: string
+}
+
 interface CardCarouselProps {
-  cards: CardImage[]
+  card: CardImage
   onCardClick?: (id: string) => void
 }
 
-const CardBlock: React.FC<{
-  imageUrl: string
-  position: [number, number, number]
-  rotation: [number, number, number]
-  onClick?: () => void
-}> = ({ imageUrl, position, rotation, onClick }) => {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const [hovered, setHovered] = useState(false)
+const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max)
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
-  const texture = useLoader(TextureLoader, imageUrl)
+const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const target = useRef({ x: 0.5, y: 0.5 })
+  const current = useRef({ x: 0.5, y: 0.5 })
 
-  useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x = hovered
-        ? THREE.MathUtils.lerp(meshRef.current.rotation.x, -0.1, 0.1)
-        : THREE.MathUtils.lerp(meshRef.current.rotation.x, 0, 0.1)
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || !card) return
 
-      meshRef.current.position.y = hovered
-        ? THREE.MathUtils.lerp(meshRef.current.position.y, 0.3, 0.1)
-        : THREE.MathUtils.lerp(meshRef.current.position.y, 0, 0.1)
+    container.innerHTML = `
+      <div class="card" style="
+        --rx: 0deg;
+        --ry: 0deg;
+        --tx: 0px;
+        --ty: 0px;
+        --s: 1;
+        --mx: 50%;
+        --my: 50%;
+        --pointer-x: 50%;
+        --pointer-y: 50%;
+        --pointer-from-center: 0.5;
+      ">
+        <div class="card__translater">
+          <button class="card__rotator" tabindex="0" aria-label="${card.name}" data-id="${card.id}">
+            <div class="card__front">
+              <img class="card__img" src="${card.front}" alt="${card.name}" />
+              <div class="card__shine"></div>
+              <div class="card__glare"></div>
+            </div>
+          </button>
+        </div>
+      </div>`
 
-      meshRef.current.scale.setScalar(hovered ? 1.08 : 1)
+    const cardElem = container.querySelector<HTMLElement>('.card')
+    if (!cardElem) return
+
+    const update = () => {
+const jitter = 0.00001 // tiny value to prevent full stagnation
+current.current.x = lerp(current.current.x, target.current.x, 0.1) + jitter
+current.current.y = lerp(current.current.y, target.current.y, 0.1) + jitter
+
+      const px = current.current.x
+      const py = current.current.y
+      const fromCenter = Math.hypot(px - 0.5, py - 0.5)
+
+      const maxRot = 25
+      const rotX = clamp((0.5 - py) * maxRot * 2, -maxRot, maxRot)
+      const rotY = clamp((px - 0.5) * maxRot * 2, -maxRot, maxRot)
+      const tx = clamp(rotY * 1.2, -20, 20)
+      const ty = clamp(rotX * 1.2, -20, 20)
+
+      cardElem.style.setProperty('--rx', `${rotY}deg`)
+      cardElem.style.setProperty('--ry', `${rotX}deg`)
+      cardElem.style.setProperty('--tx', `${tx}px`)
+      cardElem.style.setProperty('--ty', `${ty}px`)
+      cardElem.style.setProperty('--mx', `${50 + rotY * 1.5}%`)
+      cardElem.style.setProperty('--my', `${50 + rotX * 1.5}%`)
+      cardElem.style.setProperty('--pointer-x', `${px * 100}%`)
+      cardElem.style.setProperty('--pointer-y', `${py * 100}%`)
+      cardElem.style.setProperty('--pointer-from-center', `${fromCenter}`)
+
+      requestAnimationFrame(update)
     }
-  })
 
-  return (
-    <mesh
-      ref={meshRef}
-      position={position}
-      rotation={rotation}
-      onPointerOver={() => setHovered(true)}
-      onPointerOut={() => setHovered(false)}
-      onClick={onClick}
-    >
-      <boxGeometry args={[2.5, 3.5, 0.005]} />
-      <meshStandardMaterial
-        map={texture}
-        transparent
-        alphaTest={0.1}
-        roughness={0.85}
-        metalness={0.03}
-        toneMapped={false}
-        color={'white'}
-      />
-    </mesh>
-  )
-}
+    const handleMouseMove = (e: MouseEvent) => {
+      target.current.x = e.clientX / window.innerWidth
+      target.current.y = e.clientY / window.innerHeight
+    }
 
-const CardGroup: React.FC<{
-  cards: CardImage[]
-  onCardClick?: (id: string) => void
-}> = ({ cards, onCardClick }) => {
-  const radius = 9
-  const angleStep = Math.PI / 9
-  const centerOffset = (cards.length - 1) * angleStep * 0.5
+    window.addEventListener('mousemove', handleMouseMove)
+    update()
 
-  return (
-    <group position={[0, 1, 0]}>
-      {cards.map((card, i) => {
-        const angle = i * angleStep - centerOffset
-        const x = radius * Math.sin(angle)
-        const z = radius * Math.cos(angle)
-        return (
-          <CardBlock
-            key={card.id ?? `${card.name}-${card.number}`}
-            imageUrl={card.front}
-            position={[x, 0, z]}
-            rotation={[0, -angle, 0]}
-            onClick={() => onCardClick?.(card.id ?? '')}
-          />
-        )
-      })}
-    </group>
-  )
-}
+    const handleClick = (e: MouseEvent) => {
+      const btn = (e.target as HTMLElement).closest('.card__rotator') as HTMLElement
+      if (btn && btn.dataset.id) onCardClick?.(btn.dataset.id)
+    }
 
-const CardCarousel: React.FC<CardCarouselProps> = ({ cards, onCardClick }) => {
-  const visibleCards = cards.slice(0, 7)
+    container.addEventListener('click', handleClick)
 
-  return (
-    <div className="carousel-3d-wrapper">
-      <Canvas
-        camera={{ position: [0, 6.5, 13], fov: 40 }}
-        style={{ width: '100%', height: '500px' }}
-      >
-        {/* Realistic but performant lighting */}
-        <hemisphereLight color="#e5e5e5" groundColor="#1a1a1a" intensity={0.9} />
-        <ambientLight intensity={0.95} />
-        <directionalLight position={[5, 7, 5]} intensity={0.8} />
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      container.removeEventListener('click', handleClick)
+    }
+  }, [card, onCardClick])
 
-        <CardGroup cards={visibleCards} onCardClick={onCardClick} />
-
-        <OrbitControls
-          enableZoom={false}
-          enablePan={false}
-          rotateSpeed={0.35}
-          maxPolarAngle={Math.PI / 2.2}
-          minPolarAngle={Math.PI / 2.2}
-        />
-      </Canvas>
-    </div>
-  )
+  return <div className="card-carousel-showcase card-carousel-floating" ref={containerRef} />
 }
 
 export default CardCarousel

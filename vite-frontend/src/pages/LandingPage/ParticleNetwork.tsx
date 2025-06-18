@@ -1,3 +1,5 @@
+// src/pages/LandingPage/ParticleNetwork.tsx
+
 import React, { useRef, useEffect } from 'react'
 
 interface Particle {
@@ -12,6 +14,7 @@ interface Particle {
   pulseSpeed: number
   age: number
   flickerOffset: number
+  connections: number // ← added
 }
 
 const ParticleNetwork: React.FC = () => {
@@ -45,6 +48,7 @@ const ParticleNetwork: React.FC = () => {
     const MAX_PARTICLES = 90
     const SPAWN_INTERVAL = 100
     const MAX_DISTANCE = 160
+    const MIN_CONNECTIONS = 2
 
     const spawnParticle = () => {
       if (particles.length >= MAX_PARTICLES) return
@@ -69,6 +73,7 @@ const ParticleNetwork: React.FC = () => {
         pulseSpeed: 0.04 + Math.random() * 0.02,
         age: 0,
         flickerOffset: Math.random() * 10,
+        connections: 0,
       })
     }
 
@@ -78,6 +83,11 @@ const ParticleNetwork: React.FC = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       const time = performance.now()
 
+      // Reset connections
+      particles.forEach((p) => {
+        p.connections = 0
+      })
+
       // Animate
       particles.forEach((p) => {
         p.age += 1
@@ -86,27 +96,40 @@ const ParticleNetwork: React.FC = () => {
         p.angle += p.orbitSpeed
       })
 
-      // Draw connections
+      // Count connections
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const a = particles[i]
           const b = particles[j]
+          const dx = a.targetX - b.targetX
+          const dy = a.targetY - b.targetY
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < MAX_DISTANCE) {
+            a.connections++
+            b.connections++
+          }
+        }
+      }
 
-          const ax = a.targetX
-          const ay = a.targetY
-          const bx = b.targetX
-          const by = b.targetY
+      // Draw connections
+      for (let i = 0; i < particles.length; i++) {
+        const a = particles[i]
+        if (a.connections < MIN_CONNECTIONS) continue
 
-          const dx = ax - bx
-          const dy = ay - by
+        for (let j = i + 1; j < particles.length; j++) {
+          const b = particles[j]
+          if (b.connections < MIN_CONNECTIONS) continue
+
+          const dx = a.targetX - b.targetX
+          const dy = a.targetY - b.targetY
           const dist = Math.sqrt(dx * dx + dy * dy)
           if (dist < MAX_DISTANCE) {
             const alpha = (1 - dist / MAX_DISTANCE) * a.opacity * b.opacity
 
-            const axRender = ax + Math.cos(a.angle) * a.orbitRadius + mouse.current.x * 40 * a.z
-            const ayRender = ay + Math.sin(a.angle) * a.orbitRadius + mouse.current.y * 40 * a.z
-            const bxRender = bx + Math.cos(b.angle) * b.orbitRadius + mouse.current.x * 40 * b.z
-            const byRender = by + Math.sin(b.angle) * b.orbitRadius + mouse.current.y * 40 * b.z
+            const axRender = a.targetX + Math.cos(a.angle) * a.orbitRadius + mouse.current.x * 40 * a.z
+            const ayRender = a.targetY + Math.sin(a.angle) * a.orbitRadius + mouse.current.y * 40 * a.z
+            const bxRender = b.targetX + Math.cos(b.angle) * b.orbitRadius + mouse.current.x * 40 * b.z
+            const byRender = b.targetY + Math.sin(b.angle) * b.orbitRadius + mouse.current.y * 40 * b.z
 
             const gradient = ctx.createLinearGradient(axRender, ayRender, bxRender, byRender)
             gradient.addColorStop(0, `rgba(255, 80, 80, ${alpha * 0.25})`)
@@ -129,8 +152,10 @@ const ParticleNetwork: React.FC = () => {
         }
       }
 
-      // Draw particles
-      particles.forEach((p) => {
+      // Draw particles (only those with enough connections)
+      for (const p of particles) {
+        if (p.connections < MIN_CONNECTIONS) continue
+
         const flicker = 0.8 + 0.2 * Math.sin(time / 200 + p.flickerOffset)
         const r = 2.5 + Math.sin(p.pulse) * 1.2
 
@@ -149,7 +174,7 @@ const ParticleNetwork: React.FC = () => {
         ctx.beginPath()
         ctx.arc(x, y, r, 0, Math.PI * 2)
         ctx.fill()
-      })
+      }
 
       requestAnimationFrame(draw)
     }
@@ -163,26 +188,30 @@ const ParticleNetwork: React.FC = () => {
     }
   }, [])
 
-  return (
-    <div
-      ref={containerRef}
+return (
+  <div
+    ref={containerRef}
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      zIndex: 0,
+      pointerEvents: 'none',
+      overflow: 'hidden',
+    }}
+  >
+    <canvas
+      ref={canvasRef}
       style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 0,
-        pointerEvents: 'none',
+        width: '100%',
+        height: '100%',
+        display: 'block',
       }}
-    >
-      <canvas
-        ref={canvasRef}
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'block',
-        }}
-      />
-    </div>
-  )
+    />
+  </div>
+)
 }
 
 export default ParticleNetwork
