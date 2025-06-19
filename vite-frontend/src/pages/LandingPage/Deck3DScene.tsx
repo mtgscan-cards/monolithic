@@ -1,17 +1,17 @@
 // src/pages/LandingPage/Deck3DScene.tsx
 
 import React, { useRef, useEffect, useMemo, Suspense } from 'react'
-import { Canvas, useThree, useFrame, useLoader } from '@react-three/fiber'
+import { Canvas, useThree, useFrame, useLoader, invalidate } from '@react-three/fiber'
 import { TextureLoader, Vector3, Spherical, PerspectiveCamera } from 'three'
 import { ResizeObserver } from '@juggle/resize-observer'
 import { Html, Preload } from '@react-three/drei'
 import DeckGroup from './DeckGroup'
 import { CardImage } from './LandingPage'
 
-const TRACKBALL_RADIUS = 8
+const TRACKBALL_RADIUS = 7
 const BASE_AZIMUTH = 0
 const BASE_POLAR = Math.PI / 2.0
-const MOUSE_SENSITIVITY = 0.25
+const MOUSE_SENSITIVITY = 0.17
 
 const TrackballCamera: React.FC = () => {
   const { camera, size } = useThree()
@@ -73,7 +73,6 @@ const SceneContents: React.FC<{ cards: CardImage[] }> = React.memo(({ cards }) =
 })
 
 const PreloadedScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
-  // Preload front and back textures for all cards
   const textureUrls = useMemo(
     () =>
       cards.flatMap(card =>
@@ -89,27 +88,48 @@ const PreloadedScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
   return <SceneContents cards={cards} />
 }
 
-const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => (
-  <Canvas
-    camera={{ position: [0, 0, TRACKBALL_RADIUS], fov: 50 }}
-    resize={{ polyfill: ResizeObserver }}
-    style={{
-      width: '100%',
-      height: '100%',
-      display: 'block',
-    }}
-  >
-    <Suspense
-      fallback={
-        <Html center>
-          <div style={{ color: '#ccc', fontSize: '1rem' }}>Loading cards...</div>
-        </Html>
-      }
+const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
+  // Smooth capped render loop at 45 FPS
+  useEffect(() => {
+    let mounted = true
+    const interval = 1000 / 45
+
+    const loop = () => {
+      if (!mounted) return
+      invalidate()
+      setTimeout(loop, interval)
+    }
+
+    loop()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  return (
+    <Canvas
+      camera={{ position: [0, 0, TRACKBALL_RADIUS], fov: 45 }}
+      resize={{ polyfill: ResizeObserver }}
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'block',
+      }}
+      frameloop="demand"
     >
-      <PreloadedScene cards={cards} />
-      <Preload all />
-    </Suspense>
-  </Canvas>
-)
+      <Suspense
+        fallback={
+          <Html >
+
+          </Html>
+        }
+      >
+        <PreloadedScene cards={cards} />
+        <Preload all />
+      </Suspense>
+    </Canvas>
+  )
+}
 
 export default Deck3DScene

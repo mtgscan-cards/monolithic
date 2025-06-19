@@ -20,6 +20,7 @@
     scale(var(--s, 1))
     rotateX(var(--ry, 0deg))
     rotateY(var(--rx, 0deg));
+
 }
 
 .card__translater,
