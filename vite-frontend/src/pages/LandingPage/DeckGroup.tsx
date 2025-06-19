@@ -1,6 +1,6 @@
 // src/pages/LandingPage/DeckGroup.tsx
 
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useMemo } from 'react'
 import { Group, Vector3 } from 'three'
 import { useFrame } from '@react-three/fiber'
 import CardMesh from './CardMesh'
@@ -31,31 +31,29 @@ const getNonOverlappingPosition = (
 const DeckGroup: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
   const groupRef = useRef<Group>(null!)
 
-  // Ensure each card has valid front/back image URLs
-  const validCards = cards.filter(
-    card => typeof card.front === 'string' && typeof card.back === 'string'
-  )
-
-  // Precompute randomized position/rotation metadata
-  const positions: Vector3[] = []
-  const generated = validCards.map(() => {
-    const pos = getNonOverlappingPosition(positions, 1.2)
-    positions.push(pos)
-    return {
-      pos,
-      rotSpeed: Math.random() * 0.01 + 0.001,
-    }
-  })
-
-  const cardRefs = useRef<{ pos: Vector3; rotSpeed: number }[]>(generated)
+  const { validCards, metadata } = useMemo(() => {
+    const filtered = cards.filter(
+      c => typeof c.front === 'string' && typeof c.back === 'string'
+    )
+    const positions: Vector3[] = []
+    const meta = filtered.map(() => {
+      const pos = getNonOverlappingPosition(positions, 1.2)
+      positions.push(pos)
+      return {
+        pos,
+        rotSpeed: Math.random() * 0.01 + 0.001,
+      }
+    })
+    return { validCards: filtered, metadata: meta }
+  }, [cards])
 
   useFrame(() => {
     if (!groupRef.current) return
     groupRef.current.rotation.y += 0.002
 
     groupRef.current.children.forEach((child, i) => {
-      const ref = cardRefs.current[i]
-      if (!ref) return // ✅ Safe guard
+      const ref = metadata[i]
+      if (!ref) return
       child.rotation.y += ref.rotSpeed
       child.rotation.x += ref.rotSpeed / 2
     })
@@ -72,9 +70,13 @@ const DeckGroup: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
   return (
     <group ref={groupRef}>
       {validCards.map((card, i) => (
-        <group key={card.id ?? `${card.name}-${card.number}`} position={cardRefs.current[i]?.pos}>
-          <CardMesh frontUrl={card.front} backUrl={card.back} scale={1} />
-        </group>
+        <CardMesh
+          key={card.id ?? `${card.name}-${card.number}`}
+          frontUrl={card.front}
+          backUrl={card.back}
+          scale={1}
+          position={metadata[i].pos}
+        />
       ))}
     </group>
   )

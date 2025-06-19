@@ -1,51 +1,73 @@
 // src/pages/LandingPage/CardMesh.tsx
 
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useLoader, useThree } from '@react-three/fiber'
-import { TextureLoader } from 'three'
-import * as THREE from 'three'
+import {
+  TextureLoader,
+  LinearFilter,
+  LinearMipMapLinearFilter,
+  FrontSide,
+  PlaneGeometry,
+  MeshPhongMaterial,
+  Vector3
+} from 'three'
 
 interface CardMeshProps {
   frontUrl: string
   backUrl: string
   scale?: number
+  position?: Vector3 | [number, number, number]
 }
 
-const CardMesh: React.FC<CardMeshProps> = ({ frontUrl, backUrl, scale = 1 }) => {
+const CardMesh: React.FC<CardMeshProps> = ({ frontUrl, backUrl, scale = 1, position }) => {
   const gl = useThree(state => state.gl)
   const [front, back] = useLoader(TextureLoader, [frontUrl, backUrl])
 
-  useMemo(() => {
-    [front, back].forEach(tex => {
-      tex.anisotropy = gl.capabilities.getMaxAnisotropy()
-      tex.minFilter = THREE.LinearMipMapLinearFilter
-      tex.magFilter = THREE.LinearFilter
+  useEffect(() => {
+    const maxAnisotropy = gl.capabilities.getMaxAnisotropy()
+    for (const tex of [front, back]) {
+      tex.anisotropy = maxAnisotropy
+      tex.minFilter = LinearMipMapLinearFilter
+      tex.magFilter = LinearFilter
       tex.generateMipmaps = true
       tex.needsUpdate = true
-    })
+    }
   }, [front, back, gl])
 
-  const width = 0.7 * scale
-  const height = 1.0 * scale
+  const width = useMemo(() => 0.7 * scale, [scale])
+  const height = useMemo(() => 1.0 * scale, [scale])
+
+  const geometry = useMemo(() => new PlaneGeometry(width, height), [width, height])
+
+  const frontMaterial = useMemo(
+    () =>
+      new MeshPhongMaterial({
+        map: front,
+        side: FrontSide,
+        transparent: true,
+      }),
+    [front]
+  )
+
+  const backMaterial = useMemo(
+    () =>
+      new MeshPhongMaterial({
+        map: back,
+        side: FrontSide,
+        transparent: true,
+      }),
+    [back]
+  )
 
   return (
-    <group>
-      <mesh position={[0, 0, 0]}>
-        <planeGeometry args={[width, height]} />
-        <meshPhongMaterial
-          map={front}
-          side={THREE.FrontSide}
-          transparent
-        />
-      </mesh>
-      <mesh position={[0, 0, -0.01]} rotation={[0, Math.PI, 0]}>
-        <planeGeometry args={[width, height]} />
-        <meshPhongMaterial
-          map={back}
-          side={THREE.FrontSide}
-          transparent
-        />
-      </mesh>
+    <group position={position}>
+      <mesh geometry={geometry} material={frontMaterial} />
+      <mesh
+        geometry={geometry}
+        material={backMaterial}
+        position={[0, 0, -0.01]}
+        rotation={[0, Math.PI, 0]}
+      />
     </group>
   )
 }

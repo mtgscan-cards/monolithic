@@ -1,5 +1,3 @@
-// src/pages/LandingPage/ParticleNetwork.tsx
-
 import React, { useRef, useEffect } from 'react'
 
 interface Particle {
@@ -14,13 +12,17 @@ interface Particle {
   pulseSpeed: number
   age: number
   flickerOffset: number
-  connections: number // ← added
+  connections: number
 }
+
+const rgba = (r: number, g: number, b: number, a: number) => `rgba(${r},${g},${b},${a})`
 
 const ParticleNetwork: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const mouse = useRef({ x: 0, y: 0 })
+
+  const targetMouse = useRef({ x: 0, y: 0 })
+  const smoothedMouse = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -37,18 +39,21 @@ const ParticleNetwork: React.FC = () => {
     const observer = new ResizeObserver(resize)
     observer.observe(container)
 
-    window.addEventListener('mousemove', (e) => {
+    const onMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect()
-      const x = (e.clientX - rect.left) / rect.width - 0.5
-      const y = (e.clientY - rect.top) / rect.height - 0.5
-      mouse.current = { x, y }
-    })
+      targetMouse.current.x = (e.clientX - rect.left) / rect.width - 0.5
+      targetMouse.current.y = (e.clientY - rect.top) / rect.height - 0.5
+    }
+    window.addEventListener('mousemove', onMouseMove)
 
     const particles: Particle[] = []
     const MAX_PARTICLES = 90
     const SPAWN_INTERVAL = 100
     const MAX_DISTANCE = 160
+    const MAX_DISTANCE_SQ = MAX_DISTANCE * MAX_DISTANCE
     const MIN_CONNECTIONS = 2
+    const MAX_NEIGHBORS = 4
+    const MAX_ACTIVE_LINKS = 100
 
     const spawnParticle = () => {
       if (particles.length >= MAX_PARTICLES) return
@@ -80,103 +85,124 @@ const ParticleNetwork: React.FC = () => {
     const interval = setInterval(spawnParticle, SPAWN_INTERVAL)
 
     const draw = () => {
+      requestAnimationFrame(draw)
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       const time = performance.now()
 
-      // Reset connections
-      particles.forEach((p) => {
-        p.connections = 0
-      })
+      // Interpolate smoothed mouse
+      smoothedMouse.current.x += (targetMouse.current.x - smoothedMouse.current.x) * 0.05
+      smoothedMouse.current.y += (targetMouse.current.y - smoothedMouse.current.y) * 0.05
 
-      // Animate
-      particles.forEach((p) => {
+      const mx = smoothedMouse.current.x * 40
+      const my = smoothedMouse.current.y * 40
+
+      particles.forEach(p => {
+        p.connections = 0
         p.age += 1
         p.opacity = Math.min(1, p.age / 20)
         p.pulse += p.pulseSpeed
         p.angle += p.orbitSpeed
       })
 
-      // Count connections
+      const neighborMap: number[][] = particles.map(() => [])
+      const connectionList: {
+        ax: number
+        ay: number
+        bx: number
+        by: number
+        alpha: number
+        phase: number
+      }[] = []
+
+      // Build neighbor list
       for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const a = particles[i]
+        const a = particles[i]
+        const dists: { index: number; distSq: number }[] = []
+
+        for (let j = 0; j < particles.length; j++) {
+          if (i === j) continue
           const b = particles[j]
           const dx = a.targetX - b.targetX
           const dy = a.targetY - b.targetY
-          const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < MAX_DISTANCE) {
-            a.connections++
-            b.connections++
+          const distSq = dx * dx + dy * dy
+          if (distSq < MAX_DISTANCE_SQ) {
+            dists.push({ index: j, distSq })
           }
         }
+
+        dists.sort((a, b) => a.distSq - b.distSq)
+        const topNeighbors = dists.slice(0, MAX_NEIGHBORS)
+        neighborMap[i] = topNeighbors.map(n => n.index)
+        a.connections = topNeighbors.length
       }
 
-      // Draw connections
+      // Draw connections + collect animated ones
       for (let i = 0; i < particles.length; i++) {
         const a = particles[i]
         if (a.connections < MIN_CONNECTIONS) continue
 
-        for (let j = i + 1; j < particles.length; j++) {
+        for (const j of neighborMap[i]) {
           const b = particles[j]
           if (b.connections < MIN_CONNECTIONS) continue
 
           const dx = a.targetX - b.targetX
           const dy = a.targetY - b.targetY
           const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < MAX_DISTANCE) {
-            const alpha = (1 - dist / MAX_DISTANCE) * a.opacity * b.opacity
+          const alpha = (1 - dist / MAX_DISTANCE) * a.opacity * b.opacity
 
-            const axRender = a.targetX + Math.cos(a.angle) * a.orbitRadius + mouse.current.x * 40 * a.z
-            const ayRender = a.targetY + Math.sin(a.angle) * a.orbitRadius + mouse.current.y * 40 * a.z
-            const bxRender = b.targetX + Math.cos(b.angle) * b.orbitRadius + mouse.current.x * 40 * b.z
-            const byRender = b.targetY + Math.sin(b.angle) * b.orbitRadius + mouse.current.y * 40 * b.z
+          const ax = a.targetX + Math.cos(a.angle) * a.orbitRadius + mx * a.z
+          const ay = a.targetY + Math.sin(a.angle) * a.orbitRadius + my * a.z
+          const bx = b.targetX + Math.cos(b.angle) * b.orbitRadius + mx * b.z
+          const by = b.targetY + Math.sin(b.angle) * b.orbitRadius + my * b.z
 
-            const gradient = ctx.createLinearGradient(axRender, ayRender, bxRender, byRender)
-            gradient.addColorStop(0, `rgba(255, 80, 80, ${alpha * 0.25})`)
-            gradient.addColorStop(1, `rgba(255, 0, 100, ${alpha * 0.25})`)
-            ctx.strokeStyle = gradient
-            ctx.lineWidth = 1
-            ctx.beginPath()
-            ctx.moveTo(axRender, ayRender)
-            ctx.lineTo(bxRender, byRender)
-            ctx.stroke()
+          const gradient = ctx.createLinearGradient(ax, ay, bx, by)
+          gradient.addColorStop(0, rgba(255, 80, 80, alpha * 0.25))
+          gradient.addColorStop(1, rgba(255, 0, 100, alpha * 0.25))
+          ctx.strokeStyle = gradient
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.moveTo(ax, ay)
+          ctx.lineTo(bx, by)
+          ctx.stroke()
 
-            const t = (Math.sin(time / 300 + i + j) + 1) / 2
-            const px = axRender + (bxRender - axRender) * t
-            const py = ayRender + (byRender - ayRender) * t
-            ctx.fillStyle = `rgba(255,255,255,${alpha * 0.25})`
-            ctx.beginPath()
-            ctx.arc(px, py, 1.5, 0, Math.PI * 2)
-            ctx.fill()
-          }
+          connectionList.push({ ax, ay, bx, by, alpha, phase: i + j })
         }
       }
 
-      // Draw particles (only those with enough connections)
+      // Draw animated particles on connections
+      for (let k = 0; k < Math.min(MAX_ACTIVE_LINKS, connectionList.length); k++) {
+        const { ax, ay, bx, by, alpha, phase } = connectionList[k]
+        const t = (Math.sin(time / 300 + phase) + 1) * 0.5
+        const px = ax + (bx - ax) * t
+        const py = ay + (by - ay) * t
+        ctx.fillStyle = rgba(255, 255, 255, alpha * 0.25)
+        ctx.beginPath()
+        ctx.arc(px, py, 1.5, 0, Math.PI * 2)
+        ctx.fill()
+      }
+
+      // Draw particles
       for (const p of particles) {
         if (p.connections < MIN_CONNECTIONS) continue
 
         const flicker = 0.8 + 0.2 * Math.sin(time / 200 + p.flickerOffset)
         const r = 2.5 + Math.sin(p.pulse) * 1.2
-
-        const x = p.targetX + Math.cos(p.angle) * p.orbitRadius + mouse.current.x * 40 * p.z
-        const y = p.targetY + Math.sin(p.angle) * p.orbitRadius + mouse.current.y * 40 * p.z
+        const x = p.targetX + Math.cos(p.angle) * p.orbitRadius + mx * p.z
+        const y = p.targetY + Math.sin(p.angle) * p.orbitRadius + my * p.z
 
         const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 4)
-        glow.addColorStop(0, `rgba(255, 60, 60, ${0.4 * p.opacity * flicker})`)
-        glow.addColorStop(1, `rgba(0, 0, 0, 0)`)
+        glow.addColorStop(0, rgba(255, 60, 60, 0.4 * p.opacity * flicker))
+        glow.addColorStop(1, rgba(0, 0, 0, 0))
         ctx.fillStyle = glow
         ctx.beginPath()
         ctx.arc(x, y, r * 4, 0, Math.PI * 2)
         ctx.fill()
 
-        ctx.fillStyle = `rgba(255, 80, 80, ${p.opacity})`
+        ctx.fillStyle = rgba(255, 80, 80, p.opacity)
         ctx.beginPath()
         ctx.arc(x, y, r, 0, Math.PI * 2)
         ctx.fill()
       }
-
-      requestAnimationFrame(draw)
     }
 
     draw()
@@ -184,34 +210,34 @@ const ParticleNetwork: React.FC = () => {
     return () => {
       clearInterval(interval)
       observer.disconnect()
-      window.removeEventListener('mousemove', () => {})
+      window.removeEventListener('mousemove', onMouseMove)
     }
   }, [])
 
-return (
-  <div
-    ref={containerRef}
-    style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      zIndex: 0,
-      pointerEvents: 'none',
-      overflow: 'hidden',
-    }}
-  >
-    <canvas
-      ref={canvasRef}
+  return (
+    <div
+      ref={containerRef}
       style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
         width: '100%',
         height: '100%',
-        display: 'block',
+        zIndex: 0,
+        pointerEvents: 'none',
+        overflow: 'hidden',
       }}
-    />
-  </div>
-)
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'block',
+        }}
+      />
+    </div>
+  )
 }
 
 export default ParticleNetwork

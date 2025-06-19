@@ -6,7 +6,7 @@ import { motion, easeInOut, useInView } from 'framer-motion'
 import ParticleNetwork from './ParticleNetwork'
 import CardCarousel from './CardCarousel'
 import type { CardImage } from './LandingPage'
-import Footer from './Footer'
+import './LandingContent.css'
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -59,7 +59,6 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
 
           {/* Row with content blocks + card */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '3rem' }}>
-            {/* First two text content blocks */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
               {[0, 1].map((i) => (
                 <motion.section
@@ -69,12 +68,15 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
                   whileInView="visible"
                   viewport={{ once: true, amount: 0.6 }}
                   variants={fadeInUp}
+                  className="glow-block"
                   style={{
                     width: '540px',
                     padding: '2rem',
                     background: '#1a1a1a',
                     borderRadius: '12px',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                 >
                   <Typography variant="h4" gutterBottom>
@@ -91,7 +93,6 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
               ))}
             </div>
 
-            {/* 3D Card to the right of the first two blocks */}
             {highlightCard && cardVisible && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -112,21 +113,23 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
             )}
           </div>
 
-          {/* Full-width final block with bottom margin */}
           <motion.section
             custom={2}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.6 }}
             variants={fadeInUp}
+            className="glow-block"
             style={{
               alignSelf: 'flex-start',
               width: '100%',
               padding: '2rem',
-              marginBottom: '4rem', // ← Added spacing before the footer
+              marginBottom: '4rem',
               background: '#1a1a1a',
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              position: 'relative',
+              overflow: 'hidden',
             }}
           >
             <Typography variant="h4" gutterBottom>
@@ -140,7 +143,6 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
           </motion.section>
         </Container>
       </main>
-      <Footer />
     </>
   )
 }

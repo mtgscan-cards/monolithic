@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { CircularProgress } from '@mui/material'
-import { motion } from 'framer-motion'
 import Deck3DScene from './Deck3DScene'
 import OverlayUI from './OverlayUI'
 import LandingContent from './LandingContent'
+import SiteStatsSection from './SiteStatsSection'
+import Footer from './Footer' // ✅ add this if not already
 
 export type CardImage = {
   id: string
@@ -55,28 +56,18 @@ const LandingPage: React.FC = () => {
         )}
       </div>
 
-      {/* Fixed Card Display (no scroll trigger needed) */}
-      {cards.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          style={{
-            position: 'fixed',
-            top: '50%',
-            right: '8%',
-            transform: 'translateY(-50%)',
-            zIndex: 100,
-            pointerEvents: 'none',
-          }}
-        >
-        </motion.div>
-      )}
+      {/* Landing Scroll Content */}
+      {!loading && cards.length > 0 && (
+        <>
+          <LandingContent highlightCard={cards[0]} />
 
-      {/* Landing Content */}
-{!loading && cards.length > 0 && (
-  <LandingContent highlightCard={cards[0]} />
-)}
+          {/* ✅ Site Stats Section appears *after* all animated sections */}
+          <SiteStatsSection />
+
+          {/* ✅ Footer always last */}
+          <Footer />
+        </>
+      )}
     </div>
   )
 }

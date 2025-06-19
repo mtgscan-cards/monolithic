@@ -1,0 +1,41 @@
+.site-stats-wrapper {
+  width: 100%;
+  height: 700px;
+  position: relative;
+  overflow: hidden;
+  background: black;
+}
+
+.stats-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3rem;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.stat-block {
+  text-align: center;
+  color: white;
+  font-family: 'Orbitron', sans-serif;
+  text-shadow: 0 0 6px rgba(255, 60, 60, 0.7);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  text-shadow: #000000 0 0 4px;
+}
+
+.stat-label {
+  font-size: 1rem;
+  color: #ddd;
+  text-shadow: #000000 0 0 4px;
+}
