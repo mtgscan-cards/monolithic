@@ -1,96 +1,127 @@
 import React from 'react'
+import { Box, Typography, Grid, Link, Stack, Container } from '@mui/material'
+import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined'
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
+import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined'
+import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined'
+import LatestCommitLink from './LatestCommitLink'
 
 const Footer: React.FC = () => {
   return (
-    <footer
-      style={{
+    <Box
+      component="footer"
+      sx={{
         width: '100%',
-        backgroundColor: '#0d0d0d',
+        backgroundColor: '#1e1e1e',
         color: '#ccc',
-        padding: '4rem 2rem 2rem',
-        borderTop: '1px solid #222',
-        fontSize: '0.9rem',
+        pt: 5,
+        pb: 3,
+        borderTop: '1px solid #2a2a2a',
+        fontSize: '0.95rem',
       }}
     >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateAreas: `
-            "about resources community"
-            "about legal legal"
-          `,
-          gridTemplateColumns: '2fr 1fr 1fr',
-          gap: '2rem',
-          maxWidth: '1200px',
-          margin: '0 auto',
-        }}
-      >
-        {/* About section */}
-        <div style={{ gridArea: 'about' }}>
-          <h4 style={{ color: '#fff', marginBottom: '1rem', fontSize: '1.1rem' }}>
-            <span style={{ marginRight: '0.5rem' }}>📷</span>MTGScan.cards
-          </h4>
-          <p style={{ lineHeight: '1.6' }}>
-            Built for collectors, by collectors. Scan and track your Magic: The Gathering collection with blazing-fast recognition and card data powered by modern AI.
-          </p>
-          <p style={{ marginTop: '1rem', color: '#666', fontSize: '0.85rem' }}>
-            Version 1.0.0 • Open Source
-          </p>
-        </div>
+      <Container maxWidth="lg" sx={{ display: 'flex', justifyContent: 'center' }}>
+        <Grid
+          container
+          spacing={{ xs: 4, sm: 5 }}
+          justifyContent="center"
+          alignItems="flex-start"
+        >
+          {/* Branding */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
+              <CameraAltOutlinedIcon fontSize="small" sx={{ color: 'primary.main' }} />
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#fff' }}>
+                MTGScan.cards
+              </Typography>
+            </Stack>
+            <Typography sx={{ color: '#999', lineHeight: 1.6 }}>
+              Scan and track your Magic: The Gathering collection with lightning-fast recognition powered by modern AI.
+            </Typography>
+            <Typography variant="caption" sx={{ display: 'block', mt: 1.5, color: '#555' }}>
+              <LatestCommitLink />
+              {' • GPL 3.0'}
+            </Typography>
+          </Grid>
 
-        {/* Resources */}
-        <div style={{ gridArea: 'resources' }}>
-          <h4 style={{ color: '#fff', marginBottom: '1rem' }}>
-            <span style={{ marginRight: '0.5rem' }}>📚</span>Resources
-          </h4>
-          <ul style={{ listStyle: 'none', padding: 0, lineHeight: '1.8' }}>
-            <li><a href="#" style={{ color: '#aaa', textDecoration: 'none' }}>Documentation</a></li>
-            <li><a href="#" style={{ color: '#aaa', textDecoration: 'none' }}>Developer API</a></li>
-            <li><a href="#" style={{ color: '#aaa', textDecoration: 'none' }}>Changelog</a></li>
-            <li><a href="#" style={{ color: '#aaa', textDecoration: 'none' }}>Support</a></li>
-          </ul>
-        </div>
+          {/* Resources */}
+          <Grid item xs={12} sm={6} md={2}>
+            <Typography
+              variant="subtitle1"
+              sx={{ display: 'flex', alignItems: 'center', mb: 1.2, color: '#fff' }}
+            >
+              <MenuBookOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+              Resources
+            </Typography>
+            <Stack spacing={1}>
+              <Link href="#" underline="none" color="#aaa">Docs</Link>
+              <Link href="#" underline="none" color="#aaa">API</Link>
+              <Link href="#" underline="none" color="#aaa">Changelog</Link>
+              <Link href="#" underline="none" color="#aaa">Support</Link>
+            </Stack>
+          </Grid>
 
-        {/* Community */}
-        <div style={{ gridArea: 'community' }}>
-          <h4 style={{ color: '#fff', marginBottom: '1rem' }}>
-            <span style={{ marginRight: '0.5rem' }}>🌐</span>Community
-          </h4>
-          <ul style={{ listStyle: 'none', padding: 0, lineHeight: '1.8' }}>
-            <li><a href="#" style={{ color: '#aaa', textDecoration: 'none' }}>GitHub</a></li>
-            <li><a href="#" style={{ color: '#aaa', textDecoration: 'none' }}>Discord</a></li>
-            <li><a href="#" style={{ color: '#aaa', textDecoration: 'none' }}>Reddit</a></li>
-            <li><a href="#" style={{ color: '#aaa', textDecoration: 'none' }}>Twitter/X</a></li>
-          </ul>
-        </div>
+          {/* Community */}
+          <Grid item xs={12} sm={6} md={2}>
+            <Typography
+              variant="subtitle1"
+              sx={{ display: 'flex', alignItems: 'center', mb: 1.2, color: '#fff' }}
+            >
+              <PublicOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+              Community
+            </Typography>
+            <Stack spacing={1}>
+              <Link href="#" underline="none" color="#aaa">GitHub</Link>
+              <Link href="#" underline="none" color="#aaa">Discord</Link>
+              <Link href="#" underline="none" color="#aaa">Reddit</Link>
+              <Link href="#" underline="none" color="#aaa">Twitter/X</Link>
+            </Stack>
+          </Grid>
 
-        {/* Legal */}
-        <div style={{ gridArea: 'legal' }}>
-          <h4 style={{ color: '#fff', marginBottom: '1rem' }}>
-            <span style={{ marginRight: '0.5rem' }}>⚖️</span>Legal
-          </h4>
-          <ul style={{ listStyle: 'none', padding: 0, lineHeight: '1.8' }}>
-            <li><a href="#" style={{ color: '#aaa', textDecoration: 'none' }}>Privacy Policy</a></li>
-            <li><a href="#" style={{ color: '#aaa', textDecoration: 'none' }}>Terms of Service</a></li>
-            <li><a href="#" style={{ color: '#aaa', textDecoration: 'none' }}>License</a></li>
-          </ul>
-        </div>
-      </div>
+          {/* Legal */}
+          <Grid item xs={12} sm={6} md={2}>
+            <Typography
+              variant="subtitle1"
+              sx={{ display: 'flex', alignItems: 'center', mb: 1.2, color: '#fff' }}
+            >
+              <GavelOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+              Legal
+            </Typography>
+            <Stack spacing={1}>
+              <Link href="#" underline="none" color="#aaa">Privacy Policy</Link>
+              <Link href="#" underline="none" color="#aaa">Terms of Service</Link>
+              <Link href="#" underline="none" color="#aaa">License</Link>
+            </Stack>
+          </Grid>
+        </Grid>
+      </Container>
 
-      {/* Bottom bar */}
-      <div
-        style={{
-          borderTop: '1px solid #222',
-          marginTop: '3rem',
-          paddingTop: '1.5rem',
+      <Box
+        sx={{
+          mt: 4,
+          pt: 2,
+          borderTop: '1px solid #2a2a2a',
           textAlign: 'center',
-          color: '#666',
+          color: '#555',
           fontSize: '0.85rem',
         }}
       >
-        <p>© {new Date().getFullYear()} MTGScan.cards — All rights reserved.</p>
-      </div>
-    </footer>
+        <Typography
+          variant="body2"
+          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}
+        >
+          Made with
+          <img
+            src="https://fonts.gstatic.com/s/e/notoemoji/latest/2764/512.webp"
+            alt="Heart"
+            width={20}
+            height={21}
+            style={{ verticalAlign: 'middle' }}
+          />
+          by players and collectors.
+        </Typography>
+      </Box>
+    </Box>
   )
 }
 

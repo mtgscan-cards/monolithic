@@ -1,5 +1,3 @@
-// src/pages/LandingPage/Deck3DScene.tsx
-
 import React, { useRef, useEffect, useMemo, Suspense } from 'react'
 import { Canvas, useThree, useFrame, useLoader, invalidate } from '@react-three/fiber'
 import { TextureLoader, Vector3, Spherical, PerspectiveCamera } from 'three'
@@ -14,11 +12,15 @@ const BASE_POLAR = Math.PI / 2.0
 const MOUSE_SENSITIVITY = 0.17
 
 const TrackballCamera: React.FC = () => {
-  const { camera, size } = useThree()
+  const { camera, size, clock } = useThree()
   const spherical = useRef(new Spherical(TRACKBALL_RADIUS, BASE_POLAR, BASE_AZIMUTH))
   const mouse = useRef({ x: 0, y: 0 })
   const target = useMemo(() => new Vector3(0, 0, 0), [])
   const tempPos = useMemo(() => new Vector3(), [])
+
+  // Track visibility-aware elapsed time
+  const lastTimeRef = useRef<number>(0)
+  const timeOffsetRef = useRef<number>(0)
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -29,11 +31,27 @@ const TrackballCamera: React.FC = () => {
     }
 
     window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [size])
 
-  useFrame(({ clock }) => {
-    const time = clock.getElapsedTime()
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        lastTimeRef.current = clock.getElapsedTime()
+      } else {
+        const now = clock.getElapsedTime()
+        const pausedDuration = now - lastTimeRef.current
+        timeOffsetRef.current += pausedDuration
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [size, clock])
+
+  useFrame(() => {
+    const time = clock.getElapsedTime() - timeOffsetRef.current
     const azimuth = BASE_AZIMUTH + time * 0.1 + mouse.current.x * MOUSE_SENSITIVITY
     const polar = BASE_POLAR + mouse.current.y * MOUSE_SENSITIVITY
 
@@ -64,8 +82,6 @@ const SceneContents: React.FC<{ cards: CardImage[] }> = React.memo(({ cards }) =
     <>
       <ambientLight intensity={0.7} />
       <directionalLight position={[5, 10, 5]} intensity={0.8} />
-      <directionalLight position={[-5, 10, -5]} intensity={0.6} />
-      <directionalLight position={[0, 5, 10]} intensity={0.4} />
       <DeckGroup cards={cards} />
       <TrackballCamera />
     </>
@@ -89,46 +105,64 @@ const PreloadedScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
 }
 
 const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
-  // Smooth capped render loop at 45 FPS
   useEffect(() => {
     let mounted = true
+    let visible = document.visibilityState === 'visible'
     const interval = 1000 / 45
+    let timeoutId: number | null = null
 
     const loop = () => {
-      if (!mounted) return
+      if (!mounted || !visible) return
       invalidate()
-      setTimeout(loop, interval)
+      timeoutId = window.setTimeout(loop, interval)
     }
 
-    loop()
+    const handleVisibility = () => {
+      visible = document.visibilityState === 'visible'
+      if (!visible && timeoutId !== null) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      } else if (visible && timeoutId === null) {
+        loop()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    if (visible) loop()
 
     return () => {
       mounted = false
+      if (timeoutId !== null) clearTimeout(timeoutId)
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [])
 
   return (
-    <Canvas
-      camera={{ position: [0, 0, TRACKBALL_RADIUS], fov: 45 }}
-      resize={{ polyfill: ResizeObserver }}
+    <div
       style={{
+        position: 'relative',
         width: '100%',
         height: '100%',
-        display: 'block',
+        background: '#111',
       }}
-      frameloop="demand"
     >
-      <Suspense
-        fallback={
-          <Html >
-
-          </Html>
-        }
+      <Canvas
+        camera={{ position: [0, 0, TRACKBALL_RADIUS], fov: 45 }}
+        resize={{ polyfill: ResizeObserver }}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          background: '#111',
+        }}
+        frameloop="demand"
       >
-        <PreloadedScene cards={cards} />
-        <Preload all />
-      </Suspense>
-    </Canvas>
+        <Suspense fallback={<Html></Html>}>
+          <PreloadedScene cards={cards} />
+          <Preload all />
+        </Suspense>
+      </Canvas>
+    </div>
   )
 }
 

@@ -1,0 +1,9 @@
+/* This is a not very good hack to get the elements on the collections overview to fit to the screen*/
+ #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-y: hidden;
+  bottom: 0px;
+  height: 100vh;
+}

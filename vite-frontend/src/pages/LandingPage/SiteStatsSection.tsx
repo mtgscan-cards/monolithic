@@ -1,4 +1,3 @@
-// SiteStatsSection.tsx
 import React, { useMemo } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
@@ -11,8 +10,7 @@ const vertexShader = `
   uniform float uTime;
   uniform float uNoiseDensity;
   uniform float uNoiseStrength;
-  uniform float uFrequency;
-  uniform float uAmplitude;
+  uniform vec2 uMouse;
 
   float hash(vec3 p) {
     return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453123);
@@ -22,29 +20,22 @@ const vertexShader = `
     vec3 i = floor(p);
     vec3 f = fract(p);
     f = f*f*(3.0 - 2.0*f);
-
     return mix(
-      mix(
-        mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
-        mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
-      mix(
-        mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
-        mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
+      mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+          mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+      mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+          mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
       f.z);
   }
 
-  vec3 rotateY(vec3 v, float angle) {
-    float s = sin(angle);
-    float c = cos(angle);
-    return vec3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z);
-  }
-
   void main() {
-    float time = uTime;
-    float n = noise(normal * uNoiseDensity + time) * uNoiseStrength;
+    vec2 cursor = uMouse * 0.5 + 0.5;
+    float dist = distance(uv, cursor);
+    float localizedBoost = 1.0 + 0.3 * exp(-dist * dist * 10.0);
+
+    float n = noise(normal * uNoiseDensity + uTime) * uNoiseStrength * localizedBoost;
     vec3 displaced = position + normal * n;
-    float angle = sin(uv.y * uFrequency + time) * uAmplitude;
-    displaced = rotateY(displaced, angle);
+
     vDistort = n;
     vNormal = normalize(normalMatrix * normal);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
@@ -65,8 +56,8 @@ const fragmentShader = `
 
     vec3 base = cosPalette(
       d,
-      vec3(0.10, 0.08, 0.08),   // dark grey base
-      vec3(0.4, 0.1, 0.1),      // red-tinted contrast
+      vec3(0.10, 0.08, 0.08),
+      vec3(0.4, 0.1, 0.1),
       vec3(1.0),
       vec3(0.0, 0.2, 0.25)
     );
@@ -83,12 +74,15 @@ const BlobMesh = () => {
     uTime: { value: 0 },
     uNoiseDensity: { value: 2.5 },
     uNoiseStrength: { value: 0.25 },
-    uFrequency: { value: 2.0 },
-    uAmplitude: { value: 0.35 },
+    uMouse: { value: new THREE.Vector2(0, 0) },
   }), [])
 
-  useFrame(({ clock }) => {
+  const smoothedMouse = useMemo(() => new THREE.Vector2(0, 0), [])
+
+  useFrame(({ clock, mouse }) => {
     uniforms.uTime.value = clock.getElapsedTime()
+    smoothedMouse.lerp(mouse, 0.1) // Smoothing factor
+    uniforms.uMouse.value.copy(smoothedMouse)
   })
 
   return (
@@ -111,12 +105,8 @@ const SiteStatsSection: React.FC = () => {
     <div className="site-stats-wrapper">
       <Canvas
         camera={{ position: [0, 0, 6], fov: 70 }}
-        style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'transparent' }}
-        gl={{
-          alpha: true,
-          antialias: true,
-          preserveDrawingBuffer: false,
-        }}
+        style={{ position: 'relative', inset: 0, zIndex: 0, background: 'transparent' }}
+        gl={{ alpha: true, antialias: true, preserveDrawingBuffer: false }}
         onCreated={({ gl }) => {
           gl.setClearColor(new THREE.Color('#111111'), 1.0)
         }}

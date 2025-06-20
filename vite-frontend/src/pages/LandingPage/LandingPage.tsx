@@ -4,7 +4,7 @@ import Deck3DScene from './Deck3DScene'
 import OverlayUI from './OverlayUI'
 import LandingContent from './LandingContent'
 import SiteStatsSection from './SiteStatsSection'
-import Footer from './Footer' // ✅ add this if not already
+import Footer from './Footer'
 
 export type CardImage = {
   id: string
@@ -27,13 +27,23 @@ const LandingPage: React.FC = () => {
   }, [])
 
   return (
-    <div style={{ width: '100%', overflowX: 'hidden' }}>
+    <div
+      style={{
+        width: '100%',
+        minHeight: '94vh',
+        overflowX: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
       {/* Fullscreen 3D Canvas */}
       <div
         style={{
           position: 'relative',
           width: '100%',
-          height: '100vh',
+          height: '94vh',
+          overflow: 'hidden',
+          flexShrink: 0,
         }}
       >
         {loading ? (
@@ -56,17 +66,13 @@ const LandingPage: React.FC = () => {
         )}
       </div>
 
-      {/* Landing Scroll Content */}
+      {/* Scrollable content after canvas */}
       {!loading && cards.length > 0 && (
-        <>
+        <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', padding: 0 }}>
           <LandingContent highlightCard={cards[0]} />
-
-          {/* ✅ Site Stats Section appears *after* all animated sections */}
           <SiteStatsSection />
-
-          {/* ✅ Footer always last */}
           <Footer />
-        </>
+        </div>
       )}
     </div>
   )

@@ -1,4 +1,3 @@
-// src/pages/CollectionsOverview.tsx
 import React, {
   useState,
   useRef,
@@ -28,32 +27,29 @@ import Model from '../../components/shared/Model'
 import { createCollection, getCollections, CollectionData } from '../../api/collections'
 import { AuthContext } from '../../contexts/AuthContext'
 
-/** Preload the GLTFs on mount */
+
 const PreloadModels: FC = () => {
   useGLTF.preload('mtgcardstack_min.glb')
   useGLTF.preload('compressed_box.glb')
   return null
 }
 
-/** Typed ref helper */
 type GroupArrayRef = MutableRefObject<Group[]>
 
 const CollectionsOverview: React.FC = () => {
-  // ── Hooks all up front ──────────────────────────────────────────
   const { user } = useContext(AuthContext)
   const navigate = useNavigate()
 
   const [collections, setCollections] = useState<CollectionData[]>([])
-  const [isLoading, setIsLoading]     = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0)
 
-  const [label, setLabel]           = useState('New Collection')
-  const [topColor, setTopColor]     = useState('#ffffff')
+  const [label, setLabel] = useState('New Collection')
+  const [topColor, setTopColor] = useState('#ffffff')
   const [bottomColor, setBottomColor] = useState('#8b4513')
 
   const tileRefs: GroupArrayRef = useRef([])
 
-  // Fetch the list of collections once
   useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -69,7 +65,6 @@ const CollectionsOverview: React.FC = () => {
     return () => { mounted = false }
   }, [])
 
-  // Position math for the 3D carousel
   const radius = useMemo(
     () => 1 + (collections.length > 1 ? (collections.length - 1) * 0.5 : 0),
     [collections.length],
@@ -87,7 +82,6 @@ const CollectionsOverview: React.FC = () => {
     [currentIndex, radius],
   )
 
-  // Animate positions whenever currentIndex changes
   useEffect(() => {
     tileRefs.current.forEach((tile, i) => {
       const dest = targetPos(i)
@@ -106,9 +100,9 @@ const CollectionsOverview: React.FC = () => {
   )
 
   const atStart = currentIndex === 0
-  const atEnd   = collections.length === 0 || currentIndex === collections.length - 1
-  const prev    = () => !atStart && setCurrentIndex(i => i - 1)
-  const next    = () => !atEnd   && setCurrentIndex(i => i + 1)
+  const atEnd = collections.length === 0 || currentIndex === collections.length - 1
+  const prev = () => !atStart && setCurrentIndex(i => i - 1)
+  const next = () => !atEnd && setCurrentIndex(i => i + 1)
 
   const handleAdd = async () => {
     try {
@@ -127,60 +121,60 @@ const CollectionsOverview: React.FC = () => {
     }
   }
 
-  // ── Early return if no user ────────────────────────────────────
-  if (!user) {
-    // Could show a spinner or redirect here instead
-    return null
-  }
+  if (!user) return null
   const username = user.username
 
-  // ── Main render ────────────────────────────────────────────────
   return (
     <Box
       sx={{
-        position: 'fixed',
-        top: 64,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        width: '100%',
+        minHeight: '100vh',
+        maxHeight: '100vh',
         overflow: 'hidden',
-        zIndex: 0,
+        position: 'relative',
+        backgroundColor: '#111111',
       }}
     >
       <PreloadModels />
 
-      <Canvas
-        style={{ width: '100%', height: '100%', position: 'relative', zIndex: 0 }}
-        camera={{ position: [0, 0.6, 1.4], fov: 60 }}
-        shadows
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 0,
+        }}
       >
-        <Environment
-  preset="sunset"
-  resolution={32}   // default is 256
-  background={false}
-  blur={1}
-/>
-        <TWEENUpdater />
-        <group>
-          {collections.map((c, i) => (
-            <Model
-              key={c.user_collection_id}
-              ref={addToRefs}
-              initialPosition={[...targetPos(i).toArray()]}
-              scaleX={0.7}
-              scaleY={0.9}
-              scaleZ={0.6}
-              label={c.label}
-              color={c.color}
-              cardStackStateIndex={c.cardStackStateIndex}
-              onClick={() =>
-                navigate(`/${username}/collection/${c.user_collection_id}`)
-              }
-            />
-          ))}
-        </group>
-        <OrbitControls enabled={false} />
-      </Canvas>
+        <Canvas
+          camera={{ position: [0, 0.6, 1.4], fov: 60 }}
+          shadows
+        >
+          <color attach="background" args={['#111111']} />
+          <Environment preset="sunset" resolution={32} background={false} blur={1} />
+          <TWEENUpdater />
+          <group>
+            {collections.map((c, i) => (
+              <Model
+                key={c.user_collection_id}
+                ref={addToRefs}
+                initialPosition={[...targetPos(i).toArray()]}
+                scaleX={0.7}
+                scaleY={0.9}
+                scaleZ={0.6}
+                label={c.label}
+                color={c.color}
+                cardStackStateIndex={c.cardStackStateIndex}
+                onClick={() =>
+                  navigate(`/${username}/collection/${c.user_collection_id}`)
+                }
+              />
+            ))}
+          </group>
+          <OrbitControls enabled={false} />
+        </Canvas>
+      </Box>
 
       {isLoading && (
         <FullOverlay>
@@ -202,10 +196,12 @@ const CollectionsOverview: React.FC = () => {
         elevation={4}
         sx={{
           position: 'absolute',
-          bottom: 32,
+          bottom: 120,
           left: '50%',
           transform: 'translateX(-50%)',
           width: { xs: '90%', sm: 400 },
+          maxHeight: '50vh',
+          overflowY: 'auto',
           p: 3,
           bgcolor: 'rgba(0,0,0,0.75)',
           color: 'white',

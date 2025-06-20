@@ -47,13 +47,13 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
         <Container
           maxWidth="lg"
           style={{
-            paddingTop: '5rem',
+            paddingTop: '1rem',
             position: 'relative',
             zIndex: 1,
             display: 'flex',
-            flexDirection: 'column',
+           flexDirection: 'column',
             gap: '4rem',
-          }}
+          } }
         >
           <div ref={triggerRef} style={{ height: '1px' }} />
 

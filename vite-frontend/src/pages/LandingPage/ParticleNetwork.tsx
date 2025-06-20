@@ -23,6 +23,7 @@ const ParticleNetwork: React.FC = () => {
 
   const targetMouse = useRef({ x: 0, y: 0 })
   const smoothedMouse = useRef({ x: 0, y: 0 })
+  const canvasDimensions = useRef({ width: 0, height: 0 })
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -31,8 +32,28 @@ const ParticleNetwork: React.FC = () => {
     if (!canvas || !ctx || !container) return
 
     const resize = () => {
-      canvas.width = container.offsetWidth
-      canvas.height = container.offsetHeight
+      const width = container.offsetWidth
+      const height = container.offsetHeight
+
+      // Avoid resetting unnecessarily
+      if (canvas.width !== width || canvas.height !== height) {
+        try {
+          const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height)
+          canvas.width = width
+          canvas.height = height
+          ctx.putImageData(snapshot, 0, 0)
+        } catch {
+          canvas.width = width
+          canvas.height = height
+        }
+      }
+
+      // Match container visually
+      canvas.style.width = `${width}px`
+      canvas.style.height = `${height}px`
+
+      canvasDimensions.current.width = width
+      canvasDimensions.current.height = height
     }
 
     resize()
@@ -59,9 +80,9 @@ const ParticleNetwork: React.FC = () => {
       if (particles.length >= MAX_PARTICLES) return
 
       const angle = Math.random() * Math.PI * 2
-      const radius = Math.pow(Math.random(), 0.6) * (canvas.width / 2.4)
-      const centerX = canvas.width / 2
-      const centerY = canvas.height / 2
+      const radius = Math.pow(Math.random(), 0.6) * (canvasDimensions.current.width / 2.4)
+      const centerX = canvasDimensions.current.width / 2
+      const centerY = canvasDimensions.current.height / 2
 
       const targetX = centerX + Math.cos(angle) * radius
       const targetY = centerY + Math.sin(angle) * radius
@@ -73,10 +94,10 @@ const ParticleNetwork: React.FC = () => {
         orbitRadius: 6 + Math.random() * 8,
         orbitSpeed: 0.002 + Math.random() * 0.004,
         z: Math.random(),
-        opacity: 0,
+        opacity: 1,
         pulse: Math.random() * Math.PI * 2,
         pulseSpeed: 0.04 + Math.random() * 0.02,
-        age: 0,
+        age: 1000,
         flickerOffset: Math.random() * 10,
         connections: 0,
       })
@@ -89,7 +110,6 @@ const ParticleNetwork: React.FC = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       const time = performance.now()
 
-      // Interpolate smoothed mouse
       smoothedMouse.current.x += (targetMouse.current.x - smoothedMouse.current.x) * 0.05
       smoothedMouse.current.y += (targetMouse.current.y - smoothedMouse.current.y) * 0.05
 
@@ -99,7 +119,6 @@ const ParticleNetwork: React.FC = () => {
       particles.forEach(p => {
         p.connections = 0
         p.age += 1
-        p.opacity = Math.min(1, p.age / 20)
         p.pulse += p.pulseSpeed
         p.angle += p.orbitSpeed
       })
@@ -114,7 +133,6 @@ const ParticleNetwork: React.FC = () => {
         phase: number
       }[] = []
 
-      // Build neighbor list
       for (let i = 0; i < particles.length; i++) {
         const a = particles[i]
         const dists: { index: number; distSq: number }[] = []
@@ -136,7 +154,6 @@ const ParticleNetwork: React.FC = () => {
         a.connections = topNeighbors.length
       }
 
-      // Draw connections + collect animated ones
       for (let i = 0; i < particles.length; i++) {
         const a = particles[i]
         if (a.connections < MIN_CONNECTIONS) continue
@@ -169,7 +186,6 @@ const ParticleNetwork: React.FC = () => {
         }
       }
 
-      // Draw animated particles on connections
       for (let k = 0; k < Math.min(MAX_ACTIVE_LINKS, connectionList.length); k++) {
         const { ax, ay, bx, by, alpha, phase } = connectionList[k]
         const t = (Math.sin(time / 300 + phase) + 1) * 0.5
@@ -181,7 +197,6 @@ const ParticleNetwork: React.FC = () => {
         ctx.fill()
       }
 
-      // Draw particles
       for (const p of particles) {
         if (p.connections < MIN_CONNECTIONS) continue
 
@@ -231,9 +246,12 @@ const ParticleNetwork: React.FC = () => {
       <canvas
         ref={canvasRef}
         style={{
+          position: 'relative',
           width: '100%',
           height: '100%',
           display: 'block',
+          transform: 'translateZ(0)',
+          willChange: 'transform, opacity',
         }}
       />
     </div>

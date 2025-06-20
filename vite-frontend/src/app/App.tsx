@@ -7,7 +7,6 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  Container,
   Box,
   IconButton,
 } from '@mui/material'
@@ -76,7 +75,7 @@ const modernTheme = createTheme({
 })
 
 const navItems: NavItem[] = [
-  { text: 'Search', icon: <SearchIcon />, path: '/' },
+  { text: 'Search', icon: <SearchIcon />, path: '/search' },
 {
   text: 'Collections',
   icon: (
@@ -145,7 +144,7 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={modernTheme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
         <AppBar
   position="sticky"
   elevation={0}
@@ -172,7 +171,17 @@ const App: React.FC = () => {
           navItems={navItems}
         />
 
-        <Container component="main" sx={{ flexGrow: 1, py: 4 }}>
+        <Box
+  component="main"
+  sx={{
+    flexGrow: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    overflowY: 'auto',
+    paddingY: 4,
+  }}
+>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -190,17 +199,27 @@ const App: React.FC = () => {
               <Route
                 path="/search"
                 element={
-                  <>
-                    <Box sx={{ mb: 4 }}>
+                    <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      paddingX: { xs: 2, sm: 4 },
+                      width: '100%',
+                    }}
+                    >
+                    <Box sx={{ mb: 4, mt: 4, width: '100%', maxWidth: 900 }}>
                       <FilterPanel onSearch={runNewSearch} />
                     </Box>
-                    <SearchResults
+                    <Box sx={{ width: '100%', maxWidth: 1200 }}>
+                      <SearchResults
                       results={results}
                       onLoadMore={loadMore}
                       loadingMore={loadingMore}
                       totalResults={0}
-                    />
-                  </>
+                      />
+                    </Box>
+                    </Box>
                 }
               />
               <Route path="/scan" element={<ScanPage />} />
@@ -211,7 +230,7 @@ const App: React.FC = () => {
             <Route path="/" element={<LandingPage />} />
             <Route path="/mobile-scan/:session_id/*" element={<MobileScanPage />} />
           </Routes>
-        </Container>
+        </Box>
       </Box>
     </ThemeProvider>
   )
