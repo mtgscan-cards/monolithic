@@ -81,22 +81,24 @@ const BlobMesh = () => {
 
   useFrame(({ clock, mouse }) => {
     uniforms.uTime.value = clock.getElapsedTime()
-    smoothedMouse.lerp(mouse, 0.1) // Smoothing factor
+    smoothedMouse.lerp(mouse, 0.1)
     uniforms.uMouse.value.copy(smoothedMouse)
   })
 
   return (
-    <mesh>
-      <sphereGeometry args={[3.5, 128, 128]} />
-      <shaderMaterial
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
-        uniforms={uniforms}
-        side={THREE.FrontSide}
-        transparent
-        depthWrite={false}
-      />
-    </mesh>
+    <group position={[0, 1.1, 0]}>
+      <mesh>
+        <sphereGeometry args={[3.5, 128, 128]} />
+        <shaderMaterial
+          vertexShader={vertexShader}
+          fragmentShader={fragmentShader}
+          uniforms={uniforms}
+          side={THREE.FrontSide}
+          transparent
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
   )
 }
 
@@ -104,11 +106,22 @@ const SiteStatsSection: React.FC = () => {
   return (
     <div className="site-stats-wrapper">
       <Canvas
-        camera={{ position: [0, 0, 6], fov: 70 }}
-        style={{ position: 'relative', inset: 0, zIndex: 0, background: 'transparent' }}
+        camera={{ position: [0, 4, 7], fov: 70 }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          minHeight: '800px',
+          display: 'block',
+          zIndex: 0,
+          background: 'transparent',
+        }}
         gl={{ alpha: true, antialias: true, preserveDrawingBuffer: false }}
         onCreated={({ gl }) => {
           gl.setClearColor(new THREE.Color('#111111'), 1.0)
+          gl.domElement.setAttribute('data-ready', 'true')
         }}
       >
         <BlobMesh />

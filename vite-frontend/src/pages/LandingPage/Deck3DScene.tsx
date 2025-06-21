@@ -1,3 +1,5 @@
+// src/pages/LandingPage/Deck3DScene.tsx
+
 import React, { useRef, useEffect, useMemo, Suspense } from 'react'
 import { Canvas, useThree, useFrame, useLoader, invalidate } from '@react-three/fiber'
 import { TextureLoader, Vector3, Spherical, PerspectiveCamera } from 'three'
@@ -18,7 +20,6 @@ const TrackballCamera: React.FC = () => {
   const target = useMemo(() => new Vector3(0, 0, 0), [])
   const tempPos = useMemo(() => new Vector3(), [])
 
-  // Track visibility-aware elapsed time
   const lastTimeRef = useRef<number>(0)
   const timeOffsetRef = useRef<number>(0)
 
@@ -143,6 +144,7 @@ const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
         position: 'relative',
         width: '100%',
         height: '100%',
+        minHeight: '600px',
         background: '#111',
       }}
     >
@@ -153,9 +155,13 @@ const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
           width: '100%',
           height: '100%',
           display: 'block',
+          minHeight: '600px',
           background: '#111',
         }}
         frameloop="demand"
+        onCreated={({ gl }) => {
+          gl.domElement.setAttribute('data-ready', 'true')
+        }}
       >
         <Suspense fallback={<Html></Html>}>
           <PreloadedScene cards={cards} />

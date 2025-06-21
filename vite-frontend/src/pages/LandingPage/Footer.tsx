@@ -12,12 +12,14 @@ const Footer: React.FC = () => {
       component="footer"
       sx={{
         width: '100%',
+        minHeight: '340px', // Prevents collapse during initial paint
         backgroundColor: '#1e1e1e',
         color: '#ccc',
         pt: 5,
         pb: 3,
         borderTop: '1px solid #2a2a2a',
         fontSize: '0.95rem',
+        transition: 'min-height 0.3s ease-out',
       }}
     >
       <Container maxWidth="lg" sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -38,7 +40,15 @@ const Footer: React.FC = () => {
             <Typography sx={{ color: '#999', lineHeight: 1.6 }}>
               Scan and track your Magic: The Gathering collection with lightning-fast recognition powered by modern AI.
             </Typography>
-            <Typography variant="caption" sx={{ display: 'block', mt: 1.5, color: '#555' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                mt: 1.5,
+                color: '#555',
+                minHeight: 24, // Reserve height while commit loads
+              }}
+            >
               <LatestCommitLink />
               {' • GPL 3.0'}
             </Typography>
@@ -104,6 +114,7 @@ const Footer: React.FC = () => {
           textAlign: 'center',
           color: '#555',
           fontSize: '0.85rem',
+          
         }}
       >
         <Typography
@@ -116,7 +127,11 @@ const Footer: React.FC = () => {
             alt="Heart"
             width={20}
             height={21}
-            style={{ verticalAlign: 'middle' }}
+            style={{
+              verticalAlign: 'middle',
+              display: 'inline-block',
+              aspectRatio: '1 / 1', // Prevents jump from async image load
+            }}
           />
           by players and collectors.
         </Typography>

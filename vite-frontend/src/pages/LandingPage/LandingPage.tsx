@@ -30,25 +30,29 @@ const LandingPage: React.FC = () => {
     <div
       style={{
         width: '100%',
-        minHeight: '94vh',
+        minHeight: '100vh',
         overflowX: 'hidden',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        position: 'relative',
       }}
     >
-      {/* Fullscreen 3D Canvas */}
+      {/* Top 3D Scene */}
       <div
         style={{
           position: 'relative',
           width: '100%',
           height: '94vh',
+          minHeight: '800px',
           overflow: 'hidden',
           flexShrink: 0,
+          display: 'flex',
         }}
       >
         {loading ? (
           <div
             style={{
+              minHeight: '800px',
               position: 'absolute',
               top: '50%',
               left: '50%',
@@ -66,14 +70,26 @@ const LandingPage: React.FC = () => {
         )}
       </div>
 
-      {/* Scrollable content after canvas */}
-      {!loading && cards.length > 0 && (
-        <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', padding: 0 }}>
-          <LandingContent highlightCard={cards[0]} />
-          <SiteStatsSection />
-          <Footer />
-        </div>
-      )}
+      {/* Content below 3D scene */}
+      <div
+        style={{
+          flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 0,
+          minHeight: '1200px',
+        }}
+      >
+        {loading || cards.length === 0 ? (
+          <div style={{ flexGrow: 1, background: '#111' }} />
+        ) : (
+          <>
+            <LandingContent highlightCard={cards[0]} />
+            <SiteStatsSection />
+            <Footer />
+          </>
+        )}
+      </div>
     </div>
   )
 }

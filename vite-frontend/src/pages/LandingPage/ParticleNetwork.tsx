@@ -1,3 +1,5 @@
+// vite-frontend/src/pages/LandingPage/ParticleNetwork.tsx
+
 import React, { useRef, useEffect } from 'react'
 
 interface Particle {
@@ -27,6 +29,11 @@ const ParticleNetwork: React.FC = () => {
 
   useEffect(() => {
     const canvas = canvasRef.current
+      if (canvas) {
+    requestAnimationFrame(() => {
+      canvas.classList.add('visible')
+    })
+  }
     const ctx = canvas?.getContext('2d')
     const container = containerRef.current
     if (!canvas || !ctx || !container) return
@@ -35,7 +42,6 @@ const ParticleNetwork: React.FC = () => {
       const width = container.offsetWidth
       const height = container.offsetHeight
 
-      // Avoid resetting unnecessarily
       if (canvas.width !== width || canvas.height !== height) {
         try {
           const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height)
@@ -48,7 +54,6 @@ const ParticleNetwork: React.FC = () => {
         }
       }
 
-      // Match container visually
       canvas.style.width = `${width}px`
       canvas.style.height = `${height}px`
 
@@ -125,12 +130,7 @@ const ParticleNetwork: React.FC = () => {
 
       const neighborMap: number[][] = particles.map(() => [])
       const connectionList: {
-        ax: number
-        ay: number
-        bx: number
-        by: number
-        alpha: number
-        phase: number
+        ax: number, ay: number, bx: number, by: number, alpha: number, phase: number
       }[] = []
 
       for (let i = 0; i < particles.length; i++) {
@@ -234,11 +234,8 @@ const ParticleNetwork: React.FC = () => {
       ref={containerRef}
       style={{
         position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        zIndex: 0,
+        inset: 0,
+        zIndex: 1,
         pointerEvents: 'none',
         overflow: 'hidden',
       }}
@@ -246,7 +243,6 @@ const ParticleNetwork: React.FC = () => {
       <canvas
         ref={canvasRef}
         style={{
-          position: 'relative',
           width: '100%',
           height: '100%',
           display: 'block',

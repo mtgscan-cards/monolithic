@@ -44,17 +44,6 @@ body {
   cursor: pointer;
 }
 
-/* Loading Spinner (if still needed) */
-.loading-spinner {
-  margin: 1rem auto;
-  border: 4px solid rgba(255, 255, 255, 0.2);
-  border-top: 4px solid #ff5252; /* Use the primary accent from your theme */
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-}
-
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -78,9 +67,28 @@ main {
 
 canvas {
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+}
+
+canvas.visible {
+  opacity: 1;
+}
+canvas[data-ready="true"] {
+  opacity: 1;
 }
 
 div.MuiPaper-elevation0 {
   margin-right: 20px !important;
 }
+
+.main{
+min-height: 100vh !important;
+}
+
+/* Debug: Highlight canvas hierarchy with subtle red background */
+/*
+/*canvas {
+/*  background-color: rgba(255, 0, 0, 0.05); /* subtle red hint */
+/*}
+/*
