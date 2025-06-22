@@ -1,6 +1,5 @@
 // src/pages/LandingPage/OverlayUI.tsx
 
-import React from 'react'
 import { Box, Typography, Stack, Button } from '@mui/material'
 
 const OverlayUI = () => (

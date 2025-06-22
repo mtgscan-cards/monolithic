@@ -1,12 +1,11 @@
 // src/pages/LandingPage/DeckGroup.tsx
 
-import React, { useRef, useEffect, useMemo } from 'react'
+import React, { useRef, useMemo } from 'react'
 import { Group, Vector3 } from 'three'
 import { useFrame } from '@react-three/fiber'
 import CardMesh from './CardMesh'
 import { CardImage } from './LandingPage'
 
-// Spread cards out in a cube-ish range
 const getRandomPosition = (range = 20) =>
   new Vector3(
     (Math.random() - 0.5) * range,
@@ -14,7 +13,6 @@ const getRandomPosition = (range = 20) =>
     (Math.random() - 0.5) * range
   )
 
-// Keep new cards from overlapping
 const getNonOverlappingPosition = (
   existing: Vector3[],
   radius = 1.2,
@@ -28,55 +26,61 @@ const getNonOverlappingPosition = (
   return getRandomPosition()
 }
 
+
 const DeckGroup: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
   const groupRef = useRef<Group>(null!)
+  const clockStartRef = useRef<number | null>(null)
 
-  const { validCards, metadata } = useMemo(() => {
-    const filtered = cards.filter(
-      c => typeof c.front === 'string' && typeof c.back === 'string'
-    )
+  const validCards = useMemo(
+    () =>
+      cards.filter(c => typeof c.front === 'string' && typeof c.back === 'string'),
+    [cards]
+  )
+
+  const metadata = useMemo(() => {
     const positions: Vector3[] = []
-    const meta = filtered.map(() => {
+    return validCards.map(() => {
       const pos = getNonOverlappingPosition(positions, 1.2)
       positions.push(pos)
       return {
         pos,
-        rotSpeed: Math.random() * 0.01 + 0.001,
+        delay: Math.random() * 1.1 + 0.2, // 0.2s–1.2s per card
+        rotSpeed: Math.random() * 0.01 + 0.002,
+        opacity: 0,
       }
     })
-    return { validCards: filtered, metadata: meta }
-  }, [cards])
+  }, [validCards])
 
-  useFrame(() => {
-    if (!groupRef.current) return
-    groupRef.current.rotation.y += 0.002
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime()
+    if (clockStartRef.current === null) clockStartRef.current = t
+    const localTime = t - clockStartRef.current
 
-    groupRef.current.children.forEach((child, i) => {
-      const ref = metadata[i]
-      if (!ref) return
-      child.rotation.y += ref.rotSpeed
-      child.rotation.x += ref.rotSpeed / 2
-    })
-  })
+    if (groupRef.current) {
+      groupRef.current.rotation.y += 0.002
+      groupRef.current.children.forEach((child, i) => {
+        const meta = metadata[i]
+        if (!meta) return
 
-  useEffect(() => {
-    if (validCards.length < cards.length) {
-      console.warn(
-        `⚠️ Skipping ${cards.length - validCards.length} invalid card(s) missing front/back`
-      )
+        const fadeT = Math.max(0, (localTime - meta.delay) * 2) // fade-in over 0.5s
+        const eased = fadeT >= 1 ? 1 : fadeT * fadeT * (3 - 2 * fadeT) // smoothstep easing
+
+        child.scale.setScalar(eased)
+        child.visible = eased > 0.01
+
+        // subtle spinning
+        child.rotation.y += meta.rotSpeed
+        child.rotation.x += meta.rotSpeed / 2
+      })
     }
-  }, [cards, validCards])
+  })
 
   return (
     <group ref={groupRef}>
       {validCards.map((card, i) => (
-        <CardMesh
-          key={card.id ?? `${card.name}-${card.number}`}
-          frontUrl={card.front}
-          backUrl={card.back}
-          scale={1}
-          position={metadata[i].pos}
-        />
+        <group key={card.id ?? `${card.name}-${card.number}`} position={metadata[i].pos} scale={0.001}>
+          <CardMesh frontUrl={card.front} backUrl={card.back} scale={1} />
+        </group>
       ))}
     </group>
   )

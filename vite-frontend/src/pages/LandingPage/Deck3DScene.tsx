@@ -1,10 +1,10 @@
 // src/pages/LandingPage/Deck3DScene.tsx
 
 import React, { useRef, useEffect, useMemo, Suspense } from 'react'
-import { Canvas, useThree, useFrame, useLoader, invalidate } from '@react-three/fiber'
-import { TextureLoader, Vector3, Spherical, PerspectiveCamera } from 'three'
+import { Canvas, useThree, useFrame, invalidate } from '@react-three/fiber'
+import { Vector3, Spherical, PerspectiveCamera } from 'three'
 import { ResizeObserver } from '@juggle/resize-observer'
-import { Html, Preload } from '@react-three/drei'
+import { Preload } from '@react-three/drei'
 import DeckGroup from './DeckGroup'
 import { CardImage } from './LandingPage'
 
@@ -67,7 +67,7 @@ const TrackballCamera: React.FC = () => {
   return null
 }
 
-const SceneContents: React.FC<{ cards: CardImage[] }> = React.memo(({ cards }) => {
+const SceneContents: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
   const { camera, size } = useThree()
 
   useEffect(() => {
@@ -87,22 +87,6 @@ const SceneContents: React.FC<{ cards: CardImage[] }> = React.memo(({ cards }) =
       <TrackballCamera />
     </>
   )
-})
-
-const PreloadedScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
-  const textureUrls = useMemo(
-    () =>
-      cards.flatMap(card =>
-        typeof card.front === 'string' && typeof card.back === 'string'
-          ? [card.front, card.back]
-          : []
-      ),
-    [cards]
-  )
-
-  useLoader(TextureLoader, textureUrls)
-
-  return <SceneContents cards={cards} />
 }
 
 const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
@@ -163,8 +147,9 @@ const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
           gl.domElement.setAttribute('data-ready', 'true')
         }}
       >
-        <Suspense fallback={<Html></Html>}>
-          <PreloadedScene cards={cards} />
+        {/* Preloading removed here to prevent blocking first paint */}
+        <Suspense>
+          <SceneContents cards={cards} />
           <Preload all />
         </Suspense>
       </Canvas>

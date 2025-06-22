@@ -112,9 +112,7 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
                     : 'Build Collections Effortlessly'}
                 </Typography>
                 <Typography variant="body1" style={{ lineHeight: 1.6 }}>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur et
-                  velit vitae nunc consequat scelerisque. Sed imperdiet orci non purus
-                  elementum, a bibendum ex gravida. Fusce at urna felis.
+                  Instantly recognize Magic cards with pinpoint accuracy. Our scanner leverages AI-powered corner detection and real-time image recognition to ensure your scans are sharp, reliable, and lightning fast—even on mobile.
                 </Typography>
               </motion.section>
             ))}
