@@ -7,6 +7,7 @@ import React, {
   useContext,
   MutableRefObject,
   FC,
+  Suspense,
 } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Environment, useGLTF } from '@react-three/drei'
@@ -27,7 +28,6 @@ import Model from '../../components/shared/Model'
 import { createCollection, getCollections, CollectionData } from '../../api/collections'
 import { AuthContext } from '../../contexts/AuthContext'
 
-
 const PreloadModels: FC = () => {
   useGLTF.preload('mtgcardstack_min.glb')
   useGLTF.preload('compressed_box.glb')
@@ -42,12 +42,14 @@ const CollectionsOverview: React.FC = () => {
 
   const [collections, setCollections] = useState<CollectionData[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [readyToRender3D, setReadyToRender3D] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
 
   const [label, setLabel] = useState('New Collection')
   const [topColor, setTopColor] = useState('#ffffff')
   const [bottomColor, setBottomColor] = useState('#8b4513')
 
+  const canvasWrapperRef = useRef<HTMLDivElement>(null)
   const tileRefs: GroupArrayRef = useRef([])
 
   useEffect(() => {
@@ -62,13 +64,30 @@ const CollectionsOverview: React.FC = () => {
         if (mounted) setIsLoading(false)
       }
     })()
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+    }
   }, [])
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setReadyToRender3D(true), 0)
+    return () => clearTimeout(timeout)
+  }, [])
+
+  useEffect(() => {
+    if (!isLoading && readyToRender3D) {
+      requestAnimationFrame(() => {
+        const canvas = canvasWrapperRef.current?.querySelector('canvas')
+        if (canvas) canvas.classList.add('fade-canvas', 'visible')
+      })
+    }
+  }, [isLoading, readyToRender3D])
 
   const radius = useMemo(
     () => 1 + (collections.length > 1 ? (collections.length - 1) * 0.5 : 0),
     [collections.length],
   )
+
   const step = 0.4
   const targetPos = useCallback(
     (i: number) => {
@@ -96,7 +115,7 @@ const CollectionsOverview: React.FC = () => {
     (el: Group | null) => {
       if (el && !tileRefs.current.includes(el)) tileRefs.current.push(el)
     },
-    [tileRefs],
+    [],
   )
 
   const atStart = currentIndex === 0
@@ -126,54 +145,61 @@ const CollectionsOverview: React.FC = () => {
 
   return (
     <Box
+      component="main"
       sx={{
         width: '100%',
-        minHeight: '100vh',
-        maxHeight: '100vh',
+        height: '100vh',
         overflow: 'hidden',
         position: 'relative',
         backgroundColor: '#111111',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       <PreloadModels />
 
       <Box
+        ref={canvasWrapperRef}
         sx={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
+          inset: 0,
           zIndex: 0,
+          overflow: 'hidden',
         }}
       >
-        <Canvas
-          camera={{ position: [0, 0.6, 1.4], fov: 60 }}
-          shadows
-        >
-          <color attach="background" args={['#111111']} />
-          <Environment preset="sunset" resolution={32} background={false} blur={1} />
-          <TWEENUpdater />
-          <group>
-            {collections.map((c, i) => (
-              <Model
-                key={c.user_collection_id}
-                ref={addToRefs}
-                initialPosition={[...targetPos(i).toArray()]}
-                scaleX={0.7}
-                scaleY={0.9}
-                scaleZ={0.6}
-                label={c.label}
-                color={c.color}
-                cardStackStateIndex={c.cardStackStateIndex}
-                onClick={() =>
-                  navigate(`/${username}/collection/${c.user_collection_id}`)
-                }
-              />
-            ))}
-          </group>
-          <OrbitControls enabled={false} />
-        </Canvas>
+        {readyToRender3D && (
+          <Canvas
+            className="fade-canvas"
+            camera={{ position: [0, 0.6, 1.4], fov: 60 }}
+            shadows
+            style={{ width: '100%', height: '100%', display: 'block' }}
+          >
+            <Suspense fallback={null}>
+              <color attach="background" args={['#111111']} />
+              <Environment preset="sunset" resolution={32} background={false} blur={1} />
+              <TWEENUpdater />
+              <group>
+                {collections.map((c, i) => (
+                  <Model
+                    key={c.user_collection_id}
+                    ref={addToRefs}
+                    initialPosition={[...targetPos(i).toArray()]}
+                    scaleX={0.7}
+                    scaleY={0.9}
+                    scaleZ={0.6}
+                    label={c.label}
+                    color={c.color}
+                    cardStackStateIndex={c.cardStackStateIndex}
+                    onClick={() =>
+                      navigate(`/${username}/collection/${c.user_collection_id}`)
+                    }
+                  />
+                ))}
+              </group>
+              <OrbitControls enabled={false} />
+            </Suspense>
+          </Canvas>
+        )}
       </Box>
 
       {isLoading && (

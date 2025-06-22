@@ -12,58 +12,41 @@ const Footer: React.FC = () => {
       component="footer"
       sx={{
         width: '100%',
-        minHeight: '340px', // Prevents collapse during initial paint
         backgroundColor: '#1e1e1e',
         color: '#ccc',
-        pt: 5,
-        pb: 3,
-        borderTop: '1px solid #2a2a2a',
-        fontSize: '0.95rem',
-        transition: 'min-height 0.3s ease-out',
+        pt: 3,
+        pb: 2,
+        borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+        fontSize: '0.9rem',
       }}
     >
       <Container maxWidth="lg" sx={{ display: 'flex', justifyContent: 'center' }}>
-        <Grid
-          container
-          spacing={{ xs: 4, sm: 5 }}
-          justifyContent="center"
-          alignItems="flex-start"
-        >
-          {/* Branding */}
+        <Grid container spacing={3} justifyContent="center" alignItems="flex-start">
           <Grid item xs={12} sm={6} md={4}>
-            <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
+            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
               <CameraAltOutlinedIcon fontSize="small" sx={{ color: 'primary.main' }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#fff' }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#fff', fontSize: '1rem' }}>
                 MTGScan.cards
               </Typography>
             </Stack>
-            <Typography sx={{ color: '#999', lineHeight: 1.6 }}>
+            <Typography sx={{ color: '#999', lineHeight: 1.5 }}>
               Scan and track your Magic: The Gathering collection with lightning-fast recognition powered by modern AI.
             </Typography>
             <Typography
               variant="caption"
-              sx={{
-                display: 'block',
-                mt: 1.5,
-                color: '#555',
-                minHeight: 24, // Reserve height while commit loads
-              }}
+              sx={{ display: 'block', mt: 1.2, color: '#555', minHeight: 20 }}
             >
               <LatestCommitLink />
               {' • GPL 3.0'}
             </Typography>
           </Grid>
 
-          {/* Resources */}
           <Grid item xs={12} sm={6} md={2}>
-            <Typography
-              variant="subtitle1"
-              sx={{ display: 'flex', alignItems: 'center', mb: 1.2, color: '#fff' }}
-            >
+            <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1, color: '#fff' }}>
               <MenuBookOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
               Resources
             </Typography>
-            <Stack spacing={1}>
+            <Stack spacing={0.75}>
               <Link href="#" underline="none" color="#aaa">Docs</Link>
               <Link href="#" underline="none" color="#aaa">API</Link>
               <Link href="#" underline="none" color="#aaa">Changelog</Link>
@@ -71,16 +54,12 @@ const Footer: React.FC = () => {
             </Stack>
           </Grid>
 
-          {/* Community */}
           <Grid item xs={12} sm={6} md={2}>
-            <Typography
-              variant="subtitle1"
-              sx={{ display: 'flex', alignItems: 'center', mb: 1.2, color: '#fff' }}
-            >
+            <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1, color: '#fff' }}>
               <PublicOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
               Community
             </Typography>
-            <Stack spacing={1}>
+            <Stack spacing={0.75}>
               <Link href="#" underline="none" color="#aaa">GitHub</Link>
               <Link href="#" underline="none" color="#aaa">Discord</Link>
               <Link href="#" underline="none" color="#aaa">Reddit</Link>
@@ -88,16 +67,12 @@ const Footer: React.FC = () => {
             </Stack>
           </Grid>
 
-          {/* Legal */}
           <Grid item xs={12} sm={6} md={2}>
-            <Typography
-              variant="subtitle1"
-              sx={{ display: 'flex', alignItems: 'center', mb: 1.2, color: '#fff' }}
-            >
+            <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1, color: '#fff' }}>
               <GavelOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
               Legal
             </Typography>
-            <Stack spacing={1}>
+            <Stack spacing={0.75}>
               <Link href="#" underline="none" color="#aaa">Privacy Policy</Link>
               <Link href="#" underline="none" color="#aaa">Terms of Service</Link>
               <Link href="#" underline="none" color="#aaa">License</Link>
@@ -108,29 +83,28 @@ const Footer: React.FC = () => {
 
       <Box
         sx={{
-          mt: 4,
-          pt: 2,
-          borderTop: '1px solid #2a2a2a',
+          mt: 3,
+          pt: 1,
+          borderTop: '1px solid rgba(255, 255, 255, 0.2)',
           textAlign: 'center',
           color: '#555',
-          fontSize: '0.85rem',
-          
+          fontSize: '0.8rem',
         }}
       >
         <Typography
           variant="body2"
-          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}
+          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75 }}
         >
           Made with
           <img
             src="https://fonts.gstatic.com/s/e/notoemoji/latest/2764/512.webp"
             alt="Heart"
-            width={20}
-            height={21}
+            width={18}
+            height={18}
             style={{
               verticalAlign: 'middle',
               display: 'inline-block',
-              aspectRatio: '1 / 1', // Prevents jump from async image load
+              aspectRatio: '1 / 1',
             }}
           />
           by players and collectors.

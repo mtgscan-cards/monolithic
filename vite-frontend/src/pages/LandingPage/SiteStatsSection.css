@@ -6,7 +6,7 @@
   overflow: hidden;
   background: black;
 
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+
 }
 .stats-overlay {
   position: absolute;
@@ -42,3 +42,4 @@
   color: #ddd;
   text-shadow: #000000 0 0 4px;
 }
+
