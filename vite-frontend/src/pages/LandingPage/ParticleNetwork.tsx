@@ -29,14 +29,15 @@ const ParticleNetwork: React.FC = () => {
 
   useEffect(() => {
     const canvas = canvasRef.current
-      if (canvas) {
-    requestAnimationFrame(() => {
-      canvas.classList.add('visible')
-    })
-  }
     const ctx = canvas?.getContext('2d')
     const container = containerRef.current
     if (!canvas || !ctx || !container) return
+
+    // Mark canvas as ready to trigger CSS fade-in
+    requestAnimationFrame(() => {
+      canvas.classList.add('fade-canvas', 'visible')
+      canvas.setAttribute('data-ready', 'true')
+    })
 
     const resize = () => {
       const width = container.offsetWidth
@@ -56,7 +57,6 @@ const ParticleNetwork: React.FC = () => {
 
       canvas.style.width = `${width}px`
       canvas.style.height = `${height}px`
-
       canvasDimensions.current.width = width
       canvasDimensions.current.height = height
     }
@@ -70,6 +70,7 @@ const ParticleNetwork: React.FC = () => {
       targetMouse.current.x = (e.clientX - rect.left) / rect.width - 0.5
       targetMouse.current.y = (e.clientY - rect.top) / rect.height - 0.5
     }
+
     window.addEventListener('mousemove', onMouseMove)
 
     const particles: Particle[] = []

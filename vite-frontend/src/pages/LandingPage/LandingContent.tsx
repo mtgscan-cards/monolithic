@@ -61,7 +61,7 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
         position: 'relative',
         background: 'transparent',
         color: '#eee',
-        overflow: 'visible', // allow canvas to expand
+        overflow: 'visible',
         zIndex: 0,
       }}
     >
@@ -96,7 +96,16 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
 
         <div className="landing-row">
           <div className="info-column">
-            {[0, 1].map((i) => (
+            {[
+              {
+              title: 'Scan Cards with Precision',
+              body: 'Try out the powerful custom scanner that delivers fast, accurate results with just a phone or webcam.',
+              },
+              {
+              title: 'Build Collections Effortlessly',
+              body: 'Add, track, and manage an unlimited number of cards. Export your lists or sync them across devices.',
+              },
+            ].map((section, i) => (
               <motion.section
                 key={i}
                 custom={i}
@@ -107,12 +116,10 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
                 className="glow-block"
               >
                 <Typography variant="h4" gutterBottom>
-                  {i === 0
-                    ? 'Scan Cards with Precision'
-                    : 'Build Collections Effortlessly'}
+                  {section.title}
                 </Typography>
                 <Typography variant="body1" style={{ lineHeight: 1.6 }}>
-                  Instantly recognize Magic cards with pinpoint accuracy. Our scanner leverages AI-powered corner detection and real-time image recognition to ensure your scans are sharp, reliable, and lightning fast—even on mobile.
+                  {section.body}
                 </Typography>
               </motion.section>
             ))}
@@ -131,7 +138,7 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
         </div>
 
         <motion.section
-          custom={2}
+          custom={3}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.6 }}
@@ -143,9 +150,7 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
             Export, Share, and Sync
           </Typography>
           <Typography variant="body1" style={{ lineHeight: 1.6 }}>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur et velit vitae nunc
-            consequat scelerisque. Sed imperdiet orci non purus elementum, a bibendum ex gravida.
-            Fusce at urna felis.
+            Upload your collections, store decks, and sync your cards to the cloud using the only open-source card database that updates every single day.
           </Typography>
         </motion.section>
       </Container>
