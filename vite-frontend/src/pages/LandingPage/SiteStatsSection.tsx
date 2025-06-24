@@ -283,11 +283,11 @@ const SiteStatsSection: React.FC = () => {
 
       <div className="stats-overlay">
         <div className="stat-block">
-          <div className="stat-value">30,000+</div>
+          <div className="stat-value">34,900+</div>
           <div className="stat-label">Cards Tracked</div>
         </div>
         <div className="stat-block">
-          <div className="stat-value">50+</div>
+          <div className="stat-value">365+</div>
           <div className="stat-label">MTG Sets Indexed</div>
         </div>
         <div className="stat-block">
