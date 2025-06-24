@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import { CircularProgress } from '@mui/material'
 import Deck3DScene from './Deck3DScene'
 import OverlayUI from './OverlayUI'
 import LandingContent from './LandingContent'
@@ -60,7 +59,6 @@ const LandingPage: React.FC = () => {
               zIndex: 10,
             }}
           >
-            <CircularProgress />
           </div>
         ) : (
           <>

@@ -3,8 +3,8 @@
 import React, { useRef, useEffect } from 'react'
 
 interface Particle {
-  targetX: number
-  targetY: number
+  offsetX: number
+  offsetY: number
   angle: number
   orbitRadius: number
   orbitSpeed: number
@@ -25,7 +25,6 @@ const ParticleNetwork: React.FC = () => {
 
   const targetMouse = useRef({ x: 0, y: 0 })
   const smoothedMouse = useRef({ x: 0, y: 0 })
-  const canvasDimensions = useRef({ width: 0, height: 0 })
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -33,32 +32,14 @@ const ParticleNetwork: React.FC = () => {
     const container = containerRef.current
     if (!canvas || !ctx || !container) return
 
-    // Mark canvas as ready to trigger CSS fade-in
     requestAnimationFrame(() => {
       canvas.classList.add('fade-canvas', 'visible')
       canvas.setAttribute('data-ready', 'true')
     })
 
     const resize = () => {
-      const width = container.offsetWidth
-      const height = container.offsetHeight
-
-      if (canvas.width !== width || canvas.height !== height) {
-        try {
-          const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height)
-          canvas.width = width
-          canvas.height = height
-          ctx.putImageData(snapshot, 0, 0)
-        } catch {
-          canvas.width = width
-          canvas.height = height
-        }
-      }
-
-      canvas.style.width = `${width}px`
-      canvas.style.height = `${height}px`
-      canvasDimensions.current.width = width
-      canvasDimensions.current.height = height
+      canvas.width = container.offsetWidth
+      canvas.height = container.offsetHeight
     }
 
     resize()
@@ -86,16 +67,13 @@ const ParticleNetwork: React.FC = () => {
       if (particles.length >= MAX_PARTICLES) return
 
       const angle = Math.random() * Math.PI * 2
-      const radius = Math.pow(Math.random(), 0.6) * (canvasDimensions.current.width / 2.4)
-      const centerX = canvasDimensions.current.width / 2
-      const centerY = canvasDimensions.current.height / 2
-
-      const targetX = centerX + Math.cos(angle) * radius
-      const targetY = centerY + Math.sin(angle) * radius
+      const radius = Math.pow(Math.random(), 0.6)
+      const offsetX = Math.cos(angle) * radius
+      const offsetY = Math.sin(angle) * radius
 
       particles.push({
-        targetX,
-        targetY,
+        offsetX,
+        offsetY,
         angle: Math.random() * Math.PI * 2,
         orbitRadius: 6 + Math.random() * 8,
         orbitSpeed: 0.002 + Math.random() * 0.004,
@@ -116,6 +94,10 @@ const ParticleNetwork: React.FC = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       const time = performance.now()
 
+      const centerX = canvas.width / 2
+      const centerY = canvas.height / 2
+      const scale = Math.min(canvas.width, canvas.height) * 0.5
+
       smoothedMouse.current.x += (targetMouse.current.x - smoothedMouse.current.x) * 0.05
       smoothedMouse.current.y += (targetMouse.current.y - smoothedMouse.current.y) * 0.05
 
@@ -130,19 +112,23 @@ const ParticleNetwork: React.FC = () => {
       })
 
       const neighborMap: number[][] = particles.map(() => [])
-      const connectionList: {
-        ax: number, ay: number, bx: number, by: number, alpha: number, phase: number
-      }[] = []
+      const connectionList: { ax: number, ay: number, bx: number, by: number, alpha: number, phase: number }[] = []
 
       for (let i = 0; i < particles.length; i++) {
         const a = particles[i]
+        const axBase = centerX + a.offsetX * scale
+        const ayBase = centerY + a.offsetY * scale
+
         const dists: { index: number; distSq: number }[] = []
 
         for (let j = 0; j < particles.length; j++) {
           if (i === j) continue
           const b = particles[j]
-          const dx = a.targetX - b.targetX
-          const dy = a.targetY - b.targetY
+          const bxBase = centerX + b.offsetX * scale
+          const byBase = centerY + b.offsetY * scale
+
+          const dx = axBase - bxBase
+          const dy = ayBase - byBase
           const distSq = dx * dx + dy * dy
           if (distSq < MAX_DISTANCE_SQ) {
             dists.push({ index: j, distSq })
@@ -150,9 +136,8 @@ const ParticleNetwork: React.FC = () => {
         }
 
         dists.sort((a, b) => a.distSq - b.distSq)
-        const topNeighbors = dists.slice(0, MAX_NEIGHBORS)
-        neighborMap[i] = topNeighbors.map(n => n.index)
-        a.connections = topNeighbors.length
+        neighborMap[i] = dists.slice(0, MAX_NEIGHBORS).map(n => n.index)
+        a.connections = neighborMap[i].length
       }
 
       for (let i = 0; i < particles.length; i++) {
@@ -163,15 +148,20 @@ const ParticleNetwork: React.FC = () => {
           const b = particles[j]
           if (b.connections < MIN_CONNECTIONS) continue
 
-          const dx = a.targetX - b.targetX
-          const dy = a.targetY - b.targetY
+          const axBase = centerX + a.offsetX * scale
+          const ayBase = centerY + a.offsetY * scale
+          const bxBase = centerX + b.offsetX * scale
+          const byBase = centerY + b.offsetY * scale
+
+          const dx = axBase - bxBase
+          const dy = ayBase - byBase
           const dist = Math.sqrt(dx * dx + dy * dy)
           const alpha = (1 - dist / MAX_DISTANCE) * a.opacity * b.opacity
 
-          const ax = a.targetX + Math.cos(a.angle) * a.orbitRadius + mx * a.z
-          const ay = a.targetY + Math.sin(a.angle) * a.orbitRadius + my * a.z
-          const bx = b.targetX + Math.cos(b.angle) * b.orbitRadius + mx * b.z
-          const by = b.targetY + Math.sin(b.angle) * b.orbitRadius + my * b.z
+          const ax = axBase + Math.cos(a.angle) * a.orbitRadius + mx * a.z
+          const ay = ayBase + Math.sin(a.angle) * a.orbitRadius + my * a.z
+          const bx = bxBase + Math.cos(b.angle) * b.orbitRadius + mx * b.z
+          const by = byBase + Math.sin(b.angle) * b.orbitRadius + my * b.z
 
           const gradient = ctx.createLinearGradient(ax, ay, bx, by)
           gradient.addColorStop(0, rgba(255, 80, 80, alpha * 0.25))
@@ -203,8 +193,10 @@ const ParticleNetwork: React.FC = () => {
 
         const flicker = 0.8 + 0.2 * Math.sin(time / 200 + p.flickerOffset)
         const r = 2.5 + Math.sin(p.pulse) * 1.2
-        const x = p.targetX + Math.cos(p.angle) * p.orbitRadius + mx * p.z
-        const y = p.targetY + Math.sin(p.angle) * p.orbitRadius + my * p.z
+        const baseX = centerX + p.offsetX * scale
+        const baseY = centerY + p.offsetY * scale
+        const x = baseX + Math.cos(p.angle) * p.orbitRadius + mx * p.z
+        const y = baseY + Math.sin(p.angle) * p.orbitRadius + my * p.z
 
         const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 4)
         glow.addColorStop(0, rgba(255, 60, 60, 0.4 * p.opacity * flicker))
