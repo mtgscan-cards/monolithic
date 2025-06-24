@@ -1,7 +1,10 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
+import { useInView } from 'react-intersection-observer'
+import { a, useSpring } from '@react-spring/three'
 import * as THREE from 'three'
 import './SiteStatsSection.css'
+
 const FullscreenMetaball = () => {
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
@@ -15,11 +18,12 @@ const FullscreenMetaball = () => {
     uniforms.uTime.value = clock.getElapsedTime()
     uniforms.uResolution.value.set(size.width, size.height)
 
-    const targetX = THREE.MathUtils.clamp(mouse.x * 0.5 + 0.5, 0, 1)
-    const targetY = THREE.MathUtils.clamp(-mouse.y * 0.5 + 0.5, 0, 1)
-
-    smoothedMouse.lerp(new THREE.Vector2(targetX, targetY), 0.05)
-    uniforms.uMouse.value.copy(smoothedMouse)
+    if (mouse.x !== 0 || mouse.y !== 0) {
+      const targetX = THREE.MathUtils.clamp(mouse.x * 0.5 + 0.5, 0, 1)
+      const targetY = THREE.MathUtils.clamp(-mouse.y * 0.5 + 0.5, 0, 1)
+      smoothedMouse.lerp(new THREE.Vector2(targetX, targetY), 0.025)
+      uniforms.uMouse.value.copy(smoothedMouse)
+    }
   })
 
   return (
@@ -27,24 +31,12 @@ const FullscreenMetaball = () => {
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          args={[
-            new Float32Array([
-              -1, -1, 0,
-              3, -1, 0,
-              -1, 3, 0,
-            ]),
-            3,
-          ]}
+          args={[new Float32Array([-1, -1, 0, 3, -1, 0, -1, 3, 0]), 3]}
         />
       </bufferGeometry>
       <shaderMaterial
-        vertexShader={`
-          void main() {
-            gl_Position = vec4(position, 1.0);
-          }
-        `}
-        fragmentShader={`
-          precision highp float;
+        vertexShader={`void main() { gl_Position = vec4(position, 1.0); }`}
+        fragmentShader={`precision highp float;
           uniform float uTime;
           uniform vec2 uResolution;
           uniform vec2 uMouse;
@@ -54,21 +46,16 @@ const FullscreenMetaball = () => {
             return r * r / (dot(diff, diff) + 1e-4);
           }
 
-          float wobbleMod(vec2 p, vec2 center, float baseR, float influence, float timeOffset) {
+          float wobbleMod(vec2 p, vec2 center, float baseR, float influence) {
             vec2 diff = p - center;
             float dist = length(diff);
             float angle = atan(diff.y, diff.x);
-
-            float decay = pow(clamp(1.0 - dist / baseR, 0.0, 1.0), 1.6);
-            float maxMagnitude = 0.004;
-
+            float decay = pow(clamp(1.0 - dist / baseR, 0.0, 1.0), 1.4);
             float id = dot(center, vec2(13.37, 17.11));
             float harmonic =
-                0.4 * sin(angle * 3.0 + id + uTime * 0.7) +
-                0.2 * sin(angle * 6.0 + id + uTime * 1.1) +
-                0.1 * sin(angle * 11.0 + id + uTime * 1.8);
-
-            return baseR + harmonic * decay * influence * maxMagnitude;
+              0.35 * sin(angle * 2.7 + id + uTime * 0.65) +
+              0.15 * sin(angle * 5.5 + id + uTime * 1.0);
+            return baseR + harmonic * decay * influence * 0.0035;
           }
 
           float random(float n) {
@@ -78,61 +65,48 @@ const FullscreenMetaball = () => {
           void main() {
             vec2 uv = gl_FragCoord.xy / uResolution;
             vec2 offset = vec2(1.0 / uResolution.x, 1.0 / uResolution.y);
-
             float accum = 0.0;
-            vec2 centers[16];
-            float radii[16];
+            vec2 centers[8];
+            float radii[8];
 
-            for (int i = 0; i < 16; i++) {
-              float depth = 0.2 + 0.8 * fract(sin(float(i) * 57.0) * 43758.5453);
-              float depthInfluence = pow(depth, 1.5);
-              vec2 parallaxOffset = (uMouse - 0.5) * 0.2 * (1.0 - depthInfluence);
-
-              vec2 center = vec2(
-                0.5 + 0.33 * sin(uTime * 0.2 + float(i) * 1.3),
-                0.5 + 0.33 * cos(uTime * 0.15 + float(i) * 1.7)
-              ) + parallaxOffset;
-
-              float r = 0.035 + 0.01 * mod(float(i), 4.0);
-              centers[i] = center;
-              radii[i] = r;
+            for (int i = 0; i < 8; i++) {
+              float id = float(i);
+              float depth = 0.3 + 0.7 * fract(sin(id * 57.0) * 43758.5453);
+              float influence = pow(depth, 1.5);
+              vec2 parallax = (uMouse - 0.5) * 0.2 * (1.0 - influence);
+              centers[i] = vec2(
+                0.5 + 0.33 * sin(uTime * 0.2 + id * 1.3),
+                0.5 + 0.33 * cos(uTime * 0.15 + id * 1.7)
+              ) + parallax;
+              radii[i] = 0.038 + 0.008 * mod(id, 3.0);
             }
 
-            for (int i = 0; i < 16; i++) {
-              float influence = 0.0;
-              for (int j = 0; j < 16; j++) {
+            for (int i = 0; i < 8; i++) {
+              float infl = 0.0;
+              for (int j = 0; j < 8; j++) {
                 if (i != j) {
-                  float d = distance(centers[i], centers[j]);
-                  influence += smoothstep(0.0, 0.2, 0.2 - d); // Smooth proximity-based influence
+                  infl += smoothstep(0.0, 0.2, 0.2 - distance(centers[i], centers[j]));
                 }
               }
-
-              float timeOffset = float(i) * 2.8;
-              float wobbleR = wobbleMod(uv, centers[i], radii[i], influence, timeOffset);
-              accum += metaball(uv, centers[i], wobbleR);
+              accum += metaball(uv, centers[i], wobbleMod(uv, centers[i], radii[i], infl));
             }
 
-            float t = smoothstep(0.9, 1.3, accum); // more realistic smooth merge/detach threshold
-
+            float t = smoothstep(0.9, 1.2, accum);
             float dx = accum - metaball(uv + vec2(offset.x, 0.0), vec2(0.5), 0.3);
             float dy = accum - metaball(uv + vec2(0.0, offset.y), vec2(0.5), 0.3);
             vec3 normal = normalize(vec3(dx, dy, 1.0));
             float lighting = dot(normal, normalize(vec3(-0.2, 0.3, 1.0)));
-
             float variation = random(accum * 23.17);
-            vec3 base = vec3(0.04 + variation * 0.02, 0.01 + variation * 0.01, 0.015);
-            vec3 glow = vec3(0.25 + variation * 0.05, 0.01, 0.05 + variation * 0.02);
-
-            vec3 merged = mix(base, glow, pow(t, 1.5));
+            vec3 base = vec3(0.04 + variation * 0.015, 0.01 + variation * 0.008, 0.015);
+            vec3 glow = vec3(0.22 + variation * 0.04, 0.01, 0.05 + variation * 0.015);
+            vec3 merged = mix(base, glow, pow(t, 1.4));
             merged = mix(merged, vec3(1.0), 0.05);
             merged *= 0.4 + 0.3 * lighting;
-            merged.r += 0.05 * lighting;
+            merged.r += 0.04 * lighting;
             merged.g *= 0.9;
             merged.b *= 0.8;
-
             float glowEdge = smoothstep(0.3, 0.8, t) * 0.35;
             float alpha = clamp(t * 0.3 + glowEdge, 0.0, 1.0);
-
             gl_FragColor = vec4(merged, alpha);
           }
         `}
@@ -144,14 +118,13 @@ const FullscreenMetaball = () => {
   )
 }
 
-
 const BlobMesh = () => {
   const [hovered, setHovered] = useState(false)
 
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
-    uNoiseDensity: { value: 2.5 },
-    uNoiseStrength: { value: 0.25 },
+    uNoiseDensity: { value: 2.0 },
+    uNoiseStrength: { value: 0.18 },
     uMouse: { value: new THREE.Vector2(0, 0) },
   }), [])
 
@@ -159,66 +132,65 @@ const BlobMesh = () => {
 
   useFrame(({ clock, mouse }) => {
     uniforms.uTime.value = clock.getElapsedTime()
-
-    // Only smooth and apply mouse influence when hovered
     if (hovered) {
-      const target = new THREE.Vector2(mouse.x, mouse.y)
-      smoothedMouse.lerp(target, 0.08)
-      uniforms.uMouse.value.copy(smoothedMouse)
-    } else {
-      smoothedMouse.lerp(new THREE.Vector2(0, 0), 0.05)
+      smoothedMouse.lerp(new THREE.Vector2(mouse.x, mouse.y), 0.06)
       uniforms.uMouse.value.copy(smoothedMouse)
     }
   })
 
   return (
     <group position={[0, 1.1, 0]}>
-      <mesh
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-      >
-        <sphereGeometry args={[3.5, 128, 128]} />
+      <mesh onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
+        <sphereGeometry args={[3.7, 32, 32]} />
         <shaderMaterial
-          vertexShader={`
+          vertexShader={/* glsl */`
             varying float vDistort;
             varying vec3 vNormal;
+
             uniform float uTime;
             uniform float uNoiseDensity;
             uniform float uNoiseStrength;
             uniform vec2 uMouse;
 
             float hash(vec3 p) {
-              return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453123);
+              return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
             }
 
             float noise(vec3 p) {
               vec3 i = floor(p);
               vec3 f = fract(p);
-              f = f*f*(3.0 - 2.0*f);
-              return mix(
-                mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
-                    mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
-                mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
-                    mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
-                f.z);
+              f = f * f * (3.0 - 2.0 * f);
+
+              float n000 = hash(i + vec3(0, 0, 0));
+              float n100 = hash(i + vec3(1, 0, 0));
+              float n010 = hash(i + vec3(0, 1, 0));
+              float n110 = hash(i + vec3(1, 1, 0));
+              float n001 = hash(i + vec3(0, 0, 1));
+              float n101 = hash(i + vec3(1, 0, 1));
+              float n011 = hash(i + vec3(0, 1, 1));
+              float n111 = hash(i + vec3(1, 1, 1));
+
+              float x00 = mix(n000, n100, f.x);
+              float x10 = mix(n010, n110, f.x);
+              float x01 = mix(n001, n101, f.x);
+              float x11 = mix(n011, n111, f.x);
+
+              float y0 = mix(x00, x10, f.y);
+              float y1 = mix(x01, x11, f.y);
+
+              return mix(y0, y1, f.z);
             }
 
             void main() {
-              // Inject subtle parallax variation based on uMouse when hovered
-              vec3 distortedNormal = normal + vec3(
-                (uMouse.x - 0.5) * 0.2,
-                (uMouse.y - 0.5) * 0.2,
-                0.0
-              );
-
-              float n = noise(distortedNormal * uNoiseDensity + uTime) * uNoiseStrength;
+              vec3 offsetNormal = normal + vec3((uMouse.x - 0.5) * 0.15, (uMouse.y - 0.5) * 0.15, 0.0);
+              float n = noise(offsetNormal * uNoiseDensity + uTime) * uNoiseStrength;
               vec3 displaced = position + normal * n;
               vDistort = n;
               vNormal = normalize(normalMatrix * normal);
               gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
             }
           `}
-          fragmentShader={`
+          fragmentShader={/* glsl */`
             varying float vDistort;
             varying vec3 vNormal;
 
@@ -229,19 +201,16 @@ const BlobMesh = () => {
             void main() {
               float fresnel = pow(1.0 - abs(dot(vNormal, vec3(0, 0, 1))), 3.0);
               float d = clamp(vDistort, 0.0, 1.0);
+              vec3 base = cosPalette(d, vec3(0.1, 0.08, 0.08), vec3(0.4, 0.1, 0.1), vec3(1.0), vec3(0.0, 0.2, 0.25));
 
-              vec3 base = cosPalette(
-                d,
-                vec3(0.10, 0.08, 0.08),
-                vec3(0.4, 0.1, 0.1),
-                vec3(1.0),
-                vec3(0.0, 0.2, 0.25)
-              );
+              // Simulated surface bump via distorted normal
+              vec3 bumpedNormal = normalize(vNormal + d * 0.6 * vec3(0.5, 0.5, 1.0));
+              float light = dot(bumpedNormal, normalize(vec3(-0.4, 0.3, 1.0)));
 
               vec3 rim = vec3(0.4, 0.05, 0.05) * fresnel;
-              vec3 final = base + rim;
+              vec3 lit = base * (0.6 + 0.4 * light);
 
-              gl_FragColor = vec4(final, 1.0);
+              gl_FragColor = vec4(lit + rim, 1.0);
             }
           `}
           uniforms={uniforms}
@@ -253,12 +222,49 @@ const BlobMesh = () => {
     </group>
   )
 }
+interface PopInSceneProps {
+  visible: boolean
+}
+const PopInScene: React.FC<PopInSceneProps> = ({ visible }) => {
+  const [ready, setReady] = useState(false)
+  const [showMetaballs, setShowMetaballs] = useState(false)
+
+  const { scale, opacity } = useSpring({
+    from: { scale: 0.8, opacity: 0 },
+    to: { scale: visible ? 1 : 0.8, opacity: visible ? 1 : 0 },
+    config: { tension: 60, friction: 30 },
+  })
+
+  useEffect(() => {
+    if (visible) {
+      const t1 = setTimeout(() => setReady(true), 100)
+      const t2 = setTimeout(() => setShowMetaballs(true), 500)
+      return () => {
+        clearTimeout(t1)
+        clearTimeout(t2)
+      }
+    }
+  }, [visible])
+
+  return (
+    <a.group scale={scale} visible={opacity.to((o) => o > 0)}>
+      <a.group scale={scale} position={[0, 0, 0]}>
+        {ready && <BlobMesh />}
+        {showMetaballs && <FullscreenMetaball />}
+      </a.group>
+    </a.group>
+  )
+}
 
 const SiteStatsSection: React.FC = () => {
+  const [canvasReady, setCanvasReady] = useState(false)
+  const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.3 })
+
   return (
-    <div className="site-stats-wrapper">
+    <div className="site-stats-wrapper" ref={ref}>
       <Canvas
         camera={{ position: [0, 4, 7], fov: 70 }}
+        className={`fade-canvas ${canvasReady ? 'visible' : ''}`}
         style={{
           position: 'absolute',
           top: 0,
@@ -268,17 +274,18 @@ const SiteStatsSection: React.FC = () => {
           minHeight: '800px',
           display: 'block',
           zIndex: 0,
-          background: 'transparent',
-          borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+          background: '#111111',
         }}
-        gl={{ alpha: true, antialias: true }}
+        gl={{ alpha: false, antialias: true }}
         onCreated={({ gl }) => {
           gl.setClearColor(new THREE.Color('#111111'), 1.0)
           gl.domElement.setAttribute('data-ready', 'true')
+          setCanvasReady(true)
         }}
       >
-        <FullscreenMetaball />
-        <BlobMesh />
+        <Suspense fallback={null}>
+          <PopInScene visible={inView} />
+        </Suspense>
       </Canvas>
 
       <div className="stats-overlay">
@@ -298,5 +305,4 @@ const SiteStatsSection: React.FC = () => {
     </div>
   )
 }
-
 export default SiteStatsSection

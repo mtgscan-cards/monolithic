@@ -4,6 +4,7 @@
   aspect-ratio: 2.25 / 3;
   position: relative;
   flex: 1 1 auto;
+  top: 15px;
 }
 
 .card-carousel-showcase {

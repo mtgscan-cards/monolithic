@@ -61,7 +61,7 @@
 
   .highlight-card-container {
     position: absolute;
-
+    bottom: -40px;
     transform: translateY(-50%);
     right: 100px;
 

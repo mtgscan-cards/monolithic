@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useMemo, Suspense } from 'react'
 import { Canvas, useThree, useFrame, invalidate } from '@react-three/fiber'
-import { Vector3, Spherical, PerspectiveCamera } from 'three'
+import { Vector3, Spherical, PerspectiveCamera, Color } from 'three'
 import { ResizeObserver } from '@juggle/resize-observer'
 import { Preload } from '@react-three/drei'
 import DeckGroup from './DeckGroup'
@@ -81,8 +81,8 @@ const SceneContents: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
 
   return (
     <>
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[5, 10, 5]} intensity={0.8} />
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[4, 8, 6]} intensity={0.6} />
       <DeckGroup cards={cards} />
       <TrackballCamera />
     </>
@@ -144,12 +144,13 @@ const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
         }}
         frameloop="demand"
         onCreated={({ gl }) => {
+          gl.setClearColor(new Color('#111111'), 1.0)
           gl.domElement.setAttribute('data-ready', 'true')
         }}
       >
-        {/* Preloading removed here to prevent blocking first paint */}
-        <Suspense>
+        <Suspense fallback={null}>
           <SceneContents cards={cards} />
+          {/* Preload AFTER initial scene to avoid blocking first paint */}
           <Preload all />
         </Suspense>
       </Canvas>
