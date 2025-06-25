@@ -55,6 +55,7 @@
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
     "vite": "^6.2.0",
+    "vite-plugin-inspect": "^11.2.0",
     "wrangler": "^4.16.1"
   }
 }

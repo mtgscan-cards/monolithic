@@ -1,6 +1,6 @@
 // vite-frontend/src/pages/LandingPage/CardCarousel.tsx
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import './CardCarousel.css'
 
 export interface CardImage {
@@ -14,7 +14,6 @@ interface CardCarouselProps {
   onCardClick?: (id: string) => void
 }
 
-// Define proper CSS variable support type
 type CSSVarStyle = React.CSSProperties & {
   '--rx'?: string
   '--ry'?: string
@@ -35,8 +34,10 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
   const cardRef = useRef<HTMLDivElement>(null)
   const target = useRef({ x: 0.5, y: 0.5 })
   const current = useRef({ x: 0.5, y: 0.5 })
+  const [imageLoaded, setImageLoaded] = useState(false)
 
   useEffect(() => {
+    if (!imageLoaded) return
     const el = cardRef.current
     if (!el) return
 
@@ -78,7 +79,7 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
     }
-  }, [])
+  }, [imageLoaded])
 
   const handleClick = () => {
     onCardClick?.(card.id)
@@ -98,7 +99,7 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
   return (
     <div className="card-carousel-wrapper">
       <div className="card-carousel-showcase card-carousel-floating">
-        <div className="card" ref={cardRef} style={initialStyle}>
+        <div className="card-carousel-card" ref={cardRef} style={initialStyle}>
           <div className="card__translater">
             <button
               className="card__rotator"
@@ -111,6 +112,7 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
                   src={card.front}
                   alt={card.name}
                   draggable={false}
+                  onLoad={() => setImageLoaded(true)}
                 />
                 <div className="card__shine" />
                 <div className="card__glare" />

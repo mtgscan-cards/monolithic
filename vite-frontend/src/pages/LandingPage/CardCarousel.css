@@ -20,7 +20,7 @@
   animation: fadeInCardCarousel 0.6s ease-out 0.3s forwards;
 }
 
-.card {
+.card-carousel-card {
   width: 100%;
   height: 100%;
   position: relative;
@@ -61,18 +61,15 @@
   position: relative;
 }
 
-/* Foil Shine Layer */
 .card__shine {
   position: absolute;
   inset: 0;
   border-radius: 12px;
   pointer-events: none;
   z-index: 2;
-
   --space: 5%;
   --angle: -22deg;
   --imgsize: 300% 400%;
-
   clip-path: var(--clip-borders, inset(0 round 12px));
   background-image:
     repeating-linear-gradient(var(--angle),
@@ -92,14 +89,12 @@
   opacity: 0.35;
 }
 
-/* Glare Layer */
 .card__glare {
   position: absolute;
   inset: 0;
   border-radius: 12px;
   pointer-events: none;
   z-index: 2;
-
   background-image:
     radial-gradient(
       farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),

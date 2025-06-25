@@ -94,10 +94,3 @@ div.MuiPaper-elevation0 {
 .main{
 min-height: 100vh !important;
 }
-
-/* Debug: Highlight canvas hierarchy with subtle red background */
-/*
-/*canvas {
-/*  background-color: rgba(255, 0, 0, 0.05); /* subtle red hint */
-/*}
-/*
