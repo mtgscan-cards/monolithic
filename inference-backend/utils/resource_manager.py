@@ -52,6 +52,7 @@ def download_and_extract_resources_once():
             download_and_extract_resources()
         else:
             logger.info("Resource files already present. Skipping download.")
+from utils.model_state import model_resources, model_lock
 
 def load_resources():
     download_and_extract_resources_once()
@@ -77,26 +78,26 @@ def load_resources():
     
     assert len(id_map) == faiss_index.ntotal, "Mismatch between id_map and FAISS index"
 
+    # Store in global shared model_resources
+    with model_lock:
+        if model_resources["hdf5_file"]:
+            try:
+                model_resources["hdf5_file"].close()
+            except Exception as e:
+                logger.warning("Error closing old HDF5 file: %s", e)
+
+        model_resources["faiss_index"] = faiss_index
+        model_resources["hdf5_file"] = hf
+        model_resources["id_map"] = id_map
+
     # Start file watcher once
     if not getattr(load_resources, "_watcher_started", False):
         from utils.watchdog_monitor import start_model_file_watchdog
-        from .model_state import model_resources
 
         def reload_model_resources():
             try:
                 logger.info("Reloading model resources from disk...")
-                faiss_index, hdf5_file, id_map = load_resources()
-
-                if model_resources["hdf5_file"]:
-                    try:
-                        model_resources["hdf5_file"].close()
-                    except Exception as e:
-                        logger.warning("Error closing old HDF5 file: %s", e)
-
-                model_resources["faiss_index"] = faiss_index
-                model_resources["hdf5_file"] = hdf5_file
-                model_resources["id_map"] = id_map
-
+                load_resources()
                 logger.info("Model resources reloaded successfully.")
             except Exception as e:
                 logger.exception("Model reload failed — keeping previous state.")
@@ -105,3 +106,4 @@ def load_resources():
         load_resources._watcher_started = True
 
     return faiss_index, hf, id_map
+
