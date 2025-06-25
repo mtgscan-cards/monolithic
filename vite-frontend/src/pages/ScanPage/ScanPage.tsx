@@ -25,6 +25,11 @@ import '../../styles/ScanPage.css';
 import MobileQRCodePanel from '../../components/dialogs/MobileQRCodePanel';
 import CameraPanel from '../../components/camera/CameraPanel';
 
+// Ensure all canvas elements have opacity 1
+const style = document.createElement('style');
+style.innerHTML = `canvas { opacity: 1 !important; }`;
+document.head.appendChild(style);
+
 const drawerWidth = 300;
 
 const ScanPage: React.FC = () => {
