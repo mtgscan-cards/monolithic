@@ -1,5 +1,5 @@
 // src/api/FilterBackend.tsx
-import { FilterCriteria } from '../components/FilterPanel';
+import { FilterCriteria } from '../components/filters/FilterPanel';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.mtgscan.cards';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, IconButton, Fade } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import { Card } from './SearchResults';
+import { Card } from '../filters/SearchResults';
 
 // Updated ToggleableImage component: always renders the png image.
 const ToggleableImage: React.FC<{ imageData: Card['image_uris']; altText: string }> = ({
