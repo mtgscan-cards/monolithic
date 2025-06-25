@@ -87,6 +87,11 @@ def load_candidate_features_for_card(card_id, hf):
 
 def find_closest_card_ransac(roi_image, faiss_index, hf, id_map,
                              k=3, min_candidate_matches=1, MIN_INLIER_THRESHOLD=8, max_candidates=10):
+    from .model_state import model_resources, model_lock
+    with model_lock:
+        faiss_index = model_resources["faiss_index"]
+        hf = model_resources["hdf5_file"]
+        id_map = model_resources["id_map"]
     overall_start = time.perf_counter()
     debug_info = {}
 

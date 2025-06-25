@@ -1,4 +1,4 @@
-// src/App.tsx
+// src/app/App.tsx
 import React, { useState } from 'react'
 import {
   ThemeProvider,
@@ -7,7 +7,6 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  Container,
   Box,
   IconButton,
 } from '@mui/material'
@@ -34,6 +33,7 @@ import MobileScanPage from '../pages/MobileScanPage/MobileScanPage.tsx';
 
 import { sendFilterCriteria } from '../api/FilterBackend'
 import '../styles/App.css'
+import LandingPage from '../pages/LandingPage/LandingPage.tsx'
 
 const modernTheme = createTheme({
   palette: {
@@ -75,7 +75,7 @@ const modernTheme = createTheme({
 })
 
 const navItems: NavItem[] = [
-  { text: 'Search', icon: <SearchIcon />, path: '/' },
+  { text: 'Search', icon: <SearchIcon />, path: '/search' },
 {
   text: 'Collections',
   icon: (
@@ -93,7 +93,6 @@ const navItems: NavItem[] = [
 ]
 
 const App: React.FC = () => {
-
   const [results, setResults] = useState<Card[]>([])
   const [currentCriteria, setCurrentCriteria] = useState<FilterCriteria | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -145,13 +144,24 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={modernTheme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <AppBar position="static" elevation={0}>
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        <AppBar
+  position="sticky"
+  elevation={0}
+  sx={{
+    top: 0,
+    zIndex: theme => theme.zIndex.drawer + 2,
+    backdropFilter: 'blur(8px)',
+    backgroundColor: 'rgba(28, 28, 28, 0.85)', // nice sticky look
+  }}
+>
           <Toolbar>
-            <IconButton color="inherit" onClick={toggleDrawer(true)}>
+            <IconButton color="inherit" onClick={toggleDrawer(true)} edge="start">
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6">mtgscan.cards</Typography>
+            <Typography variant="h6" component="div">
+              mtgscan.cards
+            </Typography>
           </Toolbar>
         </AppBar>
 
@@ -161,7 +171,17 @@ const App: React.FC = () => {
           navItems={navItems}
         />
 
-        <Container component="main" sx={{ flexGrow: 1, py: 4 }}>
+        <Box
+  component="main"
+  sx={{
+    flexGrow: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    overflowY: 'auto',
+    paddingY: 4,
+  }}
+>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -177,31 +197,40 @@ const App: React.FC = () => {
 
             <Route element={<ProtectedRoute />}>
               <Route
-                path="/"
+                path="/search"
                 element={
-                  <>
-                    <Box sx={{ mb: 4 }}>
+                    <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      paddingX: { xs: 2, sm: 4 },
+                      width: '100%',
+                    }}
+                    >
+                    <Box sx={{ mb: 4, mt: 4, width: '100%', maxWidth: 900 }}>
                       <FilterPanel onSearch={runNewSearch} />
                     </Box>
-                    <SearchResults
+                    <Box sx={{ width: '100%', maxWidth: 1200 }}>
+                      <SearchResults
                       results={results}
                       onLoadMore={loadMore}
                       loadingMore={loadingMore}
                       totalResults={0}
-                    />
-                  </>
+                      />
+                    </Box>
+                    </Box>
                 }
               />
               <Route path="/scan" element={<ScanPage />} />
               <Route path="/collections" element={<CollectionsOverview />} />
-              <Route
-                path="/portfolio"
-                element={<CollectionPortfolioPage />}
-              />
+              <Route path="/portfolio" element={<CollectionPortfolioPage />} />
             </Route>
+
+            <Route path="/" element={<LandingPage />} />
             <Route path="/mobile-scan/:session_id/*" element={<MobileScanPage />} />
           </Routes>
-        </Container>
+        </Box>
       </Box>
     </ThemeProvider>
   )

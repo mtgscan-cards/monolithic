@@ -10,14 +10,14 @@ from routes.auth import auth_bp
 from routes.infer_routes import infer_bp
 from routes.search_routes import search_bp
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 import json
 from flask_apscheduler import APScheduler
 from flask_cors import CORS
 from flask import Flask
 from flasgger import Swagger
 import logging
-from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 import os
 import sys
 from dotenv import load_dotenv
@@ -185,6 +185,55 @@ swagger = Swagger(app, template={
 })
 
 # ─── DB initialisation helpers ───────────────────────────────────────────────
+
+def init_landing_cards_table():
+    conn = None
+    try:
+        conn = pg_pool.getconn()
+        cur = conn.cursor()
+
+        # Create table if not exists
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS landing_cards (
+                id UUID PRIMARY KEY,
+                name TEXT,
+                image_uris JSONB
+            );
+        """)
+
+        # Check if already populated
+        cur.execute("SELECT COUNT(*) FROM landing_cards;")
+        count = cur.fetchone()[0]
+        if count > 0:
+            logger.info("[INIT] landing_cards already populated")
+            cur.close()
+            return
+
+        # Insert 100 unique, single-faced cards with image_uris
+        cur.execute("""
+            INSERT INTO landing_cards (id, name, image_uris)
+            SELECT id, name, image_uris
+            FROM (
+                SELECT DISTINCT ON (name) id, name, image_uris
+                FROM cards
+                WHERE layout = 'normal'
+                AND lang = 'en'
+                AND highres_image = true
+                AND image_uris IS NOT NULL
+                AND image_uris->>'png' IS NOT NULL
+                ORDER BY name, RANDOM()
+            ) sub
+            LIMIT 100;
+        """)
+        conn.commit()
+        cur.close()
+        logger.info("[INIT] landing_cards table populated with 100 random unique cards")
+    except Exception as e:
+        logger.exception("[INIT] Failed to initialize landing_cards")
+    finally:
+        if conn:
+            pg_pool.putconn(conn)
+
 
 
 def init_auth_tables():
@@ -392,6 +441,17 @@ scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
 
+# ─── Job Wrapper: Scryfall Update + Descriptor Pipeline ──────────────────────
+def run_scryfall_then_descriptors():
+    logger.info("[JOB] Starting Scryfall update...")
+    update_main()
+    logger.info("[JOB] Scryfall update completed. Now updating descriptors...")
+    try:
+        from descriptor_update.descriptor_update import run_descriptor_update_pipeline
+        run_descriptor_update_pipeline()
+        logger.info("[JOB] Descriptor update pipeline complete.")
+    except Exception as e:
+        logger.exception("[JOB] Descriptor update pipeline failed.")
 
 def job_listener(event):
     job = scheduler.get_job('daily_scryfall_update')
@@ -407,7 +467,7 @@ def job_listener(event):
 scheduler.add_listener(job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
 scheduler.add_job(
     id='daily_scryfall_update',
-    func=update_main,
+    func=run_scryfall_then_descriptors,
     trigger='cron',
     hour=0,
     minute=0
@@ -529,9 +589,11 @@ init_auth_tables()
 init_security_tables()
 init_collection_tables()
 init_mobile_scan_tables()
+init_landing_cards_table()  # Create landing_cards table with 100 random cards
 build_tag_cache()
 
-update_main()  # download scryfall bulk data and populate the database
+#run_scryfall_then_descriptors()  # Initial run to test
+#update_main()  # download scryfall bulk data and populate the database
 
 if __name__ == '__main__':
     logger.info("Flask app starting…")

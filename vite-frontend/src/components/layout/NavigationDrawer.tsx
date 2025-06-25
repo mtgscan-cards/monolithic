@@ -81,16 +81,18 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
         onOpen={onOpen}
         disableSwipeToOpen={!isMobile}
         ModalProps={{ keepMounted: true }}
-        PaperProps={{
-          sx: {
-            width: drawerWidth, // <- always 280px (default or custom)
-            background: 'linear-gradient(180deg, #1e1e1e, #121212)',
-            color: 'text.primary',
-            borderRight: 'none',
-            display: 'flex',
-            flexDirection: 'column',
-          },
-        }}
+PaperProps={{
+  sx: {
+    zIndex: theme => theme.zIndex.drawer + 1, // 🔼 ensure it's above most content
+    width: drawerWidth,
+    background: 'linear-gradient(180deg, #1e1e1e, #121212)',
+    color: 'text.primary',
+    borderRight: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative', // Ensure z-index takes effect
+  },
+}}
         role="navigation"
         aria-label="Main navigation menu"
       >

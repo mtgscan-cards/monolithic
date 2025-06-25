@@ -186,16 +186,14 @@ def is_card_table_populated():
         pg_pool.putconn(conn)
 
 def main():
-    if is_card_table_populated():
-        logger.info("✅ Cards already present — skipping import.")
-        return
-
     json_file = os.path.join(DATA_DIR, f"scryfall-{BULK_DATA_TYPE}.json")
     download_latest_json(json_file)
+
     batch_size = 10000
     batch = []
     total_count = 0
     logger.info("🔄 Starting card processing...")
+
     with open(json_file, 'rb') as f:
         cards = ijson.items(f, 'item')
         for card in cards:
@@ -209,8 +207,10 @@ def main():
                 logger.info(f"⬆️ Upserting batch — {total_count} cards processed so far.")
                 upsert_batch(batch)
                 batch = []
+
     if batch:
         upsert_batch(batch)
+
     logger.info(f"✅ Finished processing {total_count} cards.")
     import_sets()
 

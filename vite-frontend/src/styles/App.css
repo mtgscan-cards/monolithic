@@ -9,12 +9,6 @@
   padding: 0;
 }
 
-html,
-body {
-  width: 100%;
-  height: 100%;
-  font-family: 'Roboto', sans-serif;
-}
 
 /* Remove custom background and text colors – these are now controlled by MUI theme */
 body {
@@ -50,17 +44,6 @@ body {
   cursor: pointer;
 }
 
-/* Loading Spinner (if still needed) */
-.loading-spinner {
-  margin: 1rem auto;
-  border: 4px solid rgba(255, 255, 255, 0.2);
-  border-top: 4px solid #ff5252; /* Use the primary accent from your theme */
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-}
-
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -70,3 +53,51 @@ body {
   }
 }
 
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+main {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Prevents initial canvas flash */
+canvas {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  
+  opacity: 0 !important;
+  transition: opacity 0.4s ease-out !important;
+  min-height: 700px !important;
+  display: block !important;
+}
+
+/* Fade in once React sets class after load */
+canvas.fade-canvas.visible {
+  opacity: 1 !important;
+}
+
+/* Optional fallback for explicit state-based readiness */
+canvas[data-ready="true"] {
+  opacity: 1 !important;
+}
+
+
+
+div.MuiPaper-elevation0 {
+  margin-right: 20px !important;
+}
+
+.main{
+min-height: 100vh !important;
+}
+
+/* Debug: Highlight canvas hierarchy with subtle red background */
+/*
+/*canvas {
+/*  background-color: rgba(255, 0, 0, 0.05); /* subtle red hint */
+/*}
+/*
