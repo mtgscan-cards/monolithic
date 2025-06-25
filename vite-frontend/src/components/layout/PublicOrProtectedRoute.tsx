@@ -1,4 +1,4 @@
-// src/components/PublicOrProtectedRoute.tsx
+// src/components/layout/PublicOrProtectedRoute.tsx
 import React, { useContext, useEffect, useState } from 'react'
 import { Box, CircularProgress, Typography, Button } from '@mui/material'
 import { Link, Outlet, useParams } from 'react-router-dom'

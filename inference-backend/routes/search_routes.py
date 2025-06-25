@@ -241,3 +241,116 @@ def get_alternate_printings(card_id):
     finally:
         if conn:
             pg_pool.putconn(conn)
+
+@search_bp.route('/api/cards/random', methods=['GET'])
+@cross_origin(**get_cors_origin())
+def get_cached_random_cards():
+    """
+    Get random card images from cached table
+    ---
+    tags:
+      - Cards
+    parameters:
+      - in: query
+        name: limit
+        type: integer
+        default: 25
+    responses:
+      200:
+        description: Random cached cards
+    """
+    logger.info("[RANDOM] Fetching from landing_cards")
+    limit = min(int(request.args.get('limit', 25)), 100)
+
+    query = """
+        SELECT id, name, image_uris
+        FROM landing_cards
+        ORDER BY RANDOM()
+        LIMIT %s;
+    """
+
+    conn = None
+    try:
+        conn = pg_pool.getconn()
+        cur = conn.cursor()
+        cur.execute(query, (limit,))
+        rows = cur.fetchall()
+        columns = [desc[0] for desc in cur.description]
+        results = [dict(zip(columns, row)) for row in rows]
+        cur.close()
+        return jsonify({"results": results})
+    except Exception as e:
+        logger.exception("[RANDOM] Error querying landing_cards")
+        return jsonify({"error": "Unable to fetch random cards"}), 500
+    finally:
+        if conn:
+            pg_pool.putconn(conn)
+
+@search_bp.route('/api/search/autocomplete', methods=['GET'])
+@cross_origin(**get_cors_origin())
+@jwt_required
+def autocomplete_card_names():
+    """
+    Autocomplete card names by prefix
+    ---
+    tags:
+      - Search
+    parameters:
+      - in: query
+        name: q
+        type: string
+        required: true
+      - in: query
+        name: limit
+        type: integer
+        default: 10
+    responses:
+      200:
+        description: Autocomplete results
+        schema:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+      400:
+        description: Missing query parameter
+    """
+    q = request.args.get('q', '').strip()
+    limit = min(int(request.args.get('limit', 10)), 25)
+
+    if not q:
+        return jsonify({"error": "Missing required query parameter 'q'"}), 400
+
+    logger.info(f"[AUTOCOMPLETE] Query for: {q}")
+
+    query = """
+        SELECT id, name
+        FROM cards
+        WHERE name ILIKE %s
+        ORDER BY name ASC
+        LIMIT %s;
+    """
+    params = (f"{q}%", limit)
+
+    conn = None
+    try:
+        conn = pg_pool.getconn()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        cur.close()
+        results = [{"id": r[0], "name": r[1]} for r in rows]
+        return jsonify({"results": results})
+    except Exception as e:
+        logger.exception("[AUTOCOMPLETE] Error during autocomplete query")
+        return jsonify({"error": "Autocomplete failed"}), 500
+    finally:
+        if conn:
+            pg_pool.putconn(conn)

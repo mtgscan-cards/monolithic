@@ -29,6 +29,7 @@
      docker-compose down
      docker-compose up -d --build
      ```
+
 * **Deploys:**
 
   * Flask API (`/auth`, `/collections`, `/infer`, `/search`)
@@ -53,11 +54,13 @@
      npm install
      npm run build
      ```
+
   3. Deploy using Wrangler CLI:
 
      ```bash
      wrangler pages deploy vite-frontend/dist
      ```
+
 * **Deploys:**
 
   * Static frontend SPA
@@ -73,7 +76,7 @@
 ```bash
 docker exec mtg-db pg_dump -U mtguser mtgdb --exclude-table=public.cards > backup/mtgdb_$(date +%F).sql
 tar -czf backup/data_$(date +%F).tar.gz inference-backend/data
-```
+````
 
 ---
 
@@ -184,7 +187,42 @@ Return most frequent card ID among matches
 }
 ```
 
+---
 
+## Descriptor Update & Promotion System
+
+This system ensures that FAISS descriptors are updated **only after Scryfall data is refreshed** and **only if test inferences validate the new model**.
+
+### Trigger Flow
+
+```text
+Scheduled Daily Cron (00:00)
+       ↓
+[scryfall_update.py]
+       ↓
+[descriptor_update.py]
+       ↓
+Sanity Check Passes?
+   ├─ Yes → Promote to /resources/run
+   └─ No  → Keep old model active
+```
+
+### Key Components
+
+* `resources/staging/` — temporary storage for new HDF5, index, and ID map
+* `resources/run/` — actively loaded by inference backend
+* `watchdog_monitor.py` — backend file system watcher that:
+
+  * Uses `model_lock` to queue inference during overwrite
+  * Reloads resources after all writes complete (debounced)
+
+### Safety Mechanism
+
+* Descriptors are **never** written directly to `resources/run/`.
+* A known ground-truth image is used to verify inference after new descriptor generation.
+* If validation fails, `resources/run/` remains untouched and inference continues uninterrupted.
+
+---
 
 ## Architecture Overview
 
@@ -215,7 +253,9 @@ API --> Pool --> PG
 
 %% === BACKGROUND JOB ===
 ScryfallJob["scryfall_update.py"]
+DescriptorJob["descriptor_update.py"]
 ScryfallJob -->|Import Cards| PG
+ScryfallJob --> DescriptorJob
 
 %% === EXTERNAL ===
 OAuthGoogle["Google OAuth"]

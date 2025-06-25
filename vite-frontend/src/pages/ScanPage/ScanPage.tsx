@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Container,
   Box,
   Typography,
   Drawer,
@@ -346,12 +345,22 @@ const {
   }, [mobileSessionId, mobileWaiting]);
 
   return (
-    <Container maxWidth="lg" sx={{ paddingY: 4 }}>
-      <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: theme.zIndex.drawer + 1 }}>
-        <IconButton onClick={handleDrawerToggle} color="primary">
-          {drawerOpen ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-        </IconButton>
-      </Box>
+    <Box
+  sx={{
+    width: '100%',
+    maxWidth: 'lg',
+    marginX: 'auto',
+    paddingY: 4,
+    flexGrow: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  }}
+>
+<Box sx={{ position: 'fixed', top: 80, right: 16, zIndex: theme.zIndex.drawer + 1 }}>
+  <IconButton onClick={handleDrawerToggle} color="primary">
+    {drawerOpen ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+  </IconButton>
+</Box>
 
       <Box textAlign="center" mb={{ xs: 2, md: 4 }} px={{ xs: 1, sm: 2 }}>
         <Typography
@@ -430,25 +439,32 @@ const {
           </Box>
         </Box>
 
-        <Drawer
-          anchor="right"
-          open={drawerOpen}
-          onClose={handleDrawerToggle}
-          variant={isMobile ? 'temporary' : 'persistent'}
-          sx={{
-            '& .MuiDrawer-paper': {
-              width: drawerWidth,
-              boxSizing: 'border-box',
-            },
-          }}
-        >
-          <Box className="scan-page-drawer" p={2}>
-            <Typography variant="h6" gutterBottom>
-              Scanned Cards
-            </Typography>
-            <CardList scannedCards={scannedCards} handleToggleFoil={handleToggleFoil} />
-          </Box>
-        </Drawer>
+<Drawer
+  anchor="right"
+  open={drawerOpen}
+  onClose={handleDrawerToggle}
+  variant={isMobile ? 'temporary' : 'persistent'}
+  sx={{
+    '& .MuiDrawer-paper': {
+      width: drawerWidth,
+      boxSizing: 'border-box',
+      marginTop: '64px',
+    },
+  }}
+>
+  <Box
+    className="scan-page-drawer"
+    p={2}
+    sx={{
+      marginTop: '0px', // 👈 Add the margin here
+    }}
+  >
+    <Typography variant="h6" gutterBottom>
+      Scanned Cards
+    </Typography>
+    <CardList scannedCards={scannedCards} handleToggleFoil={handleToggleFoil} />
+  </Box>
+</Drawer>
       </Box>
 
       <AlternatePrintingsDialog
@@ -459,7 +475,7 @@ const {
         handleSwitchAlternate={handleSwitchAlternate}
         handleRemoveAlternate={handleRemoveAlternate}
       />
-    </Container>
+    </Box>
   );
 };
 
