@@ -26,9 +26,14 @@ import MobileQRCodePanel from '../../components/dialogs/MobileQRCodePanel';
 import CameraPanel from '../../components/camera/CameraPanel';
 import api from '../../api/axios';
 
-// Ensure all canvas elements have opacity 1
+// Ensure all canvas elements have opacity 1 and no min-height
 const style = document.createElement('style');
-style.innerHTML = `canvas { opacity: 1 !important; }`;
+style.innerHTML = `
+  canvas { 
+    opacity: 1 !important; 
+    min-height: 0 !important;
+  }
+`;
 document.head.appendChild(style);
 
 const drawerWidth = 300;
