@@ -24,6 +24,7 @@ import MobileScanToggleButton from '../../components/dialogs/MobileScanToggleBut
 import '../../styles/ScanPage.css';
 import MobileQRCodePanel from '../../components/dialogs/MobileQRCodePanel';
 import CameraPanel from '../../components/camera/CameraPanel';
+import api from '../../api/axios';
 
 // Ensure all canvas elements have opacity 1
 const style = document.createElement('style');
@@ -60,118 +61,118 @@ const ScanPage: React.FC = () => {
 
   const lastCard = scannedCards.length > 0 ? scannedCards[scannedCards.length - 1] : null;
 
-useEffect(() => {
-  let didAbort = false;
-  let localStream: MediaStream | null = null;
+  useEffect(() => {
+    let didAbort = false;
+    let localStream: MediaStream | null = null;
 
-  const videoElement = videoRef.current;
+    const videoElement = videoRef.current;
 
-  async function initCameraWithRetry(retries = 3, delay = 500) {
-    for (let i = 0; i < retries; i++) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        if (didAbort) {
-          stream.getTracks().forEach((track) => track.stop());
+    async function initCameraWithRetry(retries = 3, delay = 500) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          if (didAbort) {
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+          }
+          localStream = stream;
+          if (videoElement) {
+            videoElement.srcObject = localStream;
+            videoElement.onloadedmetadata = async () => {
+              const { videoWidth, videoHeight } = videoElement;
+              setVideoDimensions({ width: videoWidth, height: videoHeight });
+              try {
+                await videoElement.play();
+                setCameraReady(true);
+                setStatus('Webcam starting...');
+              } catch {
+                setStatus(
+                  <>
+                    Error playing video stream.{' '}
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.location.reload();
+                      }}
+                      style={{ textDecoration: 'underline', color: 'inherit' }}
+                    >
+                      Refresh?
+                    </a>
+                  </>
+                );
+              }
+            };
+          }
           return;
+        } catch (err) {
+          console.warn(`Camera allocation failed (attempt ${i + 1}):`, err);
+          if (i === retries - 1) {
+            setStatus(
+              <>
+                Failed to access webcam. Another app or tab may be using it.{' '}
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.reload();
+                  }}
+                  style={{ textDecoration: 'underline', color: 'inherit' }}
+                >
+                  Try Again?
+                </a>
+              </>
+            );
+          } else {
+            await new Promise((r) => setTimeout(r, delay));
+          }
         }
-        localStream = stream;
-        if (videoElement) {
-          videoElement.srcObject = localStream;
-          videoElement.onloadedmetadata = async () => {
-            const { videoWidth, videoHeight } = videoElement;
-            setVideoDimensions({ width: videoWidth, height: videoHeight });
-            try {
-              await videoElement.play();
-              setCameraReady(true);
-              setStatus('Webcam starting...');
-            } catch {
-              setStatus(
-                <>
-                  Error playing video stream.{' '}
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.location.reload();
-                    }}
-                    style={{ textDecoration: 'underline', color: 'inherit' }}
-                  >
-                    Refresh?
-                  </a>
-                </>
-              );
-            }
+      }
+    }
+
+    initCameraWithRetry();
+
+    return () => {
+      didAbort = true;
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+      }
+      if (videoElement) {
+        videoElement.srcObject = null;
+      }
+    };
+  }, []);
+
+  const [showOverlayMarker, setShowOverlayMarker] = useState(false);
+
+  // ✅ Then safely use it inside the processor hook
+  const {
+    manualSnapshotFromOverlay
+  } = useFrameProcessor({
+    videoRef,
+    canvasRef,
+    setStatus,
+    setInferenceResult,
+    setRoiSnapshot,
+    onScannedCard: (card: ScannedCard) => {
+      setScannedCards((prev) => {
+        const existingIndex = prev.findIndex((c) => c.id === card.id);
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            quantity: updated[existingIndex].quantity + 1,
           };
-        }
-        return;
-      } catch (err) {
-        console.warn(`Camera allocation failed (attempt ${i + 1}):`, err);
-        if (i === retries - 1) {
-          setStatus(
-            <>
-              Failed to access webcam. Another app or tab may be using it.{' '}
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.location.reload();
-                }}
-                style={{ textDecoration: 'underline', color: 'inherit' }}
-              >
-                Try Again?
-              </a>
-            </>
-          );
+          return updated;
         } else {
-          await new Promise((r) => setTimeout(r, delay));
+          return [...prev, { ...card, quantity: 1 }];
         }
-      }
-    }
-  }
+      });
 
-  initCameraWithRetry();
-
-  return () => {
-    didAbort = true;
-    if (localStream) {
-      localStream.getTracks().forEach((track) => track.stop());
-    }
-    if (videoElement) {
-      videoElement.srcObject = null;
-    }
-  };
-}, []);
-
-const [showOverlayMarker, setShowOverlayMarker] = useState(false);
-
-// ✅ Then safely use it inside the processor hook
-const {
-  manualSnapshotFromOverlay
-} = useFrameProcessor({
-  videoRef,
-  canvasRef,
-  setStatus,
-  setInferenceResult,
-  setRoiSnapshot,
-  onScannedCard: (card: ScannedCard) => {
-    setScannedCards((prev) => {
-      const existingIndex = prev.findIndex((c) => c.id === card.id);
-      if (existingIndex !== -1) {
-        const updated = [...prev];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          quantity: updated[existingIndex].quantity + 1,
-        };
-        return updated;
-      } else {
-        return [...prev, { ...card, quantity: 1 }];
-      }
-    });
-
-    setShowOverlayMarker(true);
-    setTimeout(() => setShowOverlayMarker(false), 2000);
-  },
-});
+      setShowOverlayMarker(true);
+      setTimeout(() => setShowOverlayMarker(false), 2000);
+    },
+  });
 
 
   const handleToggleFoil = (cardId: string) => {
@@ -251,15 +252,8 @@ const {
 
   const createMobileSession = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiUrl}/api/mobile-infer/create`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
-        credentials: 'include',
-      });
-      const data = await res.json();
+      const res = await api.post('/api/mobile-infer/create');
+      const data = res.data;
       setMobileSessionId(data.session_id);
       setMobileWaiting(true);
       setStatus("Waiting for scan from mobile...");
@@ -351,21 +345,21 @@ const {
 
   return (
     <Box
-  sx={{
-    width: '100%',
-    maxWidth: 'lg',
-    marginX: 'auto',
-    paddingY: 4,
-    flexGrow: 1,
-    display: 'flex',
-    flexDirection: 'column',
-  }}
->
-<Box sx={{ position: 'fixed', top: 80, right: 16, zIndex: theme.zIndex.drawer + 1 }}>
-  <IconButton onClick={handleDrawerToggle} color="primary">
-    {drawerOpen ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-  </IconButton>
-</Box>
+      sx={{
+        width: '100%',
+        maxWidth: 'lg',
+        marginX: 'auto',
+        paddingY: 4,
+        flexGrow: 1,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <Box sx={{ position: 'fixed', top: 80, right: 16, zIndex: theme.zIndex.drawer + 1 }}>
+        <IconButton onClick={handleDrawerToggle} color="primary">
+          {drawerOpen ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+        </IconButton>
+      </Box>
 
       <Box textAlign="center" mb={{ xs: 2, md: 4 }} px={{ xs: 1, sm: 2 }}>
         <Typography
@@ -415,16 +409,16 @@ const {
 
       <Box className="scan-page-container">
         <Box className="scan-page-main">
-<CameraPanel
-  canvasRef={canvasRef}
-  videoRef={videoRef}
-  videoWidth={videoDimensions.width}
-  videoHeight={videoDimensions.height}
-  cameraReady={cameraReady}
-  status={status}
-  onTapSnapshot={manualSnapshotFromOverlay}
-  showOverlayMarker={showOverlayMarker}
-/>
+          <CameraPanel
+            canvasRef={canvasRef}
+            videoRef={videoRef}
+            videoWidth={videoDimensions.width}
+            videoHeight={videoDimensions.height}
+            cameraReady={cameraReady}
+            status={status}
+            onTapSnapshot={manualSnapshotFromOverlay}
+            showOverlayMarker={showOverlayMarker}
+          />
 
           {lastCard && (
             <Box className="last-scanned-card-section">
@@ -444,32 +438,32 @@ const {
           </Box>
         </Box>
 
-<Drawer
-  anchor="right"
-  open={drawerOpen}
-  onClose={handleDrawerToggle}
-  variant={isMobile ? 'temporary' : 'persistent'}
-  sx={{
-    '& .MuiDrawer-paper': {
-      width: drawerWidth,
-      boxSizing: 'border-box',
-      marginTop: '64px',
-    },
-  }}
->
-  <Box
-    className="scan-page-drawer"
-    p={2}
-    sx={{
-      marginTop: '0px', // 👈 Add the margin here
-    }}
-  >
-    <Typography variant="h6" gutterBottom>
-      Scanned Cards
-    </Typography>
-    <CardList scannedCards={scannedCards} handleToggleFoil={handleToggleFoil} />
-  </Box>
-</Drawer>
+        <Drawer
+          anchor="right"
+          open={drawerOpen}
+          onClose={handleDrawerToggle}
+          variant={isMobile ? 'temporary' : 'persistent'}
+          sx={{
+            '& .MuiDrawer-paper': {
+              width: drawerWidth,
+              boxSizing: 'border-box',
+              marginTop: '64px',
+            },
+          }}
+        >
+          <Box
+            className="scan-page-drawer"
+            p={2}
+            sx={{
+              marginTop: '0px', // 👈 Add the margin here
+            }}
+          >
+            <Typography variant="h6" gutterBottom>
+              Scanned Cards
+            </Typography>
+            <CardList scannedCards={scannedCards} handleToggleFoil={handleToggleFoil} />
+          </Box>
+        </Drawer>
       </Box>
 
       <AlternatePrintingsDialog
