@@ -6,6 +6,7 @@ import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined'
 import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined'
 import LatestCommitLink from './LatestCommitLink'
 
+
 const Footer: React.FC = () => {
   return (
     <Box
@@ -30,7 +31,7 @@ const Footer: React.FC = () => {
               </Typography>
             </Stack>
             <Typography sx={{ color: '#999', lineHeight: 1.5 }}>
-              Scan and track your Magic: The Gathering collection with lightning-fast recognition powered by modern AI.
+              Scan and track your MTG cards with Open Source computer vision.
             </Typography>
             <Typography
               variant="caption"
@@ -47,10 +48,8 @@ const Footer: React.FC = () => {
               Resources
             </Typography>
             <Stack spacing={0.75}>
-              <Link href="#" underline="none" color="#aaa">Docs</Link>
-              <Link href="#" underline="none" color="#aaa">API</Link>
-              <Link href="#" underline="none" color="#aaa">Changelog</Link>
-              <Link href="#" underline="none" color="#aaa">Support</Link>
+              <Link href="https://deepwiki.com/mtgscan-cards/monolithic" underline="none" color="#aaa">Docs</Link>
+              <Link href="https://api.mtgscan.cards/apidocs" underline="none" color="#aaa">API Docs</Link>
             </Stack>
           </Grid>
 
@@ -60,10 +59,8 @@ const Footer: React.FC = () => {
               Community
             </Typography>
             <Stack spacing={0.75}>
-              <Link href="#" underline="none" color="#aaa">GitHub</Link>
-              <Link href="#" underline="none" color="#aaa">Discord</Link>
-              <Link href="#" underline="none" color="#aaa">Reddit</Link>
-              <Link href="#" underline="none" color="#aaa">Twitter/X</Link>
+              <Link href="https://github.com/mtgscan-cards" underline="none" color="#aaa">GitHub</Link>
+              <Link href="https://github.com/mtgscan-cards/monolithic/commits/main/" underline="none" color="#aaa">Changelog</Link>
             </Stack>
           </Grid>
 
@@ -73,9 +70,8 @@ const Footer: React.FC = () => {
               Legal
             </Typography>
             <Stack spacing={0.75}>
-              <Link href="#" underline="none" color="#aaa">Privacy Policy</Link>
-              <Link href="#" underline="none" color="#aaa">Terms of Service</Link>
-              <Link href="#" underline="none" color="#aaa">License</Link>
+              <Link href="/legal" underline="none" color="#aaa">Terms of Service</Link>
+              <Link href="https://raw.githubusercontent.com/mtgscan-cards/monolithic/refs/heads/main/LICENSE" underline="none" color="#aaa">License</Link>
             </Stack>
           </Grid>
         </Grid>
@@ -107,7 +103,7 @@ const Footer: React.FC = () => {
               aspectRatio: '1 / 1',
             }}
           />
-          by players and collectors.
+          by players, collectors, and developers.
         </Typography>
       </Box>
     </Box>

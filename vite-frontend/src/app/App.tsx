@@ -34,6 +34,7 @@ import MobileScanPage from '../pages/MobileScanPage/MobileScanPage.tsx';
 import { sendFilterCriteria } from '../api/FilterBackend'
 import '../styles/App.css'
 import LandingPage from '../pages/LandingPage/LandingPage.tsx'
+import LegalPage from '../pages/Legal/LegalPage'
 
 const modernTheme = createTheme({
   palette: {
@@ -186,6 +187,7 @@ const App: React.FC = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/setup" element={<AccountSetupPage />} />
+            <Route path="/legal" element={<LegalPage />} />
             <Route path="*" element={<NotFoundPage />} />
 
             <Route element={<PublicOrProtectedRoute />}>

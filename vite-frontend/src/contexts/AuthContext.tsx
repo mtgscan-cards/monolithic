@@ -170,12 +170,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const isPublicLandingPage = pathname === '/'
 
+    const isPublicLegalPage = pathname === '/legal'
+
     const shouldRedirectToLogin =
       !hasToken &&
       !isPublicCollectionRoute &&
       !isMobileScanRoute &&
       !isOnPublicAuthPage &&
-      !isPublicLandingPage &&
+      !isPublicLandingPage && // ← include if already defined for '/'
+      !isPublicLegalPage &&
       !(isSetupRoute && isEligibleForSetup)
 
     if (shouldRedirectToLogin) {

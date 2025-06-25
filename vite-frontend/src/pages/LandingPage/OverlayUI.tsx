@@ -32,8 +32,8 @@ const OverlayUI = () => (
         <Button variant="contained" color="primary" href="/scan">
           Start Scanning
         </Button>
-        <Button variant="outlined" color="secondary" href="/search">
-          Try Demo
+        <Button variant="outlined" color="secondary" href="/collections">
+          Create your collection
         </Button>
       </Stack>
     </Box>
