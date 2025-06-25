@@ -156,34 +156,47 @@ const App: React.FC = () => {
           backgroundColor: 'rgba(28, 28, 28, 0.85)', // nice sticky look
         }}
       >
-          <Toolbar>
-            <IconButton
-              color="inherit"
-              onClick={toggleDrawer(true)}
-              edge="start"
-              sx={{
-          zIndex: theme => (theme.zIndex.drawer + 3), // higher than Typography
-          position: { xs: 'relative', sm: 'static' },
-              }}
-            >
-              <MenuIcon />
-            </IconButton>
-<Box sx={{ flexGrow: 1, display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
-  <Typography
-    variant="h6"
-    component={RouterLink}
-    to="/"
+<Toolbar sx={{ px: 2, display: 'flex', alignItems: 'center' }}>
+  {/* Left: Menu Icon */}
+  <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-start' }}>
+    <IconButton
+      color="inherit"
+      onClick={toggleDrawer(true)}
+      edge="start"
+      sx={{
+        p: 1,
+      }}
+    >
+      <MenuIcon />
+    </IconButton>
+  </Box>
+
+  {/* Center: Title */}
+  <Box
     sx={{
-      color: 'inherit',
-      textDecoration: 'none',
-      fontWeight: 600,
-      '&:hover': { textDecoration: 'underline' },
+      flexGrow: 1,
+      display: 'flex',
+      justifyContent: { xs: 'center', sm: 'flex-start' },
     }}
   >
-    mtgscan.cards
-  </Typography>
-</Box>
-          </Toolbar>
+    <Typography
+      variant="h6"
+      component={RouterLink}
+      to="/"
+      sx={{
+        color: 'inherit',
+        textDecoration: 'none',
+        fontWeight: 600,
+        '&:hover': { textDecoration: 'underline' },
+      }}
+    >
+      mtgscan.cards
+    </Typography>
+  </Box>
+
+  {/* Right: Invisible spacer, only used for centering on mobile */}
+  <Box sx={{ width: 48, display: { xs: 'block', sm: 'none' } }} />
+</Toolbar>
         </AppBar>
 
         <NavigationDrawer
