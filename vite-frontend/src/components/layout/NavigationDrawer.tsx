@@ -102,13 +102,10 @@ PaperProps={{
             p: 2,
             display: 'flex',
             alignItems: 'center',
-            borderBottom: 1,
-            borderColor: 'divider',
+
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            mtgscan.cards
-          </Typography>
+            <Box sx={{ height: 30 }} />
         </Box>
 
         {/* Navigation items */}

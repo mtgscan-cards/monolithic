@@ -13,7 +13,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu'
 import SearchIcon from '@mui/icons-material/Search'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Link as RouterLink } from 'react-router-dom'
 
 import NavigationDrawer, { NavItem } from '../components/layout/NavigationDrawer'
 import FilterPanel, { FilterCriteria } from '../components/filters/FilterPanel'
@@ -147,22 +147,42 @@ const App: React.FC = () => {
       <CssBaseline />
       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
         <AppBar
-  position="sticky"
-  elevation={0}
-  sx={{
-    top: 0,
-    zIndex: theme => theme.zIndex.drawer + 2,
-    backdropFilter: 'blur(8px)',
-    backgroundColor: 'rgba(28, 28, 28, 0.85)', // nice sticky look
-  }}
->
+        position="sticky"
+        elevation={0}
+        sx={{
+          top: 0,
+          zIndex: theme => theme.zIndex.drawer + 2,
+          backdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(28, 28, 28, 0.85)', // nice sticky look
+        }}
+      >
           <Toolbar>
-            <IconButton color="inherit" onClick={toggleDrawer(true)} edge="start">
+            <IconButton
+              color="inherit"
+              onClick={toggleDrawer(true)}
+              edge="start"
+              sx={{
+          zIndex: theme => (theme.zIndex.drawer + 3), // higher than Typography
+          position: { xs: 'relative', sm: 'static' },
+              }}
+            >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" component="div">
-              mtgscan.cards
-            </Typography>
+<Box sx={{ flexGrow: 1, display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+  <Typography
+    variant="h6"
+    component={RouterLink}
+    to="/"
+    sx={{
+      color: 'inherit',
+      textDecoration: 'none',
+      fontWeight: 600,
+      '&:hover': { textDecoration: 'underline' },
+    }}
+  >
+    mtgscan.cards
+  </Typography>
+</Box>
           </Toolbar>
         </AppBar>
 
