@@ -22,7 +22,7 @@
 
 .highlight-card-container {
 
-  padding-left: 55px;
+  
   display: flex;
   justify-content: center;
   pointer-events: none;
@@ -64,7 +64,7 @@
     bottom: -40px;
     transform: translateY(-50%);
     right: 100px;
-
+    padding-left: 55px;
     min-width: 280px;
     display: flex;
     justify-content: center;
