@@ -35,15 +35,32 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
   const target = useRef({ x: 0.5, y: 0.5 })
   const current = useRef({ x: 0.5, y: 0.5 })
   const [imageLoaded, setImageLoaded] = useState(false)
+  const resetTimer = useRef<number | null>(null)
+
+  const resetTarget = () => {
+    target.current.x = 0.5
+    target.current.y = 0.5
+  }
+
+  const scheduleReset = () => {
+    if (resetTimer.current !== null) {
+      clearTimeout(resetTimer.current)
+    }
+    resetTimer.current = window.setTimeout(() => {
+      resetTarget()
+    }, 1000)
+  }
 
   useEffect(() => {
     if (!imageLoaded) return
     const el = cardRef.current
     if (!el) return
 
+    let animationFrame: number
+
     const update = () => {
-      current.current.x = lerp(current.current.x, target.current.x, 0.1) + 0.00001
-      current.current.y = lerp(current.current.y, target.current.y, 0.1) + 0.00001
+      current.current.x = lerp(current.current.x, target.current.x, 0.1)
+      current.current.y = lerp(current.current.y, target.current.y, 0.1)
 
       const px = current.current.x
       const py = current.current.y
@@ -65,7 +82,7 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
       el.style.setProperty('--pointer-y', `${py * 100}%`)
       el.style.setProperty('--pointer-from-center', `${fromCenter}`)
 
-      requestAnimationFrame(update)
+      animationFrame = requestAnimationFrame(update)
     }
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -73,11 +90,35 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
       target.current.y = e.clientY / window.innerHeight
     }
 
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return
+      const t = e.touches[0]
+      target.current.x = t.clientX / window.innerWidth
+      target.current.y = t.clientY / window.innerHeight
+      scheduleReset()
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return
+      const t = e.touches[0]
+      target.current.x = t.clientX / window.innerWidth
+      target.current.y = t.clientY / window.innerHeight
+    }
+
     window.addEventListener('mousemove', handleMouseMove)
-    update()
+    window.addEventListener('touchstart', handleTouchStart, { passive: true })
+    window.addEventListener('touchmove', handleTouchMove, { passive: true })
+
+    animationFrame = requestAnimationFrame(update)
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchmove', handleTouchMove)
+      cancelAnimationFrame(animationFrame)
+      if (resetTimer.current !== null) {
+        clearTimeout(resetTimer.current)
+      }
     }
   }, [imageLoaded])
 
