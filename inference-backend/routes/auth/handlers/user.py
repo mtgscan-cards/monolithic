@@ -4,9 +4,11 @@ from jwt_helpers import jwt_required
 from .. import auth_bp
 from db.postgres_pool import pg_pool
 from utils.cors import get_cors_origin
+from extensions import limiter
 
 @auth_bp.route("/me", methods=["GET"])
 @cross_origin(**get_cors_origin())
+@limiter.limit("60 per minute")
 @jwt_required
 def me():
     """
@@ -74,6 +76,7 @@ def me():
         pg_pool.putconn(conn)
 
 @auth_bp.route("/username_available", methods=["GET"])
+@limiter.limit("10 per second; 120 per minute")
 def username_available():
     """
     ---

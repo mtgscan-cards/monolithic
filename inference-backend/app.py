@@ -14,7 +14,7 @@ from datetime import timedelta
 import json
 from flask_apscheduler import APScheduler
 from flask_cors import CORS
-from flask import Flask
+from flask import Flask, jsonify
 from flasgger import Swagger
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -22,6 +22,8 @@ import os
 import sys
 from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager
+from extensions import limiter
+from flask_limiter.util import get_remote_address
 
 load_dotenv()  # Reads variables from .env
 
@@ -61,6 +63,9 @@ logger = logging.getLogger(__name__)
 logger.info("Daily log rotation is active.")
 
 app = Flask(__name__)
+
+# Set up the rate limiter using Redis (network name matches docker-compose)
+limiter.init_app(app)
 
 # Tell Flask to trust proxy headers like X-Forwarded-Proto
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -594,6 +599,16 @@ build_tag_cache()
 
 #run_scryfall_then_descriptors()  # Initial run to test
 #update_main()  # download scryfall bulk data and populate the database
+
+# ─── Health check route at baseurl ────────────────────────────────────────────
+@app.route('/', methods=['GET'])
+@limiter.limit("10 per minute")
+def root_health_check():
+    return jsonify({
+        "status": "ok",
+        "service": "mtgscan-api",
+        "docs_url": "/apidocs"
+    }), 200
 
 if __name__ == '__main__':
     logger.info("Flask app starting…")

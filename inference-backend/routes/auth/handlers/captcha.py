@@ -3,8 +3,10 @@
 from flask import request, jsonify, session
 from .. import auth_bp
 from ..utils import verify_hcaptcha
+from extensions import limiter
 
 @auth_bp.route("/verify_captcha", methods=["POST"])
+@limiter.limit("25 per minute; 100 per hour")
 def verify_captcha():
     """
     ---
@@ -53,6 +55,7 @@ def verify_captcha():
     return jsonify({"message": "hCaptcha verified"}), 200
 
 @auth_bp.route("/captcha_status", methods=["GET"])
+@limiter.limit("25 per minute; 100 per hour")
 def captcha_status():
     """
     ---

@@ -16,3 +16,4 @@ requests
 tqdm
 filelock
 watchdog
+flask-limiter[redis]

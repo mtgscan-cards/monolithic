@@ -22,6 +22,7 @@ services:
     restart: unless-stopped
     depends_on:
       - mtg-db
+      - redis
     env_file:
       - ./inference-backend/.env
     ports:
@@ -30,6 +31,13 @@ services:
       - ./inference-backend/resources:/app/resources  # Mount local resources folder
       - scryfall_data:/app/data
       - ./inference-backend/logs:/app/logs   # backend logs
+    networks:
+      - backend-net
+
+  redis:
+    image: redis:alpine
+    container_name: mtg-redis
+    restart: unless-stopped
     networks:
       - backend-net
 

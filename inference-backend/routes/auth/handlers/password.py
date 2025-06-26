@@ -16,6 +16,7 @@ from jwt_helpers import create_access_token, create_refresh_token
 from datetime import datetime, timedelta, timezone
 from utils.cors import get_cors_origin
 from flask_jwt_extended import set_access_cookies
+from extensions import limiter
 
 
 # Only allow 3–30 characters, no slashes, question marks, hashes or whitespace
@@ -24,6 +25,7 @@ USERNAME_REGEX = re.compile(r'^[^\/\?#\s]{3,30}$')
 
 @auth_bp.route("/login", methods=["POST"])
 @cross_origin(**get_cors_origin())
+@limiter.limit("5 per minute; 25 per hour")
 def login():
     """
     ---
@@ -129,6 +131,7 @@ def login():
 
 @auth_bp.route("/register", methods=["POST"])
 @cross_origin(**get_cors_origin())
+@limiter.limit("5 per minute; 25 per hour")
 def register():
     """
     ---
@@ -197,6 +200,7 @@ def register():
 @auth_bp.route("/set_password", methods=["POST"])
 @cross_origin(**get_cors_origin())
 @jwt_required
+@limiter.limit("5 per minute; 25 per hour")
 def set_password():
     """
     ---
@@ -265,6 +269,7 @@ def set_password():
 
 @auth_bp.route("/set_username", methods=["POST"])
 @jwt_required
+@limiter.limit("5 per minute; 25 per hour")
 def set_username():
     """
     ---
