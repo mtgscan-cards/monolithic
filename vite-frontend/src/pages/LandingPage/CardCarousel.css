@@ -5,6 +5,10 @@
   position: relative;
   flex: 1 1 auto;
   top: 15px;
+
+  /* Add for mobile centering */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .card-carousel-showcase {
