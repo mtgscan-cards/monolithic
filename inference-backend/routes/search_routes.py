@@ -242,50 +242,6 @@ def get_alternate_printings(card_id):
         if conn:
             pg_pool.putconn(conn)
 
-@search_bp.route('/api/cards/random', methods=['GET'])
-@cross_origin(**get_cors_origin())
-def get_cached_random_cards():
-    """
-    Get random card images from cached table
-    ---
-    tags:
-      - Cards
-    parameters:
-      - in: query
-        name: limit
-        type: integer
-        default: 25
-    responses:
-      200:
-        description: Random cached cards
-    """
-    logger.info("[RANDOM] Fetching from landing_cards")
-    limit = min(int(request.args.get('limit', 25)), 100)
-
-    query = """
-        SELECT id, name, image_uris
-        FROM landing_cards
-        ORDER BY RANDOM()
-        LIMIT %s;
-    """
-
-    conn = None
-    try:
-        conn = pg_pool.getconn()
-        cur = conn.cursor()
-        cur.execute(query, (limit,))
-        rows = cur.fetchall()
-        columns = [desc[0] for desc in cur.description]
-        results = [dict(zip(columns, row)) for row in rows]
-        cur.close()
-        return jsonify({"results": results})
-    except Exception as e:
-        logger.exception("[RANDOM] Error querying landing_cards")
-        return jsonify({"error": "Unable to fetch random cards"}), 500
-    finally:
-        if conn:
-            pg_pool.putconn(conn)
-
 @search_bp.route('/api/search/autocomplete', methods=['GET'])
 @cross_origin(**get_cors_origin())
 @jwt_required
