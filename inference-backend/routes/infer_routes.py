@@ -6,6 +6,7 @@ import time
 from utils.sift_features import find_closest_card_ransac
 from utils.resource_manager import load_resources
 from db.postgres_pool import pg_pool  # Import the connection pool
+from extensions import limiter
 logger = logging.getLogger(__name__)
 
 infer_bp = Blueprint('infer_bp', __name__)
@@ -14,6 +15,7 @@ infer_bp = Blueprint('infer_bp', __name__)
 faiss_index, hf, id_map = load_resources()
 
 @infer_bp.route('/infer', methods=['POST'])
+@limiter.limit("200 per minute; 5000 per hour")
 def infer():
     """
     Perform card inference from ROI image

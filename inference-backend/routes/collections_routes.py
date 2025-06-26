@@ -70,6 +70,7 @@ from flask_cors import cross_origin
 from db.postgres_pool import pg_pool
 from jwt_helpers import jwt_required
 from utils.cors import get_cors_origin
+from extensions import limiter
 logger = logging.getLogger(__name__)
 
 
@@ -93,6 +94,7 @@ def get_global_collection_id(user_id: int, user_collection_id: int, conn):
 @collections_bp.route("", methods=["POST"])
 @cross_origin(**get_cors_origin())
 @jwt_required
+@limiter.limit("60 per minute")
 def create_collection():
     """
     Create a new collection
@@ -195,6 +197,7 @@ def create_collection():
 @collections_bp.route("", methods=["GET"])
 @cross_origin(**get_cors_origin())
 @jwt_required
+@limiter.limit("60 per minute")
 def list_collections():
     """
     List user’s collections

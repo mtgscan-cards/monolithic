@@ -6,6 +6,7 @@ from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from flask_cors import cross_origin
 import logging
 from utils.cors import get_cors_origin
+from extensions import limiter
 logger = logging.getLogger(__name__)
 
 collection_value_bp = Blueprint(
@@ -16,6 +17,7 @@ collection_value_bp = Blueprint(
 
 @collection_value_bp.route('/<int:collection_id>/current', methods=['GET'])
 @cross_origin(**get_cors_origin())
+@limiter.limit("60 per minute; 500 per hour")
 def get_current_collection_value(collection_id):
     """
     ---
@@ -112,6 +114,7 @@ def get_current_collection_value(collection_id):
 
 @collection_value_bp.route('/<int:collection_id>/history', methods=['GET'])
 @cross_origin(**get_cors_origin())
+@limiter.limit("60 per minute; 500 per hour")
 def get_collection_value_history(collection_id):
     """
     ---

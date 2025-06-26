@@ -12,8 +12,10 @@ from config import (
     FRONTEND_URL,
 )
 from utils.cookies import set_refresh_cookie
+from extensions import limiter
 
 @auth_bp.route("/login/github", methods=["GET"])
+@limiter.limit("10 per minute; 100 per hour")
 def github_login():
     """
     ---
@@ -39,6 +41,7 @@ def github_login():
     return redirect(auth_url)
 
 @auth_bp.route("/callback/github", methods=["GET"])
+@limiter.limit("10 per minute; 100 per hour")
 def github_callback():
     """
     ---
@@ -147,6 +150,7 @@ def github_callback():
     return resp
 
 @auth_bp.route("/link/github", methods=["POST"])
+@limiter.limit("10 per minute; 100 per hour")
 @jwt_required
 def link_github():
     """
@@ -179,6 +183,7 @@ def link_github():
     return jsonify({"auth_url": auth_url}), 200
 
 @auth_bp.route("/callback/link/github", methods=["GET"])
+@limiter.limit("10 per minute; 100 per hour")
 def github_link_callback():
     """
     ---

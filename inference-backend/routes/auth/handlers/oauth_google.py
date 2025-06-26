@@ -10,9 +10,11 @@ from db.postgres_pool import pg_pool
 from utils.cookies import set_refresh_cookie
 from config import FRONTEND_URL
 from utils.cors import get_cors_origin
+from extensions import limiter
 
 @auth_bp.route("/login/google", methods=["POST", "OPTIONS"])
 @cross_origin(**get_cors_origin())
+@limiter.limit("15 per minute; 100 per hour")
 def google_login():
     """
     ---
@@ -120,6 +122,7 @@ def google_login():
 
 
 @auth_bp.route("/link/google", methods=["POST"])
+@limiter.limit("15 per minute; 100 per hour")
 @cross_origin(**get_cors_origin())
 @jwt_required
 def link_google():

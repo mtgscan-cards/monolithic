@@ -12,12 +12,14 @@ from jwt_helpers import create_access_token, create_refresh_token
 from utils.cookies import set_refresh_cookie
 from config import JWT_SECRET, JWT_ALGORITHM
 from utils.cors import get_cors_origin
+from extensions import limiter
 
 REFRESH_TOKEN_EXPIRE_DAYS = 30  # Keep this in sync with cookie max-age
 logger = logging.getLogger(__name__)
 
 @auth_bp.route("/refresh", methods=["POST", "OPTIONS"])
 @cross_origin(**get_cors_origin())
+@limiter.limit("2 per second; 120 per minute")
 def refresh():
     if request.method == "OPTIONS":
         return jsonify({}), 200
