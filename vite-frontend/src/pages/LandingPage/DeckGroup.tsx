@@ -15,7 +15,7 @@ const getRandomPosition = (range = 20) =>
 
 const getNonOverlappingPosition = (
   existing: Vector3[],
-  radius = 1.2,
+  radius: number,
   maxAttempts = 100
 ): Vector3 => {
   for (let i = 0; i < maxAttempts; i++) {
@@ -25,7 +25,6 @@ const getNonOverlappingPosition = (
   }
   return getRandomPosition()
 }
-
 
 const DeckGroup: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
   const groupRef = useRef<Group>(null!)
@@ -37,10 +36,19 @@ const DeckGroup: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
     [cards]
   )
 
+  // Adjust spacing radius based on card count
+  const densityRadius = useMemo(() => {
+    if (validCards.length <= 16) return 1.8
+    if (validCards.length <= 32) return 1.4
+    return 1.0
+  }, [validCards.length])
+
+  console.log(`[DeckGroup] Spawning ${validCards.length} cards with radius ${densityRadius}`)
+
   const metadata = useMemo(() => {
     const positions: Vector3[] = []
     return validCards.map(() => {
-      const pos = getNonOverlappingPosition(positions, 1.2)
+      const pos = getNonOverlappingPosition(positions, densityRadius)
       positions.push(pos)
       return {
         pos,
@@ -49,7 +57,7 @@ const DeckGroup: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
         opacity: 0,
       }
     })
-  }, [validCards])
+  }, [validCards, densityRadius])
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()

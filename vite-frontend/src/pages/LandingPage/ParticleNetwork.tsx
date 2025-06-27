@@ -54,39 +54,37 @@ const ParticleNetwork: React.FC = () => {
 
     window.addEventListener('mousemove', onMouseMove)
 
-    const particles: Particle[] = []
-    const MAX_PARTICLES = 90
-    const SPAWN_INTERVAL = 100
-    const MAX_DISTANCE = 160
+    // Scale particle limits based on resolution
+    const scaleFactor = Math.min(window.innerWidth, window.innerHeight) / 1080
+    const MAX_PARTICLES = Math.floor(60 + scaleFactor * 60)
+    const MAX_DISTANCE = 160 * scaleFactor
     const MAX_DISTANCE_SQ = MAX_DISTANCE * MAX_DISTANCE
-    const MIN_CONNECTIONS = 2
-    const MAX_NEIGHBORS = 4
-    const MAX_ACTIVE_LINKS = 100
+    const MAX_ACTIVE_LINKS = Math.floor(100 * scaleFactor)
+    const particles: Particle[] = []
 
     const spawnParticle = () => {
-      if (particles.length >= MAX_PARTICLES) return
+  if (particles.length >= MAX_PARTICLES) return
 
-      const angle = Math.random() * Math.PI * 2
-      const radius = Math.pow(Math.random(), 0.6)
-      const offsetX = Math.cos(angle) * radius
-      const offsetY = Math.sin(angle) * radius
+  // Uniform -1 to 1 range for both axes
+  const offsetX = (Math.random() - 0.5) * 2
+  const offsetY = (Math.random() - 0.5) * 2
 
-      particles.push({
-        offsetX,
-        offsetY,
-        angle: Math.random() * Math.PI * 2,
-        orbitRadius: 6 + Math.random() * 8,
-        orbitSpeed: 0.002 + Math.random() * 0.004,
-        z: Math.random(),
-        opacity: 1,
-        pulse: Math.random() * Math.PI * 2,
-        pulseSpeed: 0.04 + Math.random() * 0.02,
-        age: 1000,
-        flickerOffset: Math.random() * 10,
-        connections: 0,
-      })
-    }
-
+  particles.push({
+    offsetX,
+    offsetY,
+    angle: Math.random() * Math.PI * 2,
+    orbitRadius: 6 + Math.random() * 8,
+    orbitSpeed: 0.002 + Math.random() * 0.004,
+    z: Math.random(),
+    opacity: 1,
+    pulse: Math.random() * Math.PI * 2,
+    pulseSpeed: 0.04 + Math.random() * 0.02,
+    age: 1000,
+    flickerOffset: Math.random() * 10,
+    connections: 0,
+  })
+}
+    const SPAWN_INTERVAL = 120
     const interval = setInterval(spawnParticle, SPAWN_INTERVAL)
 
     const draw = () => {
@@ -136,17 +134,17 @@ const ParticleNetwork: React.FC = () => {
         }
 
         dists.sort((a, b) => a.distSq - b.distSq)
-        neighborMap[i] = dists.slice(0, MAX_NEIGHBORS).map(n => n.index)
+        neighborMap[i] = dists.slice(0, 4).map(n => n.index)
         a.connections = neighborMap[i].length
       }
 
       for (let i = 0; i < particles.length; i++) {
         const a = particles[i]
-        if (a.connections < MIN_CONNECTIONS) continue
+        if (a.connections < 2) continue
 
         for (const j of neighborMap[i]) {
           const b = particles[j]
-          if (b.connections < MIN_CONNECTIONS) continue
+          if (b.connections < 2) continue
 
           const axBase = centerX + a.offsetX * scale
           const ayBase = centerY + a.offsetY * scale
@@ -189,7 +187,7 @@ const ParticleNetwork: React.FC = () => {
       }
 
       for (const p of particles) {
-        if (p.connections < MIN_CONNECTIONS) continue
+        if (p.connections < 2) continue
 
         const flicker = 0.8 + 0.2 * Math.sin(time / 200 + p.flickerOffset)
         const r = 2.5 + Math.sin(p.pulse) * 1.2

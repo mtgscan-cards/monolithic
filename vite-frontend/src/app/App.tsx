@@ -35,6 +35,7 @@ import { sendFilterCriteria } from '../api/FilterBackend'
 import '../styles/App.css'
 import LandingPage from '../pages/LandingPage/LandingPage.tsx'
 import LegalPage from '../pages/Legal/LegalPage'
+import 'keyrune/css/keyrune.css';
 
 const modernTheme = createTheme({
   palette: {

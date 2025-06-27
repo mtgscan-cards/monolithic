@@ -37,79 +37,79 @@ const FullscreenMetaball = () => {
       <shaderMaterial
         vertexShader={`void main() { gl_Position = vec4(position, 1.0); }`}
         fragmentShader={`precision highp float;
-          uniform float uTime;
-          uniform vec2 uResolution;
-          uniform vec2 uMouse;
+uniform float uTime;
+uniform vec2 uResolution;
+uniform vec2 uMouse;
 
-          float metaball(vec2 p, vec2 center, float r) {
-            vec2 diff = p - center;
-            return r * r / (dot(diff, diff) + 1e-4);
-          }
+float metaball(vec2 p, vec2 center, float r) {
+  vec2 diff = p - center;
+  return r * r / (dot(diff, diff) + 1e-4);
+}
 
-          float wobbleMod(vec2 p, vec2 center, float baseR, float influence) {
-            vec2 diff = p - center;
-            float dist = length(diff);
-            float angle = atan(diff.y, diff.x);
-            float decay = pow(clamp(1.0 - dist / baseR, 0.0, 1.0), 1.4);
-            float id = dot(center, vec2(13.37, 17.11));
-            float harmonic =
-              0.35 * sin(angle * 2.7 + id + uTime * 0.65) +
-              0.15 * sin(angle * 5.5 + id + uTime * 1.0);
-            return baseR + harmonic * decay * influence * 0.0035;
-          }
+float wobbleMod(vec2 p, vec2 center, float baseR, float influence) {
+  vec2 diff = p - center;
+  float dist = length(diff);
+  float angle = atan(diff.y, diff.x);
+  float decay = pow(clamp(1.0 - dist / baseR, 0.0, 1.0), 1.4);
+  float id = dot(center, vec2(13.37, 17.11));
+  float harmonic =
+    0.35 * sin(angle * 2.7 + id + uTime * 0.65) +
+    0.15 * sin(angle * 5.5 + id + uTime * 1.0);
+  return baseR + harmonic * decay * influence * 0.0035;
+}
 
-          float random(float n) {
-            return fract(sin(n) * 43758.5453123);
-          }
+float random(float n) {
+  return fract(sin(n) * 43758.5453123);
+}
 
-          void main() {
-            vec2 uv = gl_FragCoord.xy / uResolution;
-            vec2 offset = vec2(1.0 / uResolution.x, 1.0 / uResolution.y);
-            float accum = 0.0;
-            vec2 centers[8];
-            float radii[8];
+void main() {
+  vec2 uv = gl_FragCoord.xy / uResolution;
+  vec2 offset = vec2(1.0 / uResolution.x, 1.0 / uResolution.y);
+  float accum = 0.0;
+  vec2 centers[8];
+  float radii[8];
 
-            for (int i = 0; i < 8; i++) {
-              float id = float(i);
-              float depth = 0.3 + 0.7 * fract(sin(id * 57.0) * 43758.5453);
-              float influence = pow(depth, 1.5);
-              vec2 parallax = (uMouse - 0.5) * 0.2 * (1.0 - influence);
-              centers[i] = vec2(
-                0.5 + 0.33 * sin(uTime * 0.2 + id * 1.3),
-                0.5 + 0.33 * cos(uTime * 0.15 + id * 1.7)
-              ) + parallax;
-              radii[i] = 0.038 + 0.008 * mod(id, 3.0);
-            }
+  for (int i = 0; i < 8; i++) {
+    float id = float(i);
+    float depth = 0.3 + 0.7 * fract(sin(id * 57.0) * 43758.5453);
+    float influence = pow(depth, 1.5);
+    vec2 parallax = (uMouse - 0.5) * 0.2 * (1.0 - influence);
+    centers[i] = vec2(
+      0.5 + 0.33 * sin(uTime * 0.2 + id * 1.3),
+      0.5 + 0.33 * cos(uTime * 0.15 + id * 1.7)
+    ) + parallax;
+    radii[i] = 0.038 + 0.008 * mod(id, 3.0);
+  }
 
-            for (int i = 0; i < 8; i++) {
-              float infl = 0.0;
-              for (int j = 0; j < 8; j++) {
-                if (i != j) {
-                  infl += smoothstep(0.0, 0.2, 0.2 - distance(centers[i], centers[j]));
-                }
-              }
-              accum += metaball(uv, centers[i], wobbleMod(uv, centers[i], radii[i], infl));
-            }
+  for (int i = 0; i < 8; i++) {
+    float infl = 0.0;
+    for (int j = 0; j < 8; j++) {
+      if (i != j) {
+        infl += smoothstep(0.0, 0.2, 0.2 - distance(centers[i], centers[j]));
+      }
+    }
+    accum += metaball(uv, centers[i], wobbleMod(uv, centers[i], radii[i], infl));
+  }
 
-            float t = smoothstep(0.9, 1.2, accum);
-            float dx = accum - metaball(uv + vec2(offset.x, 0.0), vec2(0.5), 0.3);
-            float dy = accum - metaball(uv + vec2(0.0, offset.y), vec2(0.5), 0.3);
-            vec3 normal = normalize(vec3(dx, dy, 1.0));
-            float lighting = dot(normal, normalize(vec3(-0.2, 0.3, 1.0)));
-            float variation = random(accum * 23.17);
-            vec3 base = vec3(0.04 + variation * 0.015, 0.01 + variation * 0.008, 0.015);
-            vec3 glow = vec3(0.22 + variation * 0.04, 0.01, 0.05 + variation * 0.015);
-            vec3 merged = mix(base, glow, pow(t, 1.4));
-            merged = mix(merged, vec3(1.0), 0.05);
-            merged *= 0.4 + 0.3 * lighting;
-            merged.r += 0.04 * lighting;
-            merged.g *= 0.9;
-            merged.b *= 0.8;
-            float glowEdge = smoothstep(0.3, 0.8, t) * 0.35;
-            float alpha = clamp(t * 0.3 + glowEdge, 0.0, 1.0);
-            gl_FragColor = vec4(merged, alpha);
-          }
-        `}
+  float t = smoothstep(0.9, 1.2, accum);
+  float dx = accum - metaball(uv + vec2(offset.x, 0.0), vec2(0.5), 0.3);
+  float dy = accum - metaball(uv + vec2(0.0, offset.y), vec2(0.5), 0.3);
+  vec3 normal = normalize(vec3(dx, dy, 1.0));
+  float lighting = dot(normal, normalize(vec3(-0.2, 0.3, 1.0)));
+  float variation = random(accum * 23.17);
+  vec3 base = vec3(0.04 + variation * 0.015, 0.01 + variation * 0.008, 0.015);
+  vec3 glow = vec3(0.22 + variation * 0.04, 0.01, 0.05 + variation * 0.015);
+  vec3 merged = mix(base, glow, pow(t, 1.4));
+  merged = mix(merged, vec3(1.0), 0.05);
+  merged *= 0.4 + 0.3 * lighting;
+  merged.r += 0.04 * lighting;
+  merged.g *= 0.9;
+  merged.b *= 0.8;
+  float glowEdge = smoothstep(0.3, 0.8, t) * 0.35;
+  float alpha = clamp(t * 0.3 + glowEdge, 0.0, 1.0);
+  gl_FragColor = vec4(merged, alpha);
+}
+`}
         uniforms={uniforms}
         transparent
         depthWrite={false}
@@ -120,6 +120,7 @@ const FullscreenMetaball = () => {
 
 const BlobMesh = () => {
   const [hovered, setHovered] = useState(false)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 600
 
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
@@ -132,7 +133,8 @@ const BlobMesh = () => {
 
   useFrame(({ clock, mouse }) => {
     uniforms.uTime.value = clock.getElapsedTime()
-    if (hovered) {
+
+    if (!isMobile && hovered) {
       smoothedMouse.lerp(new THREE.Vector2(mouse.x, mouse.y), 0.06)
       uniforms.uMouse.value.copy(smoothedMouse)
     }
@@ -140,8 +142,11 @@ const BlobMesh = () => {
 
   return (
     <group position={[0, 1.1, 0]}>
-      <mesh onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
-        <sphereGeometry args={[3.7, 32, 32]} />
+      <mesh
+        onPointerOver={() => !isMobile && setHovered(true)}
+        onPointerOut={() => !isMobile && setHovered(false)}
+      >
+        <sphereGeometry args={[3.7, isMobile ? 12 : 32, isMobile ? 12 : 32]} />
         <shaderMaterial
           vertexShader={/* glsl */`
             varying float vDistort;
@@ -203,7 +208,6 @@ const BlobMesh = () => {
               float d = clamp(vDistort, 0.0, 1.0);
               vec3 base = cosPalette(d, vec3(0.1, 0.08, 0.08), vec3(0.4, 0.1, 0.1), vec3(1.0), vec3(0.0, 0.2, 0.25));
 
-              // Simulated surface bump via distorted normal
               vec3 bumpedNormal = normalize(vNormal + d * 0.6 * vec3(0.5, 0.5, 1.0));
               float light = dot(bumpedNormal, normalize(vec3(-0.4, 0.3, 1.0)));
 
@@ -222,12 +226,16 @@ const BlobMesh = () => {
     </group>
   )
 }
+
+
 interface PopInSceneProps {
   visible: boolean
 }
+
 const PopInScene: React.FC<PopInSceneProps> = ({ visible }) => {
   const [ready, setReady] = useState(false)
   const [showMetaballs, setShowMetaballs] = useState(false)
+  const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 600
 
   const { scale, opacity } = useSpring({
     from: { scale: 0.8, opacity: 0 },
@@ -250,7 +258,7 @@ const PopInScene: React.FC<PopInSceneProps> = ({ visible }) => {
     <a.group scale={scale} visible={opacity.to((o) => o > 0)}>
       <a.group scale={scale} position={[0, 0, 0]}>
         {ready && <BlobMesh />}
-        {showMetaballs && <FullscreenMetaball />}
+        {showMetaballs && !isSmallScreen && <FullscreenMetaball />}
       </a.group>
     </a.group>
   )
@@ -270,8 +278,7 @@ const SiteStatsSection: React.FC = () => {
           top: 0,
           left: 0,
           width: '100%',
-          height: '100%',
-          minHeight: '800px',
+          height: '800px',
           display: 'block',
           zIndex: 0,
           background: '#111111',
@@ -305,4 +312,5 @@ const SiteStatsSection: React.FC = () => {
     </div>
   )
 }
+
 export default SiteStatsSection

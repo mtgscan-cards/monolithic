@@ -1,6 +1,7 @@
 // vite-frontend/src/pages/LandingPage/CardCarousel.tsx
 
 import React, { useEffect, useRef, useState } from 'react'
+import { useInView } from 'react-intersection-observer'
 import './CardCarousel.css'
 
 export interface CardImage {
@@ -34,8 +35,11 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
   const cardRef = useRef<HTMLDivElement>(null)
   const target = useRef({ x: 0.5, y: 0.5 })
   const current = useRef({ x: 0.5, y: 0.5 })
-  const [imageLoaded, setImageLoaded] = useState(false)
   const resetTimer = useRef<number | null>(null)
+  const animationFrame = useRef<number | null>(null)
+  const [imageLoaded, setImageLoaded] = useState(false)
+
+  const { ref: observerRef, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
 
   const resetTarget = () => {
     target.current.x = 0.5
@@ -46,17 +50,13 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
     if (resetTimer.current !== null) {
       clearTimeout(resetTimer.current)
     }
-    resetTimer.current = window.setTimeout(() => {
-      resetTarget()
-    }, 1000)
+    resetTimer.current = window.setTimeout(resetTarget, 1000)
   }
 
   useEffect(() => {
-    if (!imageLoaded) return
+    if (!imageLoaded || !inView) return
     const el = cardRef.current
     if (!el) return
-
-    let animationFrame: number
 
     const update = () => {
       current.current.x = lerp(current.current.x, target.current.x, 0.1)
@@ -82,10 +82,13 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
       el.style.setProperty('--pointer-y', `${py * 100}%`)
       el.style.setProperty('--pointer-from-center', `${fromCenter}`)
 
-      animationFrame = requestAnimationFrame(update)
+      animationFrame.current = requestAnimationFrame(update)
     }
 
+    const isTouch = 'ontouchstart' in window
+
     const handleMouseMove = (e: MouseEvent) => {
+      if (isTouch) return
       target.current.x = e.clientX / window.innerWidth
       target.current.y = e.clientY / window.innerHeight
     }
@@ -109,18 +112,16 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
     window.addEventListener('touchstart', handleTouchStart, { passive: true })
     window.addEventListener('touchmove', handleTouchMove, { passive: true })
 
-    animationFrame = requestAnimationFrame(update)
+    animationFrame.current = requestAnimationFrame(update)
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('touchstart', handleTouchStart)
       window.removeEventListener('touchmove', handleTouchMove)
-      cancelAnimationFrame(animationFrame)
-      if (resetTimer.current !== null) {
-        clearTimeout(resetTimer.current)
-      }
+      if (animationFrame.current) cancelAnimationFrame(animationFrame.current)
+      if (resetTimer.current) clearTimeout(resetTimer.current)
     }
-  }, [imageLoaded])
+  }, [imageLoaded, inView])
 
   const handleClick = () => {
     onCardClick?.(card.id)
@@ -138,7 +139,7 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
   }
 
   return (
-    <div className="card-carousel-wrapper">
+    <div className="card-carousel-wrapper" ref={observerRef}>
       <div className="card-carousel-showcase card-carousel-floating">
         <div className="card-carousel-card" ref={cardRef} style={initialStyle}>
           <div className="card__translater">
@@ -153,10 +154,11 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
                   src={card.front}
                   alt={card.name}
                   draggable={false}
+                  loading="lazy"
                   onLoad={() => setImageLoaded(true)}
                 />
-                <div className="card__shine" />
-                <div className="card__glare" />
+                {imageLoaded && inView && <div className="card__shine" />}
+                {imageLoaded && inView && <div className="card__glare" />}
               </div>
             </button>
           </div>

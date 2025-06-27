@@ -93,7 +93,7 @@ const Footer: React.FC = () => {
         >
           Made with
           <img
-            src="https://fonts.gstatic.com/s/e/notoemoji/latest/2764/512.webp"
+            src="/img/512.webp"
             alt="Heart"
             width={18}
             height={18}

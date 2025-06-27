@@ -1,9 +1,12 @@
+// vite-frontend/src/pages/LandingPage/LandingPage.tsx
+
 import React, { useEffect, useState } from 'react'
 import Deck3DScene from './Deck3DScene'
 import OverlayUI from './OverlayUI'
 import LandingContent from './LandingContent'
 import SiteStatsSection from './SiteStatsSection'
 import Footer from './Footer'
+import { useInView } from 'react-intersection-observer'
 
 export type CardImage = {
   id: string
@@ -17,6 +20,11 @@ const LandingPage: React.FC = () => {
   const [cards, setCards] = useState<CardImage[]>([])
   const [loading, setLoading] = useState(true)
 
+  const [statsRef, statsInView] = useInView({
+    triggerOnce: true,
+    threshold: 0.2,
+  })
+
   useEffect(() => {
     fetch('/cards/index.json')
       .then((res) => res.json())
@@ -29,7 +37,6 @@ const LandingPage: React.FC = () => {
     <div
       style={{
         width: '100%',
-        minHeight: '100vh',
         overflowX: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -42,7 +49,6 @@ const LandingPage: React.FC = () => {
           position: 'relative',
           width: '100%',
           height: '94vh',
-          minHeight: '800px',
           overflow: 'hidden',
           flexShrink: 0,
           display: 'flex',
@@ -51,15 +57,13 @@ const LandingPage: React.FC = () => {
         {loading ? (
           <div
             style={{
-              minHeight: '800px',
               position: 'absolute',
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
               zIndex: 10,
             }}
-          >
-          </div>
+          />
         ) : (
           <>
             <Deck3DScene cards={cards} />
@@ -75,7 +79,6 @@ const LandingPage: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           padding: 0,
-          minHeight: '1200px',
         }}
       >
         {loading || cards.length === 0 ? (
@@ -83,7 +86,9 @@ const LandingPage: React.FC = () => {
         ) : (
           <>
             <LandingContent highlightCard={cards[0]} />
-            <SiteStatsSection />
+            <div ref={statsRef}>
+              {statsInView && <SiteStatsSection />}
+            </div>
             <Footer />
           </>
         )}
