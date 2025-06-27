@@ -170,23 +170,33 @@ PaperProps={{
               <Typography variant="body1" sx={{ lineHeight: 1 }}>
                 {signedIn ? displayName : 'Not signed in'}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
                 {signedIn ? (
                   <>
-                    Signed in –{' '}
-                    <MuiLink
-                      component="button"
-                      variant="caption"
-                      onClick={handleLogout}
-                      sx={{ p: 0, cursor: 'pointer' }}
-                    >
-                      Logout
-                    </MuiLink>
+                  Signed in –{' '}
+                  <MuiLink
+                    component={Link}
+                    to="/login"
+                    variant="caption"
+                    sx={{ p: 0, cursor: 'pointer' }}
+                    onClick={handleLogout}
+                    underline="always"
+                  >
+                    Logout
+                  </MuiLink>
                   </>
                 ) : (
-                  'Tap “Login” to continue'
+                  <MuiLink
+                  component={Link}
+                  to="/login"
+                  variant="caption"
+                  sx={{ p: 0, cursor: 'pointer' }}
+                  underline="always"
+                  >
+                  Tap “Login” to continue
+                  </MuiLink>
                 )}
-              </Typography>
+                </Typography>
             </Box>
           </Box>
           {signedIn && (
