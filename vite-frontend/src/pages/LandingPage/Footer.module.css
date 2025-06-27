@@ -1,0 +1,86 @@
+.footerWrapper {
+  width: 100%;
+  background-color: #1e1e1e;
+  color: #ccc;
+  padding-top: 32px;
+  padding-bottom: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.9rem;
+}
+
+.sectionHeader {
+  margin-bottom: 8px;
+}
+
+.title {
+  font-weight: 600;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.description {
+  color: #999;
+  line-height: 1.5;
+}
+
+.license {
+  display: block;
+  margin-top: 1.2rem;
+  color: #555;
+  min-height: 20px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  color: #fff;
+}
+
+.icon {
+  margin-right: 0.5rem;
+  color: #ff5252;
+}
+
+.link {
+  color: white !important;
+  text-decoration: none !important;
+}
+
+h6 {
+  margin-bottom: 0.5rem !important;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.footerBottom {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+  color: #555;
+  font-size: 0.8rem;
+}
+
+.footerCredit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.heartIcon {
+  vertical-align: middle;
+  display: inline-block;
+  aspect-ratio: 1 / 1;
+}
+
+a {
+  color: white !important;
+}
+.license {
+  margin-top: 1rem !important;
+}
