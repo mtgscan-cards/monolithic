@@ -1,107 +1,94 @@
 import React from 'react'
-import { Box, Typography, Grid, Link, Stack, Container } from '@mui/material'
+import {
+  Box,
+  Typography,
+  Grid,
+  Link,
+  Stack,
+  Container,
+  useTheme,
+  useMediaQuery,
+} from '@mui/material'
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined'
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
 import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined'
 import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined'
 import LatestCommitLink from './LatestCommitLink'
-
+import styles from './Footer.module.css'
 
 const Footer: React.FC = () => {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
   return (
-    <Box
-      component="footer"
-      sx={{
-        width: '100%',
-        backgroundColor: '#1e1e1e',
-        color: '#ccc',
-        pt: 3,
-        pb: 2,
-        borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-        fontSize: '0.9rem',
-      }}
-    >
-      <Container maxWidth="lg" sx={{ display: 'flex', justifyContent: 'center' }}>
-        <Grid container spacing={3} justifyContent="center" alignItems="flex-start">
+    <Box component="footer" className={styles.footerWrapper}>
+      <Container maxWidth="lg">
+        <Grid container spacing={4} justifyContent="center">
           <Grid item xs={12} sm={6} md={4}>
-            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-              <CameraAltOutlinedIcon fontSize="small" sx={{ color: 'primary.main' }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#fff', fontSize: '1rem' }}>
+            <Stack
+              direction={isMobile ? 'column' : 'row'}
+              alignItems={isMobile ? 'flex-start' : 'center'}
+              spacing={1}
+              className={styles.sectionHeader}
+            >
+              <CameraAltOutlinedIcon fontSize="small" className={styles.icon} />
+              <Typography variant="h6" className={styles.title}>
                 MTGScan.cards
               </Typography>
             </Stack>
-            <Typography sx={{ color: '#999', lineHeight: 1.5 }}>
+            <Typography className={styles.description}>
               Scan and track your MTG cards with Open Source computer vision.
             </Typography>
-            <Typography
-              variant="caption"
-              sx={{ display: 'block', mt: 1.2, color: '#555', minHeight: 20 }}
-            >
+            <Typography variant="caption" className={styles.license}>
               <LatestCommitLink />
               {' • GPL 3.0'}
             </Typography>
           </Grid>
 
           <Grid item xs={12} sm={6} md={2}>
-            <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1, color: '#fff' }}>
-              <MenuBookOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+            <Typography variant="subtitle2" className={styles.heading}>
+              <MenuBookOutlinedIcon fontSize="small" className={styles.icon} />
               Resources
             </Typography>
             <Stack spacing={0.75}>
-              <Link href="https://deepwiki.com/mtgscan-cards/monolithic" underline="none" color="#aaa">Docs</Link>
-              <Link href="https://api.mtgscan.cards/apidocs" underline="none" color="#aaa">API Docs</Link>
+              <Link href="https://deepwiki.com/mtgscan-cards/monolithic" className={styles.link}>Docs</Link>
+              <Link href="https://api.mtgscan.cards/apidocs" className={styles.link}>API Docs</Link>
             </Stack>
           </Grid>
 
           <Grid item xs={12} sm={6} md={2}>
-            <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1, color: '#fff' }}>
-              <PublicOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+            <Typography variant="subtitle2" className={styles.heading}>
+              <PublicOutlinedIcon fontSize="small" className={styles.icon} />
               Community
             </Typography>
             <Stack spacing={0.75}>
-              <Link href="https://github.com/mtgscan-cards" underline="none" color="#aaa">GitHub</Link>
-              <Link href="https://github.com/mtgscan-cards/monolithic/commits/main/" underline="none" color="#aaa">Changelog</Link>
+              <Link href="https://github.com/mtgscan-cards" className={styles.link}>GitHub</Link>
+              <Link href="https://github.com/mtgscan-cards/monolithic/commits/main/" className={styles.link}>Changelog</Link>
             </Stack>
           </Grid>
 
           <Grid item xs={12} sm={6} md={2}>
-            <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1, color: '#fff' }}>
-              <GavelOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+            <Typography variant="subtitle2" className={styles.heading}>
+              <GavelOutlinedIcon fontSize="small" className={styles.icon} />
               Legal
             </Typography>
             <Stack spacing={0.75}>
-              <Link href="/legal" underline="none" color="#aaa">Terms of Service</Link>
-              <Link href="https://raw.githubusercontent.com/mtgscan-cards/monolithic/refs/heads/main/LICENSE" underline="none" color="#aaa">License</Link>
+              <Link href="/legal" className={styles.link}>Terms of Service</Link>
+              <Link href="https://raw.githubusercontent.com/mtgscan-cards/monolithic/refs/heads/main/LICENSE" className={styles.link}>License</Link>
             </Stack>
           </Grid>
         </Grid>
       </Container>
 
-      <Box
-        sx={{
-          mt: 3,
-          pt: 1,
-          borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-          textAlign: 'center',
-          color: '#555',
-          fontSize: '0.8rem',
-        }}
-      >
-        <Typography
-          variant="body2"
-          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75 }}
-        >
+      <Box className={styles.footerBottom}>
+        <Typography variant="body2" className={styles.footerCredit}>
           Made with
           <img
-            src="https://fonts.gstatic.com/s/e/notoemoji/latest/2764/512.webp"
+            src="/img/512.webp"
             alt="Heart"
             width={18}
             height={18}
-            style={{
-              verticalAlign: 'middle',
-              display: 'inline-block',
-              aspectRatio: '1 / 1',
-            }}
+            className={styles.heartIcon}
           />
           by players, collectors, and developers.
         </Typography>

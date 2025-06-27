@@ -25,6 +25,7 @@
     "axios": "^1.8.1",
     "chart.js": "^4.4.8",
     "framer-motion": "^12.18.1",
+    "keyrune": "^3.17.0",
     "over-lib": "github:JakeTurner616/over-lib",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.0",

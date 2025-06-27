@@ -35,6 +35,11 @@ jobs:
           echo "VITE_GITHUB_APP_CLIENT_ID=${{ secrets.VITE_GITHUB_APP_CLIENT_ID }}" >> .env
           echo "VITE_FRONTEND_URL=${{ secrets.VITE_FRONTEND_URL }}" >> .env
 
+      - name: Upgrade Keyrune
+        working-directory: vite-frontend
+        run: |
+          npm install keyrune@latest --save
+
       - name: Install dependencies & build
         working-directory: vite-frontend
         run: |

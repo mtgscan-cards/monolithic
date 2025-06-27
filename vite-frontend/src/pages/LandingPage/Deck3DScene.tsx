@@ -90,6 +90,21 @@ const SceneContents: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
 }
 
 const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
+  // Calculate screen area and DPR
+  const width = window.innerWidth
+  const height = window.innerHeight
+  const dpr = window.devicePixelRatio || 1
+  const screenArea = width * height * dpr
+
+  const maxCards = useMemo(() => {
+    if (screenArea <= 480 * 800) return 12
+    if (screenArea <= 768 * 1024) return 16
+    if (screenArea <= 1280 * 1440) return 32
+    return 45
+  }, [screenArea])
+
+  const visibleCards = useMemo(() => cards.slice(0, maxCards), [cards, maxCards])
+
   useEffect(() => {
     let mounted = true
     let visible = document.visibilityState === 'visible'
@@ -149,8 +164,7 @@ const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
         }}
       >
         <Suspense fallback={null}>
-          <SceneContents cards={cards} />
-          {/* Preload AFTER initial scene to avoid blocking first paint */}
+          <SceneContents cards={visibleCards} />
           <Preload all />
         </Suspense>
       </Canvas>
