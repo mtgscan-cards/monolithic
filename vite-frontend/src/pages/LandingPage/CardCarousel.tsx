@@ -1,6 +1,6 @@
 // vite-frontend/src/pages/LandingPage/CardCarousel.tsx
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import './CardCarousel.css'
 
@@ -46,12 +46,12 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
     target.current.y = 0.5
   }
 
-  const scheduleReset = () => {
+  const scheduleReset = useCallback(() => {
     if (resetTimer.current !== null) {
       clearTimeout(resetTimer.current)
     }
     resetTimer.current = window.setTimeout(resetTarget, 1000)
-  }
+  }, []) // or add dependencies if resetTarget is unstable
 
   useEffect(() => {
     if (!imageLoaded || !inView) return
@@ -121,7 +121,7 @@ const CardCarousel: React.FC<CardCarouselProps> = ({ card, onCardClick }) => {
       if (animationFrame.current) cancelAnimationFrame(animationFrame.current)
       if (resetTimer.current) clearTimeout(resetTimer.current)
     }
-  }, [imageLoaded, inView])
+  }, [imageLoaded, inView, scheduleReset])
 
   const handleClick = () => {
     onCardClick?.(card.id)
