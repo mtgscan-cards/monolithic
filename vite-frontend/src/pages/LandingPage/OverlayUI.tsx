@@ -1,6 +1,7 @@
 // src/pages/LandingPage/OverlayUI.tsx
 
 import { Box, Typography, Stack, Button } from '@mui/material'
+import { Link as RouterLink } from 'react-router-dom'
 
 const OverlayUI = () => (
   <Box
@@ -44,8 +45,8 @@ const OverlayUI = () => (
         <Button
           variant="contained"
           color="primary"
-          href="/scan"
-          component="a"
+          component={RouterLink}
+          to="/login?next=/scan"
           aria-label="Start scanning your Magic cards"
         >
           Start Scanning
@@ -53,8 +54,8 @@ const OverlayUI = () => (
         <Button
           variant="outlined"
           color="secondary"
-          href="/collections"
-          component="a"
+          component={RouterLink}
+          to="/collections"
           aria-label="Create or view your collection"
         >
           Create your collection

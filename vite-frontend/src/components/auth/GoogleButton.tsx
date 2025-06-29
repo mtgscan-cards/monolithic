@@ -1,6 +1,8 @@
+// src/components/auth/GoogleButton.tsx
+
 import React, { useEffect, useContext } from 'react'
 import api from '../../api/axios'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 
 declare global {
@@ -27,15 +29,22 @@ interface GoogleButtonProps {
   text?: 'signin_with' | 'signup_with' | 'continue_with'
   linkMode?: boolean
   onSuccess?: () => void
+  next?: string
 }
 
 export const GoogleButton: React.FC<GoogleButtonProps> = ({
   text = 'signin_with',
   linkMode = false,
   onSuccess,
+  next,
 }) => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { setUser } = useContext(AuthContext)
+
+  // Determine next route:
+  const params = new URLSearchParams(location.search)
+  const nextPath = next || params.get('next') || '/'
 
   useEffect(() => {
     if (!window.google) return
@@ -85,8 +94,11 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
           })
 
           if (!linkMode) {
-            if (!has_password) navigate('/setup')
-            else               navigate('/')
+            if (!has_password) {
+              navigate('/setup')
+            } else {
+              navigate(nextPath, { replace: true })
+            }
           }
 
           onSuccess?.()
@@ -100,7 +112,7 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
       document.getElementById('gBtn')!,
       { theme: 'outline', size: 'large', text }
     )
-  }, [linkMode, navigate, onSuccess, setUser, text])
+  }, [linkMode, navigate, nextPath, onSuccess, setUser, text])
 
   return <div id="gBtn" style={{ marginTop: 12 }} />
 }
