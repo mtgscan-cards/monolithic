@@ -159,11 +159,18 @@ def mobile_infer_submit(session_id):
         logger.warning(f"[SUBMIT] Invalid image format for session {session_id}")
         return jsonify({'error': 'Invalid image'}), 400
 
-    start_time = datetime.now()
-    best_candidate, _, keypoints, processed_img, debug_info = find_closest_card_ransac(
-        roi_image, faiss_index, hf, id_map, k=3
-    )
-    logger.info(f"[SUBMIT] RANSAC inference done for session {session_id}")
+    try:
+        best_candidate, _, keypoints, processed_img, debug_info = find_closest_card_ransac(
+            roi_image,
+            k=3
+        )
+    except Exception as e:
+        logger.exception("[SUBMIT] Error during RANSAC processing")
+        return jsonify({'error': f'RANSAC processing failed: {str(e)}'}), 500
+
+    if not best_candidate:
+        logger.info(f"[SUBMIT] No matching card found for session {session_id}")
+        return jsonify({'error': 'No matching card found'}), 404
 
     conn = None
     cur = None
@@ -171,16 +178,19 @@ def mobile_infer_submit(session_id):
         conn = pg_pool.getconn()
         cur = conn.cursor()
 
+        # Validate session
         cur.execute("SELECT expires_at FROM mobile_scan_sessions WHERE id = %s", (session_id,))
         session_row = cur.fetchone()
 
         if not session_row:
             logger.warning(f"[SUBMIT] Session not found: {session_id}")
             return jsonify({'error': 'Session not found'}), 404
+
         if session_row[0] < datetime.now(timezone.utc):
             logger.info(f"[SUBMIT] Session expired: {session_id}")
             return jsonify({'error': 'Session expired'}), 403
 
+        # Fetch card metadata
         cur.execute("""
             SELECT name, finishes, "set", set_name, prices, image_uris, collector_number
             FROM cards WHERE id = %s
@@ -206,6 +216,7 @@ def mobile_infer_submit(session_id):
             "collector_number": collector_number
         }
 
+        # Insert result
         cur.execute("""
             INSERT INTO mobile_scan_results (id, session_id, result, created_at)
             VALUES (%s, %s, %s, %s)
@@ -217,9 +228,14 @@ def mobile_infer_submit(session_id):
         ))
 
         conn.commit()
-        duration = (datetime.now() - start_time).total_seconds()
-        logger.info(f"[SUBMIT] Submission stored for session {session_id} in {duration:.2f}s")
-        return jsonify({"status": "inference stored"}), 200
+
+        logger.info(f"[SUBMIT] Successfully stored scan result for session {session_id}")
+
+        # Return immediate result for debugging
+        return jsonify({
+            "status": "success",
+            **scan_data
+        }), 200
 
     except Exception as e:
         logger.exception(f"[SUBMIT] Error during submission for session {session_id}")
