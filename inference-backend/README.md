@@ -10,7 +10,7 @@ This is the backend module of the monorepo. It powers authentication, collection
 * **Database**: PostgreSQL 15
 * **Authentication**: JWT (access + refresh cookies), OAuth (Google + GitHub)
 * **Image Matching**: OpenCV + RootSIFT + FAISS IVF-PQ
-* **Background Jobs**: Flask-APScheduler (e.g. daily Scryfall sync)
+* **Background Jobs**: Flask-APScheduler (e.g. daily Scryfall, descriptor sync)
 * **Docs**: Flasgger (Swagger/OpenAPI)
 
 ---
@@ -60,6 +60,9 @@ FLASK_ENV=development
 
 LOG_FILE_PATH=/app/logs/app.log
 LOG_LEVEL=INFO
+
+# HF Token for uploading newly uploaded models to Hugging Face
+HF_UPLOAD_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ---

@@ -17,3 +17,4 @@ tqdm
 filelock
 watchdog
 flask-limiter[redis]
+huggingface_hub

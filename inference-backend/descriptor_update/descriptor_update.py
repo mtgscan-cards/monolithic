@@ -175,6 +175,13 @@ def run_descriptor_update_pipeline():
                 os.remove(dst)
             os.replace(src, dst)
         print("✅ Staging model promoted to production.")
+
+        try:
+            from .upload_to_hf import upload_descriptor_bundle_to_hf
+            upload_descriptor_bundle_to_hf()
+        except Exception as e:
+            print(f"⚠️ Hugging Face upload failed: {e}. Continuing without interruption.")
+
     else:
         print("❌ Inference failed. Staging model discarded.")
 
