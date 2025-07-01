@@ -82,10 +82,10 @@ tar -czf backup/data_$(date +%F).tar.gz inference-backend/data
 
 ## Keypoint Regression System
 
-This system detects the four corners of MTG cards in user-submitted or live webcam frames. It allows perspective rectification before descriptor-based backend matching.
+This system detects the four corners of MTG cards in user-submitted or live webcam frames, allowing perspective rectification before descriptor-based backend matching.
 
 * **Repo**: [simple-mtg-keypoint-regression](https://github.com/JakeTurner616/simple-mtg-keypoint-regression)
-* **Export**: TensorFlow\.js model embedded in frontend
+* **Export**: TensorFlow\.js model embedded in the frontend
 
 ### Functionality
 
@@ -94,16 +94,16 @@ This system detects the four corners of MTG cards in user-submitted or live webc
   * Backgrounds
   * Perspective distortions
   * Scaling and rotation
-* Trains on a ResNet-50-based heatmap regression architecture
+* Trains on a **MobileNetV2-based lightweight heatmap regression architecture with SoftArgmax decoding**
 * Outputs normalized (0–1024) card corner coordinates
-* TensorFlow\.js model is used for in-browser inference
+* Uses **TensorFlow\.js** for in-browser inference
 
 ### Role in Production
 
 ```text
 [Input Image or Webcam Frame]
         ↓
-[Keypoint Prediction (TFJS in browser)]
+[Keypoint Prediction (TF.js in browser)]
         ↓
 [Perspective-rectified ROI]
         ↓
@@ -116,12 +116,13 @@ This system detects the four corners of MTG cards in user-submitted or live webc
 
 ## Card Descriptor Matching System
 
-The backend provides server-side card ID prediction using FAISS-based nearest-neighbor descriptor matching.
+The backend provides server-side card ID prediction using **FAISS-based nearest-neighbor descriptor matching with RANSAC post-filtering** for geometric consistency.
 
 * **Repo \[`production` branch]**: [simple-mtg-feature-extraction](https://github.com/JakeTurner616/simple-mtg-feature-extraction/blob/production)
 * **Model Files Hosted On**: [Hugging Face Dataset Page](https://huggingface.co/datasets/JakeTurner616/mtg-cards-SIFT-Features)
 
-> Note: The descriptor resource bundle (`resourcesV4.zip`) is maintained and versioned via Hugging Face. The upstream GitHub project has transitioned from a prototype-style `main` branch to a minified `production` branch. The zipped archive size has been reduced by over 50%.
+> Note: The descriptor resource bundle updated and promoted to production nightly alongside the card database.
+
 
 ---
 
@@ -143,8 +144,6 @@ The backend provides server-side card ID prediction using FAISS-based nearest-ne
 | `candidate_features.h5` | Stores descriptor + keypoint data per card                |
 | `faiss_ivf.index`       | Trained FAISS index with IVF-PQ                           |
 | `id_map.json`           | List of Scryfall card IDs aligned to descriptors in index |
-
-These files are bundled and mounted as `resourcesV4.zip` during deployment.
 
 ---
 
