@@ -61,6 +61,9 @@ const LandingPage: React.FC = () => {
           display: 'flex',
         }}
       >
+        {/* OverlayUI now rendered immediately to improve first paint */}
+        <OverlayUI />
+
         {loading ? (
           <div
             style={{
@@ -72,10 +75,7 @@ const LandingPage: React.FC = () => {
             }}
           />
         ) : (
-          <>
-            <Deck3DScene cards={cards} />
-            <OverlayUI />
-          </>
+          <Deck3DScene cards={cards} />
         )}
       </div>
 

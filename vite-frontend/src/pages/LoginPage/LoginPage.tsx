@@ -58,6 +58,18 @@ const LoginPage: React.FC = () => {
       })
   }, [])
 
+  // Dynamically load GSI script only on LoginPage
+  useEffect(() => {
+    if (!document.getElementById('gsi-script')) {
+      const script = document.createElement('script')
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.defer = true
+      script.id = 'gsi-script'
+      document.body.appendChild(script)
+    }
+  }, [])
+
   const handleHCaptchaVerify = async (token: string) => {
     try {
       await api.post('/auth/verify_captcha', { token })

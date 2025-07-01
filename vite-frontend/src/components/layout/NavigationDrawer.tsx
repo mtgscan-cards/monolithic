@@ -1,5 +1,6 @@
 // src/components/NavigationDrawer.tsx
-import React, { useContext, useState } from 'react';
+
+import React, { useContext, useState, useRef, useEffect } from 'react';
 import {
   Box,
   SwipeableDrawer,
@@ -16,7 +17,7 @@ import {
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useTheme } from '@mui/material/styles';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { AuthContext } from '../../contexts/AuthContext';
 import { logout as apiLogout } from '../../api/auth';
@@ -39,12 +40,13 @@ interface NavigationDrawerProps {
 const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   open,
   onClose,
-  onOpen = () => { },
+  onOpen = () => {},
   navItems,
   drawerWidth = 280,
 }) => {
   const { user, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -53,6 +55,15 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   const avatarUrl = user?.avatar_url ?? '';
 
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // ✅ Use correct ref type for Link underlying <a>
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    if (open && firstLinkRef.current) {
+      firstLinkRef.current.focus();
+    }
+  }, [open]);
 
   const handleLogout = async () => {
     try {
@@ -81,18 +92,18 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
         onOpen={onOpen}
         disableSwipeToOpen={!isMobile}
         ModalProps={{ keepMounted: true }}
-PaperProps={{
-  sx: {
-    zIndex: theme => theme.zIndex.drawer + 1, // 🔼 ensure it's above most content
-    width: drawerWidth,
-    background: 'linear-gradient(180deg, #1e1e1e, #121212)',
-    color: 'text.primary',
-    borderRight: 'none',
-    display: 'flex',
-    flexDirection: 'column',
-    position: 'relative', // Ensure z-index takes effect
-  },
-}}
+        PaperProps={{
+          sx: {
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+            width: drawerWidth,
+            background: 'linear-gradient(180deg, #1e1e1e, #121212)',
+            color: 'text.primary',
+            borderRight: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'relative',
+          },
+        }}
         role="navigation"
         aria-label="Main navigation menu"
       >
@@ -102,37 +113,45 @@ PaperProps={{
             p: 2,
             display: 'flex',
             alignItems: 'center',
-
           }}
         >
-            <Box sx={{ height: 30 }} />
+          <Box sx={{ height: 30 }} />
         </Box>
 
         {/* Navigation items */}
         <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
           <List disablePadding>
-            {navItems.map(item => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton
-                  component={Link}
-                  to={item.path}
-                  onClick={onClose}
-                  sx={{
-                    borderRadius: 2,
-                    mx: 1,
-                    my: 0.5,
-                    transition: 'background-color 0.3s ease',
-                    '&:hover': { backgroundColor: 'primary.dark' },
-                  }}
-                  aria-label={`Navigate to ${item.text}`}
-                >
-                  <ListItemIcon sx={{ color: 'text.primary', minWidth: 40 }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
+            {navItems.map((item, index) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <ListItem key={item.text} disablePadding>
+                  <ListItemButton
+                    component={Link}
+                    to={item.path}
+                    onClick={onClose}
+                    aria-label={`Navigate to ${item.text}`}
+                    aria-current={isActive ? 'page' : undefined}
+                    ref={index === 0 ? firstLinkRef : undefined}
+                    sx={{
+                      borderRadius: 2,
+                      mx: 1,
+                      my: 0.5,
+                      transition: 'background-color 0.3s ease',
+                      '&:hover': { backgroundColor: 'primary.dark' },
+                      '&:focus-visible': {
+                        outline: '2px solid',
+                        outlineColor: theme.palette.primary.main,
+                      },
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: 'text.primary', minWidth: 40 }}>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText primary={item.text} />
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
           </List>
         </Box>
 
@@ -155,8 +174,6 @@ PaperProps={{
                 src={avatarUrl}
                 referrerPolicy="no-referrer"
                 alt={`Avatar of ${displayName}`}
-                role="img"
-                aria-label={`Signed in as ${displayName}`}
                 sx={{
                   width: 32,
                   height: 32,
@@ -170,33 +187,33 @@ PaperProps={{
               <Typography variant="body1" sx={{ lineHeight: 1 }}>
                 {signedIn ? displayName : 'Not signed in'}
               </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
                 {signedIn ? (
                   <>
-                  Signed in –{' '}
+                    Signed in –{' '}
+                    <MuiLink
+                      component={Link}
+                      to="/login"
+                      variant="caption"
+                      sx={{ p: 0, cursor: 'pointer' }}
+                      onClick={handleLogout}
+                      underline="always"
+                    >
+                      Logout
+                    </MuiLink>
+                  </>
+                ) : (
                   <MuiLink
                     component={Link}
                     to="/login"
                     variant="caption"
                     sx={{ p: 0, cursor: 'pointer' }}
-                    onClick={handleLogout}
                     underline="always"
                   >
-                    Logout
-                  </MuiLink>
-                  </>
-                ) : (
-                  <MuiLink
-                  component={Link}
-                  to="/login"
-                  variant="caption"
-                  sx={{ p: 0, cursor: 'pointer' }}
-                  underline="always"
-                  >
-                  Tap “Login” to continue
+                    Tap “Login” to continue
                   </MuiLink>
                 )}
-                </Typography>
+              </Typography>
             </Box>
           </Box>
           {signedIn && (
