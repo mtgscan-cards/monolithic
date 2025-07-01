@@ -48,6 +48,9 @@ set_columns = [
     "parent_set_code", "digital", "nonfoil_only", "foil_only", "icon_svg_uri"
 ]
 
+# ---------------------------
+# HELPERS
+# ---------------------------
 def parse_date(date_str):
     if not date_str:
         return None
@@ -66,6 +69,9 @@ def convert_decimals(obj):
     else:
         return obj
 
+# ---------------------------
+# CARD PROCESSING
+# ---------------------------
 def process_card(card):
     layout = card.get("layout")
     if layout not in ALLOWED_LAYOUTS:
@@ -104,6 +110,9 @@ def upsert_batch(data_batch):
     finally:
         pg_pool.putconn(conn)
 
+# ---------------------------
+# SET PROCESSING
+# ---------------------------
 def process_set(set_data):
     processed = {}
     for col in set_columns:
@@ -150,6 +159,9 @@ def import_sets():
         upsert_sets_batch(batch)
         logger.info(f"Upserted {len(batch)} sets.")
 
+# ---------------------------
+# DOWNLOAD LOGIC
+# ---------------------------
 def download_latest_json(json_file):
     bulk_api = "https://api.scryfall.com/bulk-data"
     logger.info(f"Checking Scryfall API for {BULK_DATA_TYPE}...")
@@ -167,7 +179,7 @@ def download_latest_json(json_file):
         local_mtime = datetime.fromtimestamp(os.path.getmtime(json_file), tz=timezone.utc)
         if local_mtime >= server_updated_at:
             logger.info("Local Scryfall JSON is up to date — skipping download.")
-            return
+            return server_updated_at, False
     r = requests.get(download_uri, timeout=10)
     if r.status_code != 200:
         raise RuntimeError(f"Failed to download: {r.status_code}")
@@ -175,6 +187,7 @@ def download_latest_json(json_file):
         f.write(r.content)
     os.utime(json_file, (server_updated_at.timestamp(), server_updated_at.timestamp()))
     logger.info(f"Downloaded and saved {json_file}")
+    return server_updated_at, True
 
 def is_card_table_populated():
     conn = pg_pool.getconn()
@@ -185,10 +198,25 @@ def is_card_table_populated():
     finally:
         pg_pool.putconn(conn)
 
+# ---------------------------
+# MAIN PIPELINE
+# ---------------------------
 def main():
     json_file = os.path.join(DATA_DIR, f"scryfall-{BULK_DATA_TYPE}.json")
-    download_latest_json(json_file)
+    server_updated_at, downloaded = download_latest_json(json_file)
 
+    # Determine if the cards table has data
+    db_populated = is_card_table_populated()
+
+    if not downloaded and db_populated:
+        logger.info("✅ Data is already up-to-date and the cards table is populated. Skipping Scryfall import.")
+        return
+    elif not downloaded and not db_populated:
+        logger.info("ℹ️ Local JSON is up-to-date but the cards table is empty. Proceeding with import to populate DB.")
+    elif downloaded:
+        logger.info("⬇️ New Scryfall data downloaded. Proceeding with import.")
+
+    # Proceed with import if we reach here
     batch_size = 10000
     batch = []
     total_count = 0
@@ -214,6 +242,9 @@ def main():
     logger.info(f"✅ Finished processing {total_count} cards.")
     import_sets()
 
+# ---------------------------
+# LOCK & ENTRYPOINT
+# ---------------------------
 if __name__ == "__main__":
     LOCK_PATH = "/tmp/scryfall_import.lock"
     time.sleep(random.uniform(0, 5))

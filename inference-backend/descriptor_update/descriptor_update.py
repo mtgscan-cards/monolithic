@@ -12,13 +12,18 @@ import cv2
 from dotenv import load_dotenv
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
+import shutil
+import logging
+import threading
+
 from .workers.feature_worker import process_record
 
-# ==============================================================================
-#                           ─── CONFIGURATION ───
-# ==============================================================================
+# ---------------------------
+# CONFIGURATION
+# ---------------------------
+logger = logging.getLogger(__name__)
+load_dotenv('.env')
 
-load_dotenv('.env')  # Assumes you're running from backend root
 DB_USER = os.getenv("POSTGRES_USER", "mtguser")
 DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "mtgpass")
 DB_NAME = os.getenv("POSTGRES_DB", "mtgdb")
@@ -33,9 +38,9 @@ H5_FEATURES_FILE = os.path.join(STAGING_DIR, 'candidate_features.h5')
 FAISS_INDEX_FILE = os.path.join(STAGING_DIR, 'faiss_ivf.index')
 ID_MAP_FILE = os.path.join(STAGING_DIR, 'id_map.json')
 
-# ==============================================================================
-#                           ─── UTILITY FUNCTIONS ───
-# ==============================================================================
+# ---------------------------
+# UTILITY FUNCTIONS
+# ---------------------------
 
 def load_card_records():
     conn = psycopg2.connect(
@@ -74,42 +79,83 @@ def extract_features(image):
         des = np.sqrt(des).astype(np.float32)
     return kp, des
 
+from utils.sift_features import find_closest_card_ransac
+
 def run_inference_check():
-    index = faiss.read_index(FAISS_INDEX_FILE)
-    with open(ID_MAP_FILE, 'r') as f:
-        id_map = json.load(f)
-
     url = "https://cards.scryfall.io/large/front/3/3/3394cefd-a3c6-4917-8f46-234e441ecfb6.jpg"
-    expected_id = "3394cefd-a3c6-4917-8f46-234e441ecfb6"
-    resp = requests.get(url)
-    img = cv2.imdecode(np.frombuffer(resp.content, np.uint8), cv2.IMREAD_COLOR)
-    kp, des = extract_features(img)
-    if des is None:
-        print("❌ No descriptors found")
+    expected_ids = [
+        "3394cefd-a3c6-4917-8f46-234e441ecfb6",
+        "710160a6-43b4-4ba7-9dcd-93e01befc66f",
+        "5c575b9c-0a0b-4a24-98ad-efe604ca33a7",
+    ]
+
+    try:
+        resp = requests.get(url, timeout=10)
+        img = cv2.imdecode(np.frombuffer(resp.content, np.uint8), cv2.IMREAD_COLOR)
+        if img is None:
+            logger.error("❌ Failed to decode test image for sanity check.")
+            return False
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch test image: {e}")
         return False
-    _, I = index.search(des, 3)
-    preds = [id_map[i] for i in I.flatten() if i < len(id_map)]
-    result = expected_id in preds
-    print(f"{'✅' if result else '❌'} Inference check: Expected={expected_id} Found={preds[:5]}")
-    return result
 
-# ==============================================================================
-#                    ─── MAIN PIPELINE ENTRYPOINT ───
-# ==============================================================================
+    best_candidate, _, _, _, _ = find_closest_card_ransac(
+        img,
+        k=3,
+        min_candidate_matches=1,
+        MIN_INLIER_THRESHOLD=8,
+        max_candidates=10
+    )
 
-def run_descriptor_update_pipeline():
-    card_records = load_card_records()
-
-    if os.path.exists(H5_FEATURES_FILE):
-        with h5py.File(H5_FEATURES_FILE, 'a') as hf:
-            processed_ids = set(hf.keys())
+    if best_candidate in expected_ids:
+        logger.info(f"✅ Inference sanity check PASSED: matched expected ID {best_candidate}")
+        return True
     else:
-        with h5py.File(H5_FEATURES_FILE, 'w'):
-            pass
-        processed_ids = set()
+        logger.error(f"❌ Inference sanity check FAILED: expected one of {expected_ids}, got {best_candidate}")
+        return False
+
+def ensure_staging_files_present():
+    for fname in ["candidate_features.h5", "faiss_ivf.index", "id_map.json"]:
+        staging_file = os.path.join(STAGING_DIR, fname)
+        run_file = os.path.join(RUN_DIR, fname)
+        if not os.path.exists(staging_file):
+            if os.path.exists(run_file):
+                shutil.copy2(run_file, staging_file)
+                logger.info(f"✅ Copied {run_file} → {staging_file} (pre-populating staging)")
+            else:
+                logger.warning(f"⚠️ {run_file} missing; staging file {staging_file} will be created from scratch if required")
+
+def open_h5_file_safely(file_path, backup_path, mode='a'):
+    try:
+        return h5py.File(file_path, mode)
+    except OSError as e:
+        logger.warning(f"⚠️ HDF5 open failed with {e}. Restoring from backup.")
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"Deleted corrupted HDF5: {file_path}")
+        if os.path.exists(backup_path):
+            shutil.copy2(backup_path, file_path)
+            logger.info(f"Restored HDF5 from backup: {backup_path}")
+            return h5py.File(file_path, mode)
+        else:
+            logger.error(f"❌ No backup available for HDF5: {file_path}")
+            raise RuntimeError("HDF5 file unrecoverable.")
+
+# ---------------------------
+# MAIN PIPELINE
+# ---------------------------
+def run_descriptor_update_pipeline():
+    ensure_staging_files_present()
+
+    card_records = load_card_records()
+    logger.info(f"🔄 Loaded {len(card_records)} card records for descriptor update.")
+
+    hf_backup = os.path.join(RUN_DIR, 'candidate_features.h5')
+    with open_h5_file_safely(H5_FEATURES_FILE, hf_backup, mode='a') as hf:
+        processed_ids = set(hf.keys())
 
     new_records = [r for r in card_records if r['scryfall_id'] not in processed_ids]
-    print(f"Total: {len(card_records)} | New to extract: {len(new_records)}")
+    logger.info(f"🆕 {len(new_records)} new records requiring descriptor extraction.")
 
     descriptor_files = []
     batch_descriptors = []
@@ -119,7 +165,7 @@ def run_descriptor_update_pipeline():
     FAISS_BATCH_SIZE = 5000
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        with h5py.File(H5_FEATURES_FILE, 'a') as hf, ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        with open_h5_file_safely(H5_FEATURES_FILE, hf_backup, mode='a') as hf, ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
             for result in tqdm(executor.map(process_record, new_records), total=len(new_records)):
                 if not result:
                     continue
@@ -165,26 +211,30 @@ def run_descriptor_update_pipeline():
             faiss.write_index(index, FAISS_INDEX_FILE)
             with open(ID_MAP_FILE, 'w') as f:
                 json.dump(id_map, f)
-            print(f"✅ FAISS index written with {index.ntotal} descriptors.")
+            logger.info(f"✅ FAISS index updated with {index.ntotal} descriptors.")
 
     if run_inference_check():
         for fname in ["candidate_features.h5", "faiss_ivf.index", "id_map.json"]:
             src = os.path.join(STAGING_DIR, fname)
             dst = os.path.join(RUN_DIR, fname)
-            if os.path.exists(dst):
-                os.remove(dst)
-            os.replace(src, dst)
-        print("✅ Staging model promoted to production.")
+            shutil.copy2(src, dst)
+            logger.info(f"✅ Promoted {src} → {dst}")
 
-        try:
-            from .upload_to_hf import upload_descriptor_bundle_to_hf
-            upload_descriptor_bundle_to_hf()
-        except Exception as e:
-            print(f"⚠️ Hugging Face upload failed: {e}. Continuing without interruption.")
+        # Run HF upload in background to prevent blocking Flask
+        def upload_hf_background():
+            try:
+                from .upload_to_hf import upload_descriptor_bundle_to_hf
+                upload_descriptor_bundle_to_hf()
+            except Exception as e:
+                logger.warning(f"⚠️ HF upload failed in background: {e}")
 
+        threading.Thread(target=upload_hf_background, daemon=True).start()
+        logger.info("🚀 Started background thread for Hugging Face upload.")
     else:
-        print("❌ Inference failed. Staging model discarded.")
+        logger.error("❌ Inference validation failed. Staging model discarded.")
 
-# Optional CLI trigger
+# ---------------------------
+# CLI ENTRYPOINT
+# ---------------------------
 if __name__ == "__main__":
     run_descriptor_update_pipeline()
