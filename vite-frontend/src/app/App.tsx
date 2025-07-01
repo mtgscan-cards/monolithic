@@ -47,10 +47,16 @@ const modernTheme = createTheme({
       paper: '#1e1e1e',
     },
   },
-  typography: {
-    fontFamily: '"Inter", sans-serif',
-    h6: { fontWeight: 600 },
-  },
+typography: {
+  h1: { fontSize: '2.5rem', fontWeight: 600 },
+  h2: { fontSize: '2rem', fontWeight: 600 },
+  h3: { fontSize: '1.75rem', fontWeight: 500 },
+  h4: { fontSize: '1.5rem', fontWeight: 500 },
+  h5: { fontSize: '1.25rem', fontWeight: 400 },
+  h6: { fontWeight: 600 },
+  body1: { fontSize: '1rem', fontWeight: 400, lineHeight: 1.6 },
+  caption: { fontSize: '0.875rem', fontWeight: 400, color: '#aaa' },
+},
   shape: {
     borderRadius: 8,
   },

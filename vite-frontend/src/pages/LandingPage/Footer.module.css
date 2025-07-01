@@ -2,8 +2,7 @@
   width: 100%;
   background-color: #1e1e1e;
   color: #ccc;
-  padding-top: 32px;
-  padding-bottom: 24px;
+  padding: 32px 0 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
   font-size: 0.9rem;
 }
@@ -33,6 +32,7 @@
   display: flex;
   align-items: center;
   color: #fff;
+  font-weight: 500;
 }
 
 .icon {
@@ -40,15 +40,21 @@
   color: #fff;
 }
 
+.iconRed {
+  margin-right: 0.4rem;
+  color: #e53935; /* red accent */
+}
+
 .link {
-  color: #fff !important;
+  color: #eee !important;
   text-decoration: none !important;
   font-size: 0.9rem;
-  transition: text-decoration 0.2s;
+  transition: color 0.2s, text-decoration 0.2s;
 }
 
 .link:hover,
 .link:focus {
+  color: #e53935 !important;
   text-decoration: underline;
 }
 
@@ -72,4 +78,32 @@
   display: inline-block;
   aspect-ratio: 1 / 1;
   border-radius: 2px;
+}
+
+.footerSection {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 0 16px;
+}
+
+.footerSection:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 80px; /* fixed consistent height */
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 600px) {
+  .footerSection {
+    padding: 0;
+  }
+  .footerSection:not(:first-child)::before {
+    display: none;
+  }
 }

@@ -81,10 +81,10 @@ const SceneContents: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
 
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[4, 8, 6]} intensity={0.6} />
-      <DeckGroup cards={cards} />
-      <TrackballCamera />
+<ambientLight intensity={0.65} /> 
+<directionalLight position={[4, 8, 6]} intensity={0.8} />
+<DeckGroup cards={cards} />
+<TrackballCamera />
     </>
   )
 }

@@ -1,12 +1,14 @@
 // vite-frontend/src/pages/LandingPage/LandingPage.tsx
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import Deck3DScene from './Deck3DScene'
 import OverlayUI from './OverlayUI'
 import LandingContent from './LandingContent'
 import SiteStatsSection from './SiteStatsSection'
-import Footer from './Footer'
 import { useInView } from 'react-intersection-observer'
+
+// Lazy load Footer for deferred chunk loading
+const Footer = React.lazy(() => import('./Footer'))
 
 export type CardImage = {
   id: string
@@ -23,6 +25,11 @@ const LandingPage: React.FC = () => {
   const [statsRef, statsInView] = useInView({
     triggerOnce: true,
     threshold: 0.2,
+  })
+
+  const [footerRef, footerInView] = useInView({
+    triggerOnce: true,
+    threshold: 0,
   })
 
   useEffect(() => {
@@ -89,7 +96,15 @@ const LandingPage: React.FC = () => {
             <div ref={statsRef}>
               {statsInView && <SiteStatsSection />}
             </div>
-            <Footer />
+
+            {/* Footer deferred rendering */}
+            <div ref={footerRef} style={{ minHeight: 200 }}>
+              {footerInView && (
+                <Suspense fallback={null}>
+                  <Footer />
+                </Suspense>
+              )}
+            </div>
           </>
         )}
       </div>
