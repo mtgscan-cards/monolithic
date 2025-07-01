@@ -1,10 +1,15 @@
-import React, { useRef, useState, useEffect } from 'react'
+// vite-frontend/src/pages/LandingPage/LandingContent.tsx
+
+import React, { useRef, useState, useEffect, Suspense } from 'react'
 import { Typography, Container } from '@mui/material'
 import { motion, easeInOut } from 'framer-motion'
-import ParticleNetwork from './ParticleNetwork'
-import CardCarousel from './CardCarousel'
+import { useInView } from 'react-intersection-observer'
 import type { CardImage } from './LandingPage'
 import './LandingContent.css'
+
+// Lazy load ParticleNetwork and CardCarousel to reduce initial load time
+const ParticleNetwork = React.lazy(() => import('./ParticleNetwork'))
+const CardCarousel = React.lazy(() => import('./CardCarousel'))
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -23,6 +28,11 @@ interface LandingContentProps {
 const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardClick }) => {
   const triggerRef = useRef<HTMLDivElement>(null)
   const [cardVisible, setCardVisible] = useState(false)
+
+  const [particleRef, particleInView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  })
 
   useEffect(() => {
     const triggerEl = triggerRef.current
@@ -44,6 +54,7 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
 
     observer.observe(triggerEl)
 
+    // Immediate fallback check
     requestAnimationFrame(() => {
       const rect = triggerEl.getBoundingClientRect()
       if (rect.top < window.innerHeight) {
@@ -65,8 +76,9 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
         zIndex: 0,
       }}
     >
-      {/* Particle background */}
+      {/* Particle background deferred */}
       <div
+        ref={particleRef}
         style={{
           position: 'absolute',
           top: 0,
@@ -77,7 +89,11 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
           pointerEvents: 'none',
         }}
       >
-        <ParticleNetwork />
+        {particleInView && (
+          <Suspense fallback={null}>
+            <ParticleNetwork />
+          </Suspense>
+        )}
       </div>
 
       {/* Foreground UI */}
@@ -98,12 +114,12 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
           <div className="info-column">
             {[
               {
-              title: 'Scan Cards with Precision',
-              body: 'Try out the powerful custom scanner that delivers fast, accurate results with just a phone or webcam.',
+                title: 'Scan Cards with Precision',
+                body: 'Try out the powerful custom scanner that delivers fast, accurate results with just a phone or webcam.',
               },
               {
-              title: 'Build Collections Effortlessly',
-              body: 'Add, track, and manage an unlimited number of cards. Export your lists or sync them across devices.',
+                title: 'Build Collections Effortlessly',
+                body: 'Add, track, and manage an unlimited number of cards. Export your lists or sync them across devices.',
               },
             ].map((section, i) => (
               <motion.section
@@ -115,7 +131,7 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
                 variants={fadeInUp}
                 className="glow-block"
               >
-                <Typography variant="h4" gutterBottom>
+                <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
                   {section.title}
                 </Typography>
                 <Typography variant="body1" style={{ lineHeight: 1.6 }}>
@@ -129,10 +145,12 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
+              transition={{ delay: 0.2, duration: 0.6, ease: 'easeOut' }}
               className="highlight-card-container"
             >
-              <CardCarousel card={highlightCard} onCardClick={onCardClick} />
+              <Suspense fallback={null}>
+                <CardCarousel card={highlightCard} onCardClick={onCardClick} />
+              </Suspense>
             </motion.div>
           )}
         </div>
@@ -146,7 +164,7 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
           className="glow-block glow-block--wide"
           style={{ marginBottom: '4rem' }}
         >
-          <Typography variant="h4" gutterBottom>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
             Export, Share, and Sync
           </Typography>
           <Typography variant="body1" style={{ lineHeight: 1.6 }}>

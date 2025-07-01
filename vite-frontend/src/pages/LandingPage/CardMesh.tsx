@@ -1,4 +1,4 @@
-// src/pages/LandingPage/CardMesh.tsx
+// vite-frontend/src/pages/LandingPage/CardMesh.tsx
 
 import React, { useEffect, useMemo } from 'react'
 import { useLoader, useThree } from '@react-three/fiber'
@@ -24,9 +24,9 @@ const CardMesh: React.FC<CardMeshProps> = ({ frontUrl, backUrl, scale = 1, posit
   const [front, back] = useLoader(TextureLoader, [frontUrl, backUrl])
 
   useEffect(() => {
-    const maxAnisotropy = gl.capabilities.getMaxAnisotropy()
+    const balancedAnisotropy = Math.min(4, gl.capabilities.getMaxAnisotropy())
     for (const tex of [front, back]) {
-      tex.anisotropy = maxAnisotropy
+      tex.anisotropy = balancedAnisotropy
       tex.minFilter = LinearMipMapLinearFilter
       tex.magFilter = LinearFilter
       tex.generateMipmaps = true
@@ -36,7 +36,6 @@ const CardMesh: React.FC<CardMeshProps> = ({ frontUrl, backUrl, scale = 1, posit
 
   const width = useMemo(() => 0.7 * scale, [scale])
   const height = useMemo(() => 1.0 * scale, [scale])
-
   const geometry = useMemo(() => new PlaneGeometry(width, height), [width, height])
 
   const frontMaterial = useMemo(
@@ -45,6 +44,7 @@ const CardMesh: React.FC<CardMeshProps> = ({ frontUrl, backUrl, scale = 1, posit
         map: front,
         side: FrontSide,
         transparent: true,
+        shininess: 50, // Added to restore gloss lost from anisotropy reduction
       }),
     [front]
   )
@@ -55,6 +55,7 @@ const CardMesh: React.FC<CardMeshProps> = ({ frontUrl, backUrl, scale = 1, posit
         map: back,
         side: FrontSide,
         transparent: true,
+        shininess: 50, // Match front for consistency
       }),
     [back]
   )
