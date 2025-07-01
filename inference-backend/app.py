@@ -597,7 +597,7 @@ init_mobile_scan_tables()
 init_landing_cards_table()  # Create landing_cards table with 100 random cards
 build_tag_cache()
 
-run_scryfall_then_descriptors()  # Initial run to test
+#run_scryfall_then_descriptors()  # Initial run to test
 #update_main()  # download scryfall bulk data and populate the database
 
 # ─── Health check route at baseurl ────────────────────────────────────────────
