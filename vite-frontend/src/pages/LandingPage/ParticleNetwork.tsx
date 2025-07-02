@@ -57,7 +57,7 @@ const ParticleNetwork: React.FC = () => {
     // Scale particle limits based on resolution
     const scaleFactor = Math.min(window.innerWidth, window.innerHeight) / 1080
     const MAX_PARTICLES = Math.floor(60 + scaleFactor * 60)
-    const MAX_DISTANCE = 160 * scaleFactor
+    const MAX_DISTANCE = 170 * scaleFactor
     const MAX_DISTANCE_SQ = MAX_DISTANCE * MAX_DISTANCE
     const MAX_ACTIVE_LINKS = Math.floor(100 * scaleFactor)
     const particles: Particle[] = []

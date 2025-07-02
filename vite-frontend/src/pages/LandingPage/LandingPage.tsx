@@ -7,7 +7,7 @@ import SiteStatsSection from './SiteStatsSection'
 import { useInView } from 'react-intersection-observer'
 import '../../styles/App.css'
 
-// Lazy load Footer and Deck3DScene to improve first paint
+// Lazy load Footer to improve first paint
 const Footer = React.lazy(() => import('./Footer'))
 const Deck3DScene = React.lazy(() => import('./Deck3DScene'))
 
@@ -22,7 +22,6 @@ export type CardImage = {
 const LandingPage: React.FC = () => {
   const [cards, setCards] = useState<CardImage[]>([])
   const [loading, setLoading] = useState(true)
-  const [showDeck, setShowDeck] = useState(false)
 
   const [statsRef, statsInView] = useInView({
     triggerOnce: true,
@@ -34,18 +33,13 @@ const LandingPage: React.FC = () => {
     threshold: 0,
   })
 
+  // Fetch cards immediately on mount
   useEffect(() => {
     fetch('/cards/index.json')
       .then((res) => res.json())
       .then((data) => setCards(data))
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [])
-
-  // Defer Deck3DScene mounting to improve LCP
-  useEffect(() => {
-    const id = setTimeout(() => setShowDeck(true), 300)
-    return () => clearTimeout(id)
   }, [])
 
   return (
@@ -67,26 +61,46 @@ const LandingPage: React.FC = () => {
           overflow: 'hidden',
           flexShrink: 0,
           display: 'flex',
-          background: '#111', // ensure dark background immediately
+          background: '#111', // immediate dark background for LCP
         }}
       >
-        {/* OverlayUI rendered immediately for fast LCP */}
+        {/* OverlayUI for fast LCP */}
         <OverlayUI />
 
         {loading ? (
           <div
             style={{
-              color: '#111',
+              color: '#888',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
+              fontSize: '1.2rem',
             }}
           >
-            Loading...
+            Loading cards...
           </div>
         ) : (
-          showDeck && (
-            <Suspense fallback={null}>
-              <Deck3DScene cards={cards} />
-            </Suspense>
-          )
+          <Suspense
+            fallback={
+              <div
+                style={{
+                  color: '#888',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  height: '100%',
+                  fontSize: '1.2rem',
+                }}
+              >
+                Loading 3D scene...
+              </div>
+            }
+          >
+            <Deck3DScene cards={cards} />
+          </Suspense>
         )}
       </div>
 
@@ -104,12 +118,27 @@ const LandingPage: React.FC = () => {
         ) : (
           <>
             <LandingContent highlightCard={cards[0]} />
-            <div ref={statsRef}>{statsInView && <SiteStatsSection />}</div>
+
+            <div ref={statsRef}>
+              {statsInView && <SiteStatsSection />}
+            </div>
 
             {/* Footer deferred rendering */}
             <div ref={footerRef} style={{ minHeight: 200 }}>
               {footerInView && (
-                <Suspense fallback={null}>
+                <Suspense
+                  fallback={
+                    <div
+                      style={{
+                        color: '#888',
+                        textAlign: 'center',
+                        padding: '1rem',
+                      }}
+                    >
+                      Loading footer...
+                    </div>
+                  }
+                >
                   <Footer />
                 </Suspense>
               )}

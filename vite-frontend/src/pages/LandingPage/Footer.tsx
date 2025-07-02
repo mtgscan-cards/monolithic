@@ -152,10 +152,10 @@ const Footer: React.FC = () => {
         <Typography variant="body2" className={styles.footerCredit}>
           Made with
           <img
-            src="/img/512.webp"
+            src="/img/128.webp"
             alt="Heart"
-            width={18}
-            height={18}
+            width={20}
+            height={20}
             loading="lazy"
             className={styles.heartIcon}
           />

@@ -4,7 +4,6 @@ import React, { useRef, useEffect, useMemo, Suspense } from 'react'
 import { Canvas, useThree, useFrame, invalidate } from '@react-three/fiber'
 import { Vector3, Spherical, PerspectiveCamera, Color } from 'three'
 import { ResizeObserver } from '@juggle/resize-observer'
-import { Preload } from '@react-three/drei'
 import DeckGroup from './DeckGroup'
 import { CardImage } from './LandingPage'
 
@@ -135,7 +134,6 @@ const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
       >
         <Suspense fallback={null}>
           <SceneContents cards={visibleCards} />
-          <Preload all />
         </Suspense>
       </Canvas>
     </div>
