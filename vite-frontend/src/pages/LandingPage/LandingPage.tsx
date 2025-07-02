@@ -70,13 +70,7 @@ const LandingPage: React.FC = () => {
         {loading ? (
           <div
             style={{
-              color: '#888',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              height: '100%',
-              fontSize: '1.2rem',
+              color: '#111',
             }}
           >
             Loading cards...
@@ -86,13 +80,7 @@ const LandingPage: React.FC = () => {
             fallback={
               <div
                 style={{
-                  color: '#888',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '100%',
-                  height: '100%',
-                  fontSize: '1.2rem',
+                  color: '#111'
                 }}
               >
                 Loading 3D scene...

@@ -112,7 +112,6 @@ const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
         position: 'relative',
         width: '100%',
         height: '100%',
-        minHeight: '600px',
         background: '#111',
       }}
     >
@@ -123,7 +122,6 @@ const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
           width: '100%',
           height: '100%',
           display: 'block',
-          minHeight: '600px',
           background: '#111',
         }}
         frameloop="demand"

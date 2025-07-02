@@ -60,6 +60,7 @@
   }
 
   .highlight-card-container {
+    
     position: absolute;
     bottom: -40px;
     transform: translateY(-50%);
@@ -81,6 +82,7 @@
   }
 
   .info-column {
+    
     width: 100%;
     max-width: 100%;
     align-items: stretch;

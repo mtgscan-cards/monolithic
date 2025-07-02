@@ -55,7 +55,6 @@ canvas {
   
   opacity: 0 !important;
   transition: opacity 0.4s ease-out !important;
-  min-height: 700px !important;
   display: block !important;
 }
 
