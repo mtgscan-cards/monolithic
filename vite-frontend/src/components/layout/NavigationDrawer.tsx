@@ -23,7 +23,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 import { logout as apiLogout } from '../../api/auth';
 import { LinkAccountDialog } from '../dialogs/LinkAccountDialog';
-import './Drawericons.css';
+import './DrawerIcons.css';
 
 export interface NavItem {
   text: string;
