@@ -14,7 +14,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout frontend from prod
+      - name: Checkout full repo from main
+        uses: actions/checkout@v3
+        with:
+          ref: main
+          token: ${{ secrets.PAT_FOR_ACTIONS }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Mark Git directory as safe
+        run: git config --global --add safe.directory ${{ github.workspace }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Force-reset prod to main (no merge commits)
+        run: |
+          git fetch origin
+          git checkout prod
+          git reset --hard origin/main
+          git push origin prod --force
+
+      - name: Checkout frontend from updated prod
         uses: actions/checkout@v3
         with:
           ref: prod
