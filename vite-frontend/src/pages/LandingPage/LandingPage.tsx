@@ -6,7 +6,7 @@ import OverlayUI from './OverlayUI'
 import LandingContent from './LandingContent'
 import SiteStatsSection from './SiteStatsSection'
 import { useInView } from 'react-intersection-observer'
-
+import '../../styles/App.css';
 // Lazy load Footer for deferred chunk loading
 const Footer = React.lazy(() => import('./Footer'))
 
