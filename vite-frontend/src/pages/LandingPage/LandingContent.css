@@ -10,15 +10,6 @@
   padding-right: 400px; /* space for card on wide screens */
 }
 
-canvas {
-  
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: calc(100vh - 64px); /* Adjust height based on header */
-}
-
 .info-column {
   display: flex;
   flex-direction: column;

@@ -28,7 +28,7 @@
   text-align: center;
   color: white;
   font-family: 'Orbitron', sans-serif;
-  text-shadow: 0 0 6px rgba(255, 60, 60, 0.7);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
 }
 
 .stat-value {

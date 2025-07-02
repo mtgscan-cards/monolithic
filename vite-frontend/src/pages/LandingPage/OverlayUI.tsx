@@ -48,6 +48,7 @@ const OverlayUI = () => (
           component={RouterLink}
           to="/login?next=/scan"
           aria-label="Start scanning your Magic cards"
+          sx={{ textTransform: 'none' }}
         >
           Start Scanning
         </Button>
@@ -57,6 +58,7 @@ const OverlayUI = () => (
           component={RouterLink}
           to="/collections"
           aria-label="Create or view your collection"
+          sx={{ textTransform: 'none' }}
         >
           Create your collection
         </Button>

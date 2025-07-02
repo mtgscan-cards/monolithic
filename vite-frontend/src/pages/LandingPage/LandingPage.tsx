@@ -1,14 +1,15 @@
 // vite-frontend/src/pages/LandingPage/LandingPage.tsx
 
 import React, { useEffect, useState, Suspense } from 'react'
-import Deck3DScene from './Deck3DScene'
 import OverlayUI from './OverlayUI'
 import LandingContent from './LandingContent'
 import SiteStatsSection from './SiteStatsSection'
 import { useInView } from 'react-intersection-observer'
-import '../../styles/App.css';
-// Lazy load Footer for deferred chunk loading
+import '../../styles/App.css'
+
+// Lazy load Footer and Deck3DScene to improve first paint
 const Footer = React.lazy(() => import('./Footer'))
+const Deck3DScene = React.lazy(() => import('./Deck3DScene'))
 
 export type CardImage = {
   id: string
@@ -21,6 +22,7 @@ export type CardImage = {
 const LandingPage: React.FC = () => {
   const [cards, setCards] = useState<CardImage[]>([])
   const [loading, setLoading] = useState(true)
+  const [showDeck, setShowDeck] = useState(false)
 
   const [statsRef, statsInView] = useInView({
     triggerOnce: true,
@@ -38,6 +40,12 @@ const LandingPage: React.FC = () => {
       .then((data) => setCards(data))
       .catch(console.error)
       .finally(() => setLoading(false))
+  }, [])
+
+  // Defer Deck3DScene mounting to improve LCP
+  useEffect(() => {
+    const id = setTimeout(() => setShowDeck(true), 300)
+    return () => clearTimeout(id)
   }, [])
 
   return (
@@ -59,23 +67,26 @@ const LandingPage: React.FC = () => {
           overflow: 'hidden',
           flexShrink: 0,
           display: 'flex',
+          background: '#111', // ensure dark background immediately
         }}
       >
-        {/* OverlayUI now rendered immediately to improve first paint */}
+        {/* OverlayUI rendered immediately for fast LCP */}
         <OverlayUI />
 
         {loading ? (
           <div
             style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 10,
+              color: '#111',
             }}
-          />
+          >
+            Loading...
+          </div>
         ) : (
-          <Deck3DScene cards={cards} />
+          showDeck && (
+            <Suspense fallback={null}>
+              <Deck3DScene cards={cards} />
+            </Suspense>
+          )
         )}
       </div>
 
@@ -93,9 +104,7 @@ const LandingPage: React.FC = () => {
         ) : (
           <>
             <LandingContent highlightCard={cards[0]} />
-            <div ref={statsRef}>
-              {statsInView && <SiteStatsSection />}
-            </div>
+            <div ref={statsRef}>{statsInView && <SiteStatsSection />}</div>
 
             {/* Footer deferred rendering */}
             <div ref={footerRef} style={{ minHeight: 200 }}>
