@@ -1,6 +1,6 @@
 // src/pages/LandingPage/DeckGroup.tsx
 
-import React, { useRef, useMemo, useEffect } from 'react'
+import React, { useRef, useMemo, useEffect, useState } from 'react'
 import { Group, Vector3 } from 'three'
 import { useFrame } from '@react-three/fiber'
 import CardMesh from './CardMesh'
@@ -20,8 +20,7 @@ const getNonOverlappingPosition = (
 ): Vector3 => {
   for (let i = 0; i < maxAttempts; i++) {
     const candidate = getRandomPosition()
-    const tooClose = existing.some(p => p.distanceTo(candidate) < radius)
-    if (!tooClose) return candidate
+    if (!existing.some(p => p.distanceTo(candidate) < radius)) return candidate
   }
   return getRandomPosition()
 }
@@ -29,11 +28,9 @@ const getNonOverlappingPosition = (
 const DeckGroup: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
   const groupRef = useRef<Group>(null!)
   const clockStartRef = useRef<number | null>(null)
-  const activeIndices = useRef(new Set<number>())
 
   const validCards = useMemo(
-    () =>
-      cards.filter(c => typeof c.front === 'string' && typeof c.back === 'string'),
+    () => cards.filter(c => typeof c.front === 'string' && typeof c.back === 'string'),
     [cards]
   )
 
@@ -54,9 +51,8 @@ const DeckGroup: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
       positions.push(pos)
       return {
         pos,
-        delay: Math.random() * 1.1 + 0.2, // 0.2s–1.2s per card
+        delay: Math.random() * 1.1 + 0.2,
         rotSpeed: Math.random() * 0.01 + 0.002,
-        opacity: 0,
       }
     })
   }, [validCards, densityRadius])
@@ -66,46 +62,52 @@ const DeckGroup: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
     if (clockStartRef.current === null) clockStartRef.current = t
     const localTime = t - clockStartRef.current
 
-    if (groupRef.current) {
-      groupRef.current.rotation.y += 0.002
+    const group = groupRef.current
+    if (!group) return
 
-      groupRef.current.children.forEach((child, i) => {
-        const meta = metadata[i]
-        if (!meta) return
+    group.rotation.y += 0.002
 
-        const fadeT = Math.max(0, (localTime - meta.delay) * 2) // fade-in over 0.5s
-        const eased = fadeT >= 1 ? 1 : fadeT * fadeT * (3 - 2 * fadeT) // smoothstep easing
+    group.children.forEach((child, i) => {
+      const meta = metadata[i]
+      if (!meta) return
 
-        if (eased >= 1) {
-          if (!activeIndices.current.has(i)) activeIndices.current.add(i)
-        }
+      const fadeT = Math.max(0, (localTime - meta.delay) * 2)
+      const eased = fadeT >= 1 ? 1 : fadeT * fadeT * (3 - 2 * fadeT)
 
-        if (eased < 1 || meta.rotSpeed > 0) {
-          // Only update if scale changed significantly
-          if (Math.abs(child.scale.x - eased) > 0.001) {
-            child.scale.setScalar(eased)
-          }
+      if (!child.userData.activated && eased >= 1) {
+        child.userData.activated = true
+      }
 
-          // Ensure visibility
-          if (!child.visible && eased > 0.01) {
-            child.visible = true
-          }
+      if (!child.userData.activated) {
+        child.scale.setScalar(eased)
+        if (!child.visible && eased > 0.01) child.visible = true
+      }
 
-          // subtle spinning
-          child.rotation.y += meta.rotSpeed
-          child.rotation.x += meta.rotSpeed / 2
-        }
-      })
-    }
+      if (meta.rotSpeed > 0) {
+        child.rotation.y += meta.rotSpeed
+        child.rotation.x += meta.rotSpeed / 2
+      }
+    })
   })
+
+  // Optional: spawn cards progressively in batches to reduce first-load stall
+  const [spawnCount, setSpawnCount] = useState(8)
+  useEffect(() => {
+    if (spawnCount >= validCards.length) return
+    const id = setInterval(() => {
+      setSpawnCount(prev => Math.min(prev + 8, validCards.length))
+    }, 50)
+    return () => clearInterval(id)
+  }, [spawnCount, validCards.length])
 
   return (
     <group ref={groupRef}>
-      {validCards.map((card, i) => (
+      {validCards.slice(0, spawnCount).map((card, i) => (
         <group
           key={card.id ?? `${card.name}-${card.number}`}
           position={metadata[i].pos}
           scale={0.001}
+          visible={false}
         >
           <CardMesh frontUrl={card.front} backUrl={card.back} scale={1} />
         </group>

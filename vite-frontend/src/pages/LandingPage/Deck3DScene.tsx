@@ -29,6 +29,7 @@ const TrackballCamera: React.FC = () => {
       const y = (event.clientY / size.height - 0.5) * 2
       mouse.current.x = x
       mouse.current.y = y
+      invalidate() // redraw when user moves mouse
     }
 
     window.addEventListener('mousemove', handleMouseMove)
@@ -53,7 +54,7 @@ const TrackballCamera: React.FC = () => {
 
   useFrame(() => {
     const time = clock.getElapsedTime() - timeOffsetRef.current
-    const azimuth = BASE_AZIMUTH + time * 0.1 + mouse.current.x * MOUSE_SENSITIVITY
+    const azimuth = BASE_AZIMUTH + time * 0.05 + mouse.current.x * MOUSE_SENSITIVITY
     const polar = BASE_POLAR + mouse.current.y * MOUSE_SENSITIVITY
 
     spherical.current.theta = azimuth
@@ -62,6 +63,8 @@ const TrackballCamera: React.FC = () => {
     tempPos.setFromSpherical(spherical.current)
     camera.position.lerp(tempPos, 0.1)
     camera.lookAt(target)
+
+    invalidate() // redraw when camera moves
   })
 
   return null
@@ -81,16 +84,15 @@ const SceneContents: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
 
   return (
     <>
-<ambientLight intensity={0.65} /> 
-<directionalLight position={[4, 8, 6]} intensity={0.8} />
-<DeckGroup cards={cards} />
-<TrackballCamera />
+      <ambientLight intensity={0.65} />
+      <directionalLight position={[4, 8, 6]} intensity={0.8} />
+      <DeckGroup cards={cards} />
+      <TrackballCamera />
     </>
   )
 }
 
 const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
-  // Calculate screen area and DPR
   const width = window.innerWidth
   const height = window.innerHeight
   const dpr = window.devicePixelRatio || 1
@@ -104,38 +106,6 @@ const Deck3DScene: React.FC<{ cards: CardImage[] }> = ({ cards }) => {
   }, [screenArea])
 
   const visibleCards = useMemo(() => cards.slice(0, maxCards), [cards, maxCards])
-
-  useEffect(() => {
-    let mounted = true
-    let visible = document.visibilityState === 'visible'
-    const interval = 1000 / 45
-    let timeoutId: number | null = null
-
-    const loop = () => {
-      if (!mounted || !visible) return
-      invalidate()
-      timeoutId = window.setTimeout(loop, interval)
-    }
-
-    const handleVisibility = () => {
-      visible = document.visibilityState === 'visible'
-      if (!visible && timeoutId !== null) {
-        clearTimeout(timeoutId)
-        timeoutId = null
-      } else if (visible && timeoutId === null) {
-        loop()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibility)
-    if (visible) loop()
-
-    return () => {
-      mounted = false
-      if (timeoutId !== null) clearTimeout(timeoutId)
-      document.removeEventListener('visibilitychange', handleVisibility)
-    }
-  }, [])
 
   return (
     <div
