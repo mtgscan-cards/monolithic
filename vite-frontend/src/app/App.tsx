@@ -1,21 +1,16 @@
 // src/app/App.tsx
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import {
   ThemeProvider,
   createTheme,
   CssBaseline,
-  AppBar,
-  Toolbar,
-  Typography,
   Box,
-  IconButton,
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import SearchIcon from '@mui/icons-material/Search';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import { Routes, Route, Link as RouterLink } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
+import ReactDOM from 'react-dom/client';
 
+import MenuButton from '../components/layout/MenuButton';
 import { NavItem } from '../components/layout/NavigationDrawer';
 const NavigationDrawer = React.lazy(() => import('../components/layout/NavigationDrawer'));
 const LoginPage = React.lazy(() => import('../pages/LoginPage/LoginPage'));
@@ -54,75 +49,53 @@ const modernTheme = createTheme({
     caption: { fontSize: '0.875rem', fontWeight: 400, color: '#aaa' },
   },
   shape: { borderRadius: 8 },
+  zIndex: {
+    appBar: 1100,   // ✅ explicit
+    drawer: 1099,   // ✅ drawer below appBar
+  },
 });
 
 const navItems: NavItem[] = [
-  { text: 'Search', icon: <SearchIcon />, path: '/search' },
-  {
-    text: 'Collections',
-    icon: <span className="material-symbols-outlined" style={{ fontSize: 24 }}>deployed_code</span>,
-    path: '/collections',
-  },
-  { text: 'Portfolio', icon: <TrendingUpIcon />, path: '/portfolio' },
-  {
-    text: 'Scan',
-    icon: <span className="material-symbols-outlined" style={{ fontSize: 24 }}>document_scanner</span>,
-    path: '/scan',
-  },
+  { text: 'Search', icon: null, path: '/search' },
+  { text: 'Collections', icon: null, path: '/collections' },
+  { text: 'Portfolio', icon: null, path: '/portfolio' },
+  { text: 'Scan', icon: null, path: '/scan' },
 ];
 
 const App: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
-  const toggleDrawer = (open: boolean) => (e: React.KeyboardEvent | React.MouseEvent) => {
-    if (e.type === 'keydown' && ((e as React.KeyboardEvent).key === 'Tab' || (e as React.KeyboardEvent).key === 'Shift')) {
-      return;
+  useEffect(() => {
+    const container = document.getElementById('menu-button-root');
+    if (container) {
+      const toggleDrawer = () => setDrawerOpen(prev => !prev);
+ReactDOM.createRoot(container).render(<MenuButton onClick={toggleDrawer} />);
     }
-    setDrawerOpen(open);
-  };
+  }, []);
 
   return (
     <ThemeProvider theme={modernTheme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-        <AppBar position="sticky" elevation={0} sx={{
-          top: 0,
-          zIndex: theme => theme.zIndex.drawer + 2,
-          backdropFilter: 'blur(8px)',
-          backgroundColor: 'rgba(28, 28, 28, 0.85)',
-        }}>
-          <Toolbar sx={{ px: 2, display: 'flex', alignItems: 'center' }}>
-            <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-start' }}>
-              <IconButton color="inherit" onClick={toggleDrawer(true)} edge="start" sx={{ p: 1 }}>
-                <MenuIcon />
-              </IconButton>
-            </Box>
-            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
-              <Typography variant="h6" component={RouterLink} to="/" sx={{
-                color: 'inherit',
-                textDecoration: 'none',
-                fontWeight: 600,
-                '&:hover': { textDecoration: 'underline' },
-              }}>
-                mtgscan.cards
-              </Typography>
-            </Box>
-            <Box sx={{ width: 48, display: { xs: 'block', sm: 'none' } }} />
-          </Toolbar>
-        </AppBar>
-
+      <Box sx={{ display: 'flex', flexDirection: 'column', pt: '64px' }}>
         <Suspense fallback={null}>
-          <NavigationDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} navItems={navItems} />
+          <NavigationDrawer
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            navItems={navItems}
+          />
         </Suspense>
 
-        <Box component="main" sx={{
-          flexGrow: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: '100vh',
-          overflowY: 'auto',
-          paddingY: 4,
-        }}>
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: '100vh',
+            overflowY: 'auto',
+            paddingY: 4,
+          }}
+        >
           <Suspense fallback={null}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />

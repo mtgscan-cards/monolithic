@@ -1,19 +1,16 @@
-// src/app/main.tsx
-import React, { Suspense } from 'react';
+// vite-frontend/src/app/main.tsx
+
+import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-
-const App = React.lazy(() => import('./App'));
 import { AuthProvider } from '../contexts/AuthContext';
+import App from './App';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <div style={{ display: 'none' }}>Loading...</div>
-        <Suspense fallback={null}>
-          <App />
-        </Suspense>
+        <App />
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
