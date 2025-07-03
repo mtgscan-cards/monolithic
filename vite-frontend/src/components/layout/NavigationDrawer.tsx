@@ -1,10 +1,9 @@
 // src/components/NavigationDrawer.tsx
 
-
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import {
   Box,
-  SwipeableDrawer,
+  Drawer,
   List,
   ListItem,
   ListItemButton,
@@ -14,7 +13,6 @@ import {
   Divider,
   IconButton,
   Link as MuiLink,
-  useMediaQuery,
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useTheme } from '@mui/material/styles';
@@ -34,7 +32,6 @@ export interface NavItem {
 interface NavigationDrawerProps {
   open: boolean;
   onClose: () => void;
-  onOpen?: () => void;
   navItems: NavItem[];
   drawerWidth?: number;
 }
@@ -42,7 +39,6 @@ interface NavigationDrawerProps {
 const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   open,
   onClose,
-  onOpen = () => {},
   navItems,
   drawerWidth = 280,
 }) => {
@@ -50,7 +46,6 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const signedIn = Boolean(user);
   const displayName = user?.display_name ?? '';
@@ -58,7 +53,6 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // ✅ Use correct ref type for Link underlying <a>
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
@@ -87,16 +81,14 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
   return (
     <>
-      <SwipeableDrawer
+      <Drawer
         anchor="left"
         open={open}
         onClose={onClose}
-        onOpen={onOpen}
-        disableSwipeToOpen={!isMobile}
         ModalProps={{ keepMounted: true }}
         PaperProps={{
           sx: {
-            zIndex: (theme) => theme.zIndex.drawer + 1,
+            zIndex: (theme) => theme.zIndex.appBar - 1,
             width: drawerWidth,
             background: 'linear-gradient(180deg, #1e1e1e, #121212)',
             color: 'text.primary',
@@ -228,7 +220,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             </IconButton>
           )}
         </Box>
-      </SwipeableDrawer>
+      </Drawer>
 
       <LinkAccountDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </>
