@@ -1,7 +1,7 @@
 // src/components/layout/MenuButton.tsx
 
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, Root } from 'react-dom/client';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 
@@ -27,10 +27,16 @@ const MenuButton: React.FC<MenuButtonProps> = ({ onClick }) => {
   );
 };
 
+// Track the root instance safely
+let root: Root | null = null;
+
 export const mountMenuButton = (onClick: () => void) => {
   const container = document.getElementById('menu-button-root');
   if (container) {
-    createRoot(container).render(<MenuButton onClick={onClick} />);
+    if (!root) {
+      root = createRoot(container);
+    }
+    root.render(<MenuButton onClick={onClick} />);
   }
 };
 

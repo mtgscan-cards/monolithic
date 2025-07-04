@@ -1,3 +1,5 @@
+// src/pages/CollectionsOverview/CollectionsOverview.tsx
+
 import React, {
   useState,
   useRef,
@@ -8,12 +10,12 @@ import React, {
   MutableRefObject,
   FC,
   Suspense,
-} from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Environment, useGLTF } from '@react-three/drei'
-import { Group, Vector3 } from 'three'
-import TWEEN from '@tweenjs/tween.js'
-import { useNavigate } from 'react-router-dom'
+} from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Environment, useGLTF } from '@react-three/drei';
+import { Group, Vector3 } from 'three';
+import TWEEN from '@tweenjs/tween.js';
+import { useNavigate } from 'react-router-dom';
 import {
   Paper,
   Box,
@@ -22,106 +24,103 @@ import {
   Typography,
   Grid,
   CircularProgress,
-} from '@mui/material'
+} from '@mui/material';
 
-import Model from '../../components/shared/Model'
-import { createCollection, getCollections, CollectionData } from '../../api/collections'
-import { AuthContext } from '../../contexts/AuthContext'
+import Model from '../../components/shared/Model';
+import { createCollection, getCollections, CollectionData } from '../../api/collections';
+import { AuthContext } from '../../contexts/AuthContext';
 
 const PreloadModels: FC = () => {
-  useGLTF.preload('mtgcardstack_min.glb')
-  useGLTF.preload('compressed_box.glb')
-  return null
-}
+  useGLTF.preload('mtgcardstack_min.glb');
+  useGLTF.preload('compressed_box.glb');
+  return null;
+};
 
-type GroupArrayRef = MutableRefObject<Group[]>
+type GroupArrayRef = MutableRefObject<Group[]>;
 
 const CollectionsOverview: React.FC = () => {
-  const { user } = useContext(AuthContext)
-  const navigate = useNavigate()
+  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-  const [collections, setCollections] = useState<CollectionData[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [readyToRender3D, setReadyToRender3D] = useState(false)
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [collections, setCollections] = useState<CollectionData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [readyToRender3D, setReadyToRender3D] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const [label, setLabel] = useState('New Collection')
-  const [topColor, setTopColor] = useState('#ffffff')
-  const [bottomColor, setBottomColor] = useState('#8b4513')
+  const [label, setLabel] = useState('New Collection');
+  const [topColor, setTopColor] = useState('#ffffff');
+  const [bottomColor, setBottomColor] = useState('#8b4513');
 
-  const canvasWrapperRef = useRef<HTMLDivElement>(null)
-  const tileRefs: GroupArrayRef = useRef([])
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
+  const tileRefs: GroupArrayRef = useRef([]);
 
   useEffect(() => {
-    let mounted = true
-    ;(async () => {
+    let mounted = true;
+    (async () => {
       try {
-        const data = await getCollections()
-        if (mounted) setCollections(data)
+        const data = await getCollections();
+        if (mounted) setCollections(data);
       } catch (e) {
-        console.error('Error loading collections:', e)
+        console.error('Error loading collections:', e);
       } finally {
-        if (mounted) setIsLoading(false)
+        if (mounted) setIsLoading(false);
       }
-    })()
+    })();
     return () => {
-      mounted = false
-    }
-  }, [])
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
-    const timeout = setTimeout(() => setReadyToRender3D(true), 0)
-    return () => clearTimeout(timeout)
-  }, [])
+    const timeout = setTimeout(() => setReadyToRender3D(true), 0);
+    return () => clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
     if (!isLoading && readyToRender3D) {
       requestAnimationFrame(() => {
-        const canvas = canvasWrapperRef.current?.querySelector('canvas')
-        if (canvas) canvas.classList.add('fade-canvas', 'visible')
-      })
+        const canvas = canvasWrapperRef.current?.querySelector('canvas');
+        if (canvas) canvas.classList.add('fade-canvas', 'visible');
+      });
     }
-  }, [isLoading, readyToRender3D])
+  }, [isLoading, readyToRender3D]);
 
   const radius = useMemo(
     () => 1 + (collections.length > 1 ? (collections.length - 1) * 0.5 : 0),
-    [collections.length],
-  )
+    [collections.length]
+  );
 
-  const step = 0.4
+  const step = 0.4;
   const targetPos = useCallback(
     (i: number) => {
-      const angle = (i - currentIndex) * step
+      const angle = (i - currentIndex) * step;
       return new Vector3(
         radius * Math.sin(angle),
         0,
-        radius * Math.cos(angle) - radius,
-      )
+        radius * Math.cos(angle) - radius
+      );
     },
-    [currentIndex, radius],
-  )
+    [currentIndex, radius]
+  );
 
   useEffect(() => {
     tileRefs.current.forEach((tile, i) => {
-      const dest = targetPos(i)
+      const dest = targetPos(i);
       new TWEEN.Tween(tile.position)
         .to({ x: dest.x, y: dest.y, z: dest.z }, 600)
         .easing(TWEEN.Easing.Quadratic.Out)
-        .start()
-    })
-  }, [currentIndex, targetPos])
+        .start();
+    });
+  }, [currentIndex, targetPos]);
 
-  const addToRefs = useCallback(
-    (el: Group | null) => {
-      if (el && !tileRefs.current.includes(el)) tileRefs.current.push(el)
-    },
-    [],
-  )
+  const addToRefs = useCallback((el: Group | null) => {
+    if (el && !tileRefs.current.includes(el)) tileRefs.current.push(el);
+  }, []);
 
-  const atStart = currentIndex === 0
-  const atEnd = collections.length === 0 || currentIndex === collections.length - 1
-  const prev = () => !atStart && setCurrentIndex(i => i - 1)
-  const next = () => !atEnd && setCurrentIndex(i => i + 1)
+  const atStart = currentIndex === 0;
+  const atEnd = collections.length === 0 || currentIndex === collections.length - 1;
+  const prev = () => !atStart && setCurrentIndex((i) => i - 1);
+  const next = () => !atEnd && setCurrentIndex((i) => i + 1);
 
   const handleAdd = async () => {
     try {
@@ -132,28 +131,26 @@ const CollectionsOverview: React.FC = () => {
           top: parseInt(topColor.slice(1), 16),
           bottom: parseInt(bottomColor.slice(1), 16),
         },
-      })
-      setCollections(prev => [...prev, newCol])
-      setCurrentIndex(collections.length)
+      });
+      setCollections((prev) => [...prev, newCol]);
+      setCurrentIndex(collections.length);
     } catch (e) {
-      console.error('Create collection failed:', e)
+      console.error('Create collection failed:', e);
     }
-  }
+  };
 
-  if (!user) return null
-  const username = user.username
+  if (!user) return null;
+  const username = user.username;
 
   return (
     <Box
       component="main"
       sx={{
-        width: '100%',
-        height: '100vh',
-        overflow: 'hidden',
         position: 'relative',
-        backgroundColor: '#111111',
-        display: 'flex',
-        flexDirection: 'column',
+        width: '100vw',
+        height: '100vh',
+        overflow: 'hidden', // no scroll initially
+        backgroundColor: '#111',
       }}
     >
       <PreloadModels />
@@ -161,21 +158,23 @@ const CollectionsOverview: React.FC = () => {
       <Box
         ref={canvasWrapperRef}
         sx={{
-          position: 'absolute',
-          inset: 0,
+          position: 'fixed', // detach canvas from layout
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
           zIndex: 0,
           overflow: 'hidden',
         }}
       >
         {readyToRender3D && (
           <Canvas
-            className="fade-canvas"
             camera={{ position: [0, 0.6, 1.4], fov: 60 }}
             shadows
-            style={{ width: '100%', height: '100%', display: 'block' }}
+            style={{ width: '100%', height: '100%' }}
           >
             <Suspense fallback={null}>
-              <color attach="background" args={['#111111']} />
+              <color attach="background" args={['#111']} />
               <Environment preset="sunset" resolution={32} background={false} blur={1} />
               <TWEENUpdater />
               <group>
@@ -215,13 +214,17 @@ const CollectionsOverview: React.FC = () => {
         </Banner>
       )}
 
-      <NavButton disabled={atStart} onClick={prev}>◀</NavButton>
-      <NavButton right disabled={atEnd} onClick={next}>▶</NavButton>
+      <NavButton disabled={atStart} onClick={prev}>
+        ◀
+      </NavButton>
+      <NavButton right disabled={atEnd} onClick={next}>
+        ▶
+      </NavButton>
 
       <Paper
         elevation={4}
         sx={{
-          position: 'absolute',
+          position: 'fixed',
           bottom: 120,
           left: '50%',
           transform: 'translateX(-50%)',
@@ -245,7 +248,7 @@ const CollectionsOverview: React.FC = () => {
               fullWidth
               variant="filled"
               value={label}
-              onChange={e => setLabel(e.target.value)}
+              onChange={(e) => setLabel(e.target.value)}
             />
           </Grid>
           <Grid item xs={6}>
@@ -255,7 +258,7 @@ const CollectionsOverview: React.FC = () => {
               fullWidth
               variant="filled"
               value={topColor}
-              onChange={e => setTopColor(e.target.value)}
+              onChange={(e) => setTopColor(e.target.value)}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
@@ -266,7 +269,7 @@ const CollectionsOverview: React.FC = () => {
               fullWidth
               variant="filled"
               value={bottomColor}
-              onChange={e => setBottomColor(e.target.value)}
+              onChange={(e) => setBottomColor(e.target.value)}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
@@ -278,18 +281,18 @@ const CollectionsOverview: React.FC = () => {
         </Grid>
       </Paper>
     </Box>
-  )
-}
+  );
+};
 
 const TWEENUpdater: React.FC = () => {
-  useFrame(() => TWEEN.update())
-  return null
-}
+  useFrame(() => TWEEN.update());
+  return null;
+};
 
 const FullOverlay: React.FC<React.PropsWithChildren> = ({ children }) => (
   <Box
     sx={{
-      position: 'absolute',
+      position: 'fixed',
       inset: 0,
       display: 'flex',
       justifyContent: 'center',
@@ -300,12 +303,12 @@ const FullOverlay: React.FC<React.PropsWithChildren> = ({ children }) => (
   >
     {children}
   </Box>
-)
+);
 
 const Banner: React.FC<React.PropsWithChildren> = ({ children }) => (
   <Box
     sx={{
-      position: 'absolute',
+      position: 'fixed',
       top: 80,
       left: '50%',
       transform: 'translateX(-50%)',
@@ -320,12 +323,12 @@ const Banner: React.FC<React.PropsWithChildren> = ({ children }) => (
   >
     {children}
   </Box>
-)
+);
 
 interface NavButtonProps {
-  right?: boolean
-  disabled?: boolean
-  onClick: () => void
+  right?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
 }
 
 const NavButton: React.FC<React.PropsWithChildren<NavButtonProps>> = ({
@@ -338,7 +341,7 @@ const NavButton: React.FC<React.PropsWithChildren<NavButtonProps>> = ({
     disabled={disabled}
     onClick={onClick}
     sx={{
-      position: 'absolute',
+      position: 'fixed',
       top: '50%',
       transform: 'translateY(-50%)',
       [right ? 'right' : 'left']: 16,
@@ -352,6 +355,6 @@ const NavButton: React.FC<React.PropsWithChildren<NavButtonProps>> = ({
   >
     {children}
   </Button>
-)
+);
 
-export default CollectionsOverview
+export default CollectionsOverview;

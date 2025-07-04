@@ -8,10 +8,12 @@ import {
   Box,
 } from '@mui/material';
 import { Routes, Route } from 'react-router-dom';
-import ReactDOM from 'react-dom/client';
 
-import MenuButton from '../components/layout/MenuButton';
+import { mountMenuButton } from '../components/layout/MenuButton';
 import { NavItem } from '../components/layout/NavigationDrawer';
+import SearchIcon from '@mui/icons-material/Search';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+
 const NavigationDrawer = React.lazy(() => import('../components/layout/NavigationDrawer'));
 const LoginPage = React.lazy(() => import('../pages/LoginPage/LoginPage'));
 const RegisterPage = React.lazy(() => import('../pages/RegisterPage/RegisterPage'));
@@ -50,27 +52,24 @@ const modernTheme = createTheme({
   },
   shape: { borderRadius: 8 },
   zIndex: {
-    appBar: 1100,   // ✅ explicit
-    drawer: 1099,   // ✅ drawer below appBar
+    appBar: 1100,
+    drawer: 1099,
   },
 });
 
 const navItems: NavItem[] = [
-  { text: 'Search', icon: null, path: '/search' },
-  { text: 'Collections', icon: null, path: '/collections' },
-  { text: 'Portfolio', icon: null, path: '/portfolio' },
-  { text: 'Scan', icon: null, path: '/scan' },
+  { text: 'Search', icon: <SearchIcon />, path: '/search' },
+  { text: 'Collections', icon: <span className="material-symbols-outlined" style={{ fontSize: 24 }}>deployed_code</span>, path: '/collections' },
+  { text: 'Portfolio', icon: <TrendingUpIcon />, path: '/portfolio' },
+  { text: 'Scan', icon: <span className="material-symbols-outlined" style={{ fontSize: 24 }}>document_scanner</span>, path: '/scan' },
 ];
 
 const App: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   useEffect(() => {
-    const container = document.getElementById('menu-button-root');
-    if (container) {
-      const toggleDrawer = () => setDrawerOpen(prev => !prev);
-ReactDOM.createRoot(container).render(<MenuButton onClick={toggleDrawer} />);
-    }
+    const toggleDrawer = () => setDrawerOpen(prev => !prev);
+    mountMenuButton(toggleDrawer);
   }, []);
 
   return (

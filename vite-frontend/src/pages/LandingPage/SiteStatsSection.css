@@ -5,6 +5,7 @@
   position: relative;
   overflow: hidden;
   background: black;
+  border-top: 1px solid #333;
 
 
 }

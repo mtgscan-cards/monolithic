@@ -1,7 +1,7 @@
 // src/pages/SearchPage/SearchPage.tsx
 
 import React, { useState, Suspense } from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { Box } from '@mui/material';
 
 const FilterPanel = React.lazy(() => import('../../components/filters/FilterPanel'));
 import type { FilterCriteria } from '../../components/filters/FilterPanel';
@@ -68,12 +68,12 @@ const SearchPage: React.FC = () => {
       }}
     >
       <Box sx={{ mb: 4, mt: 4, width: '100%', maxWidth: 900 }}>
-        <Suspense fallback={<CircularProgress color="inherit" />}>
+        <Suspense fallback={null}>
           <FilterPanel onSearch={runNewSearch} />
         </Suspense>
       </Box>
       <Box sx={{ width: '100%', maxWidth: 1200 }}>
-        <Suspense fallback={<CircularProgress color="inherit" />}>
+        <Suspense fallback={null}>
           <SearchResults
             results={results}
             onLoadMore={loadMore}
