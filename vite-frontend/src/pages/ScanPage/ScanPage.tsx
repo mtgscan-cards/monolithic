@@ -26,12 +26,13 @@ import MobileQRCodePanel from '../../components/dialogs/MobileQRCodePanel';
 import CameraPanel from '../../components/camera/CameraPanel';
 import api from '../../api/axios';
 
-// Ensure all canvas elements have opacity 1 and no min-height
+// Ensure all canvas elements have opacity 1 and no min-height, also set height to 100vh to prevent layout shift on route change
 const style = document.createElement('style');
 style.innerHTML = `
   canvas { 
     opacity: 1 !important; 
     min-height: 0 !important;
+    height: 100vh !important;
   }
 `;
 document.head.appendChild(style);
@@ -150,7 +151,6 @@ const ScanPage: React.FC = () => {
 
   const [showOverlayMarker, setShowOverlayMarker] = useState(false);
 
-  // ✅ Then safely use it inside the processor hook
   const {
     manualSnapshotFromOverlay
   } = useFrameProcessor({
@@ -459,9 +459,7 @@ const ScanPage: React.FC = () => {
           <Box
             className="scan-page-drawer"
             p={2}
-            sx={{
-              marginTop: '0px', // 👈 Add the margin here
-            }}
+
           >
             <Typography variant="h6" gutterBottom>
               Scanned Cards

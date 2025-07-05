@@ -6,7 +6,7 @@ import Deck3DScene from './Deck3DScene';
 import { useInView } from 'react-intersection-observer';
 import '../../styles/App.css';
 
-// ✅ Lazy load non-critical components
+// Lazy load non-critical components
 const Footer = React.lazy(() => import('./Footer'));
 const LandingContent = React.lazy(() => import('./LandingContent'));
 const SiteStatsSection = React.lazy(() => import('./SiteStatsSection'));
@@ -56,7 +56,7 @@ const LandingPage: React.FC = () => {
         style={{
           position: 'relative',
           width: '100%',
-          height: '94vh',
+          height: '100vh',
           overflow: 'hidden',
           flexShrink: 0,
           display: 'flex',

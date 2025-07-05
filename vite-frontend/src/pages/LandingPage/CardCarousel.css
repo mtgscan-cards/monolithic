@@ -1,123 +1,13 @@
-.card-carousel-wrapper {
-  transform: scale(0.84);
-  width: 100%;
-  max-width: 360px;
-  aspect-ratio: 2.25 / 3;
-  position: relative;
-  flex: 1 1 auto;
-  top: 15px;
-
-  /* Add for mobile centering */
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.card-carousel-showcase {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: transparent;
-  padding: 0;
-  margin: 0;
-  pointer-events: none;
-}
-
-.card-carousel-card {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  transform-style: preserve-3d;
-  background: transparent;
-  transform:
-    translateX(var(--tx, 0px))
-    translateY(var(--ty, 0px))
-    scale(var(--s, 1))
-    rotateX(var(--ry, 0deg))
-    rotateY(var(--rx, 0deg));
-}
-
-.card__translater,
-.card__rotator,
-.card__front {
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  background: transparent !important;
-}
-
-.card__rotator {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-}
-
-.card__img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  border-radius: 12px;
-  backface-visibility: hidden;
-  z-index: 1;
-  position: relative;
-}
-
-.card__shine {
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  pointer-events: none;
-  z-index: 2;
-  --space: 5%;
-  --angle: -22deg;
-  --imgsize: 300% 400%;
-  clip-path: var(--clip-borders, inset(0 round 12px));
-  background-image:
-    repeating-linear-gradient(var(--angle),
-      hsla(283, 49%, 60%, 0.75) calc(var(--space)*1),
-      hsla(2, 74%, 59%, 0.75) calc(var(--space)*2),
-      hsla(53, 67%, 53%, 0.75) calc(var(--space)*3),
-      hsla(93, 56%, 52%, 0.75) calc(var(--space)*4),
-      hsla(176, 38%, 50%, 0.75) calc(var(--space)*5),
-      hsla(228, 100%, 77%, 0.75) calc(var(--space)*6),
-      hsla(283, 49%, 61%, 0.75) calc(var(--space)*7)
-    );
-  background-size: var(--imgsize);
-  background-position: 0% calc(var(--pointer-y, 50%) * 1);
-  background-blend-mode: color-dodge;
-  filter: brightness(calc((var(--pointer-from-center, 0.5)*0.3) + 0.5)) contrast(2.3) saturate(1);
-  mix-blend-mode: screen;
-  opacity: 0.35;
-}
-
-.card__glare {
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  pointer-events: none;
-  z-index: 2;
-  background-image:
-    radial-gradient(
-      farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
-      hsla(0, 0%, 100%, 1) 10%,
-      hsla(0, 0%, 100%, 0.6) 35%,
-      hsla(180, 11%, 35%, 1) 60%
-    );
-  mix-blend-mode: soft-light;
-  opacity: 0.25;
-}
-.fade-in-carousel {
-  animation: fadeInCardCarousel 0.8s ease-out forwards;
-}
-
-@keyframes fadeInCardCarousel {
-  from {
-    opacity: 0;
-    transform: scale(0.85);
-  }
-  to {
-    opacity: 1;
-    transform: scale(0.95); /* reduced final size */
-  }
+.card-carousel-wrapper{transform:scale(.84);width:100%;max-width:360px;aspect-ratio:2.25/3;position:relative;flex:1 1 auto;top:15px;margin-left:auto;margin-right:auto}
+.card-carousel-showcase{display:flex;justify-content:center;align-items:center;background:0 0;padding:0;margin:0;pointer-events:none}
+.card-carousel-card{width:100%;height:100%;position:relative;transform-style:preserve-3d;background:0 0;transform:translateX(var(--tx,0)) translateY(var(--ty,0)) scale(var(--s,1)) rotateX(var(--ry,0deg)) rotateY(var(--rx,0deg))}
+.card__front,.card__rotator,.card__translater{width:100%;height:100%;transform-style:preserve-3d;background:0 0!important}
+.card__rotator{background:0 0;border:none;padding:0;cursor:pointer}
+.card__img{width:100%;height:100%;object-fit:cover;display:block;border-radius:12px;backface-visibility:hidden;z-index:1;position:relative}
+.card__shine{position:absolute;inset:0;border-radius:12px;pointer-events:none;z-index:2;--space:5%;--angle:-22deg;--imgsize:300% 400%;clip-path:var(--clip-borders,inset(0 round 12px));background-image:repeating-linear-gradient(var(--angle),hsla(283,49%,60%,.75) calc(var(--space)*1),hsla(2,74%,59%,.75) calc(var(--space)*2),hsla(53,67%,53%,.75) calc(var(--space)*3),hsla(93,56%,52%,.75) calc(var(--space)*4),hsla(176,38%,50%,.75) calc(var(--space)*5),hsla(228,100%,77%,.75) calc(var(--space)*6),hsla(283,49%,61%,.75) calc(var(--space)*7));background-size:var(--imgsize);background-position:0 calc(var(--pointer-y,50%) * 1);background-blend-mode:color-dodge;filter:brightness(calc((var(--pointer-from-center, .5)*.3) + .5)) contrast(2.3) saturate(1);mix-blend-mode:screen;opacity:.35}
+.card__glare{position:absolute;inset:0;border-radius:12px;pointer-events:none;z-index:2;background-image:radial-gradient(farthest-corner circle at var(--pointer-x,50%) var(--pointer-y,50%),hsla(0,0%,100%,1) 10%,hsla(0,0%,100%,.6) 35%,hsla(180,11%,35%,1) 60%);mix-blend-mode:soft-light;opacity:.25}
+.fade-in-carousel{animation:fadeInCardCarousel .8s ease-out forwards}
+@keyframes fadeInCardCarousel{
+from{opacity:0;transform:scale(.85)}
+to{opacity:1;transform:scale(.95)}
 }

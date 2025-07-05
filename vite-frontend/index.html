@@ -1,7 +1,9 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8" />
+  <meta charset="UTF-8" />
+
   <!-- Standard favicon -->
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
@@ -19,7 +21,6 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-
   <title>mtgscan.cards</title>
   <meta name="title" content="mtgscan.cards" />
   <meta name="description" content="Online MTG card collection" />
@@ -31,15 +32,37 @@
   <meta property="twitter:description" content="Online MTG card collection" />
   <meta property="twitter:image" content="/favicon/android-chrome-512x512.png" />
 
-
-  <html style="background : #111; color: #ddd;">
-
-  <!-- Preconnect and Preload Roboto fonts for eager OverlayUI typography -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Preload fonts for improved LCP (optional but recommended) -->
+  <link rel="preload" href="/fonts/roboto/roboto-v48-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/roboto/roboto-v48-latin-500.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/roboto/roboto-v48-latin-600.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/material-symbols/material-symbols-outlined.woff2" as="font" type="font/woff2" crossorigin>
 
   <style>
+    @font-face {
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 400;
+      src: url('/fonts/roboto/roboto-v48-latin-regular.woff2') format('woff2');
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 500;
+      src: url('/fonts/roboto/roboto-v48-latin-500.woff2') format('woff2');
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 600;
+      src: url('/fonts/roboto/roboto-v48-latin-600.woff2') format('woff2');
+      font-display: swap;
+    }
+
     *,
     *::before,
     *::after {
@@ -133,7 +156,9 @@
       }
     }
   </style>
+
 </head>
+
 <body>
   <header id="appbar">
     <div class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular">
@@ -157,4 +182,5 @@
 
   <script type="module" src="/src/app/main.tsx"></script>
 </body>
+
 </html>

@@ -45,7 +45,7 @@ const Footer: React.FC = () => {
                 className={styles.sectionHeader}
               >
                 <CameraAltOutlinedIcon
-                  fontSize="small"
+                  fontSize="medium"
                   className={styles.iconRed}
                 />
                 <Typography variant="h6" className={styles.title}>
@@ -69,9 +69,9 @@ const Footer: React.FC = () => {
               alignItems={isMobile ? 'center' : 'flex-start'}
               textAlign={isMobile ? 'center' : 'left'}
             >
-              <Typography variant="subtitle2" className={styles.heading}>
+              <Typography variant="subtitle1" className={styles.heading}>
                 <MenuBookOutlinedIcon
-                  fontSize="small"
+                  fontSize="medium"
                   className={styles.iconRed}
                 />
                 Resources
@@ -98,9 +98,9 @@ const Footer: React.FC = () => {
               alignItems={isMobile ? 'center' : 'flex-start'}
               textAlign={isMobile ? 'center' : 'left'}
             >
-              <Typography variant="subtitle2" className={styles.heading}>
+              <Typography variant="subtitle1" className={styles.heading}>
                 <PublicOutlinedIcon
-                  fontSize="small"
+                  fontSize="medium"
                   className={styles.iconRed}
                 />
                 Community
@@ -127,9 +127,9 @@ const Footer: React.FC = () => {
               alignItems={isMobile ? 'center' : 'flex-start'}
               textAlign={isMobile ? 'center' : 'left'}
             >
-              <Typography variant="subtitle2" className={styles.heading}>
+              <Typography variant="subtitle1" className={styles.heading}>
                 <GavelOutlinedIcon
-                  fontSize="small"
+                  fontSize="medium"
                   className={styles.iconRed}
                 />
                 Legal

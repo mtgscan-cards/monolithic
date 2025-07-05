@@ -4,7 +4,7 @@
   color: #ccc;
   padding: 32px 0 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .sectionHeader {
@@ -48,7 +48,7 @@
 .link {
   color: #eee !important;
   text-decoration: none !important;
-  font-size: 0.9rem;
+  font-size: 1rem;
   transition: color 0.2s, text-decoration 0.2s;
 }
 
@@ -71,6 +71,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  font-size: 1rem;
 }
 
 .heartIcon {
