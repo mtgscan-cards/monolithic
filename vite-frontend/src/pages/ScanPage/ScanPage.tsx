@@ -32,6 +32,9 @@ style.innerHTML = `
   canvas { 
     opacity: 1 !important; 
     min-height: 0 !important;
+    
+  }
+    body, html {
     height: 100vh !important;
   }
 `;

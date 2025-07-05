@@ -163,6 +163,7 @@ useEffect(() => {
   const validROI = isROIValid(quad, video.videoWidth, video.videoHeight);
   const centered = isQuadCentered(quad, video.videoWidth, video.videoHeight);
 
+  
   if (minConf < CONFIDENCE_THRESHOLD) {
     setStatus(`Low confidence (${minConf.toFixed(2)})`);
   } else if (!validROI) {
@@ -192,7 +193,7 @@ const ctx = canvas.getContext('2d')!;
 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 // Always draw the inference quad
-if (centered) {
+if (centered && minConf > 0.10) { // <-- updated: add minConf > 0.10 guard
   const inferenceQuad = quad.map(([x, y]: [number, number]) => ({ x, y }));
   ctx.strokeStyle = highlightRef.current ? 'lime' : '#f44336';
   ctx.lineWidth = 3;
