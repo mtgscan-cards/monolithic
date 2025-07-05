@@ -1,5 +1,7 @@
 // src/scanner/imageProcessing.ts
-import cv from '@techstark/opencv-js';
+
+import { isoContours } from 'marchingsquares';
+import simplify from 'simplify-js';
 
 export const TARGET_SIZE = 224;
 export const CENTER_MARGIN_RATIO = 0.050; // 5%
@@ -20,10 +22,9 @@ export const scaleAndCropImage = (
 
   reusableCanvas.width = nw;
   reusableCanvas.height = nh;
-  const scaledCtx = reusableCtx;
-  if (!scaledCtx) throw new Error("Couldn't get 2d context for reusable canvas.");
-  scaledCtx.clearRect(0, 0, nw, nh);
-  scaledCtx.drawImage(sourceCanvas, 0, 0, iw, ih, 0, 0, nw, nh);
+  if (!reusableCtx) throw new Error("Couldn't get 2d context for reusable canvas.");
+  reusableCtx.clearRect(0, 0, nw, nh);
+  reusableCtx.drawImage(sourceCanvas, 0, 0, iw, ih, 0, 0, nw, nh);
 
   const cropX = Math.floor((nw - targetWidth) / 2);
   const cropY = Math.floor((nh - targetHeight) / 2);
@@ -66,71 +67,84 @@ export const findLargestQuadrilateral = (
   height: number,
   epsilonMultiplier: number = 0.02
 ): [number, number][] | null => {
-  const maskMat = cv.matFromArray(height, width, cv.CV_8UC1, maskData);
-  const contours = new cv.MatVector();
-  const hierarchy = new cv.Mat();
-  let largestContour: cv.Mat | null = null;
-  let quad: [number, number][] | null = null;
-
-  try {
-    cv.findContours(maskMat, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-    if (contours.size() === 0) return null;
-
-    let maxArea = 0;
-    for (let i = 0; i < contours.size(); i++) {
-      const cnt = contours.get(i);
-      const area = cv.contourArea(cnt);
-      if (area > maxArea) {
-        maxArea = area;
-        if (largestContour) largestContour.delete();
-        largestContour = cnt;
-      } else {
-        cnt.delete();
-      }
+  const threshold = 128;
+  const binaryGrid: number[][] = [];
+  for (let y = 0; y < height; y++) {
+    const row: number[] = [];
+    for (let x = 0; x < width; x++) {
+      row.push(maskData[y * width + x] > threshold ? 1 : 0);
     }
-
-    if (largestContour) {
-      const peri = cv.arcLength(largestContour, true);
-      let approx = new cv.Mat();
-      cv.approxPolyDP(largestContour, approx, epsilonMultiplier * peri, true);
-
-      if (approx.rows > 4) {
-        approx.delete();
-        const tighter = new cv.Mat();
-        cv.approxPolyDP(largestContour, tighter, epsilonMultiplier * peri * 1.5, true);
-        approx = tighter;
-      }
-      const pts: [number, number][] = [];
-      for (let i = 0; i < approx.rows; i++) {
-        const p = approx.intPtr(i, 0);
-        pts.push([p[0] / width, p[1] / height]);
-      }
-
-      if (pts.length === 3) {
-        const cx = (pts[0][0] + pts[1][0] + pts[2][0]) / 3;
-        const cy = (pts[0][1] + pts[1][1] + pts[2][1]) / 3;
-        pts.sort((a, b) => Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx));
-        const [A, B, C] = pts;
-        pts.push([A[0] + C[0] - B[0], A[1] + C[1] - B[1]]);
-      }
-
-      if (pts.length === 4) {
-        const cx = pts.reduce((sum, [x]) => sum + x, 0) / 4;
-        const cy = pts.reduce((sum, [, y]) => sum + y, 0) / 4;
-        pts.sort((a, b) => Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx));
-        if (polygonArea(pts) <= 0.8) quad = pts;
-      }
-
-      approx.delete();
-    }
-  } finally {
-    maskMat.delete();
-    contours.delete();
-    hierarchy.delete();
-    if (largestContour) largestContour.delete();
+    binaryGrid.push(row);
   }
 
-  return quad;
+  const contours = isoContours(binaryGrid, 0.5);
+  if (contours.length === 0) return null;
+
+  // Helper to convert flat array to array of [number, number]
+function toPairs(arr: number[]): [number, number][] {
+  const pairs: [number, number][] = [];
+  for (let i = 0; i < arr.length; i += 2) {
+    pairs.push([arr[i + 1], arr[i]]); // SWAPPED to correct interpretation
+  }
+  return pairs;
+}
+
+  // Correctly access the first ring of the first polygon
+  let largest = toPairs(contours[0].coordinates[0]);
+  let maxArea = polygonAreaNormalized(largest, width, height);
+
+  for (const c of contours) {
+    for (const poly of c.coordinates) {
+      const ring = toPairs(poly);
+      const area = polygonAreaNormalized(ring, width, height);
+      if (area > maxArea) {
+        maxArea = area;
+        largest = ring;
+      }
+    }
+  }
+
+  const simplified = simplify(
+    largest.map(([x, y]) => ({ x, y })),
+    epsilonMultiplier * Math.sqrt(width * width + height * height),
+    true
+  );
+
+  if (simplified.length < 3) return null;
+
+  // FRAME-RELATIVE NORMALIZATION
+  const pts: [number, number][] = simplified.map(({ x, y }) => [
+    x / width,
+    y / height
+  ]);
+
+  // Sort and ensure quadrilateral
+  if (pts.length === 3) {
+    const cx = (pts[0][0] + pts[1][0] + pts[2][0]) / 3;
+    const cy = (pts[0][1] + pts[1][1] + pts[2][1]) / 3;
+    pts.sort((a, b) => Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx));
+    const [A, B, C] = pts;
+    pts.push([A[0] + C[0] - B[0], A[1] + C[1] - B[1]]);
+  }
+
+  if (pts.length === 4) {
+    const cx = pts.reduce((sum, [x]) => sum + x, 0) / 4;
+    const cy = pts.reduce((sum, [, y]) => sum + y, 0) / 4;
+    pts.sort((a, b) => Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx));
+    return pts;
+  }
+
+  return null;
+};
+
+const polygonAreaNormalized = (points: [number, number][], width: number, height: number): number => {
+  let area = 0;
+  for (let i = 0; i < points.length; i++) {
+    const [x1, y1] = points[i];
+    const [x2, y2] = points[(i + 1) % points.length];
+    area += (x1 * y2 - x2 * y1);
+  }
+  return Math.abs(area) / (2 * width * height);
 };
 
 export const polygonArea = (points: [number, number][]): number => {
@@ -169,19 +183,47 @@ export const getROICanvas = (
 };
 
 export const computeFocusScore = (canvas: HTMLCanvasElement): number => {
-  const src = cv.imread(canvas);
-  const gray = new cv.Mat();
-  const lap = new cv.Mat();
-  const mean = new cv.Mat();
-  const stddev = new cv.Mat();
-  try {
-    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-    cv.Laplacian(gray, lap, cv.CV_64F);
-    cv.meanStdDev(lap, mean, stddev);
-    return stddev.doubleAt(0, 0) ** 2;
-  } finally {
-    src.delete(); gray.delete(); lap.delete(); mean.delete(); stddev.delete();
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error("Couldn't get 2d context.");
+  const { width, height } = canvas;
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  const gray = new Uint8ClampedArray(width * height);
+  for (let i = 0; i < width * height; i++) {
+    const r = data[i * 4];
+    const g = data[i * 4 + 1];
+    const b = data[i * 4 + 2];
+    gray[i] = (0.299 * r + 0.587 * g + 0.114 * b) | 0;
   }
+
+  const laplacianKernel = [0, 1, 0, 1, -4, 1, 0, 1, 0];
+  const laplacian = new Float32Array(width * height);
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      let sum = 0;
+      for (let ky = -1; ky <= 1; ky++) {
+        for (let kx = -1; kx <= 1; kx++) {
+          const pixel = gray[(y + ky) * width + (x + kx)];
+          const weight = laplacianKernel[(ky + 1) * 3 + (kx + 1)];
+          sum += pixel * weight;
+        }
+      }
+      laplacian[y * width + x] = sum;
+    }
+  }
+
+  let mean = 0;
+  for (const val of laplacian) mean += val;
+  mean /= laplacian.length;
+
+  let variance = 0;
+  for (const val of laplacian) {
+    const diff = val - mean;
+    variance += diff * diff;
+  }
+  variance /= laplacian.length;
+
+  return variance;
 };
 
 export const isQuadCentered = (
