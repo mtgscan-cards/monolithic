@@ -112,33 +112,37 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
 
         <div className="landing-row">
           <div className="info-column">
-            {[
-              {
-                title: 'Scan Cards with Precision',
-                body: 'Try out the powerful custom scanner that delivers fast, accurate results with just a phone or webcam.',
-              },
-              {
-                title: 'Build Collections Effortlessly',
-                body: 'Add, track, and manage an unlimited number of cards. Export your lists or sync them across devices.',
-              },
-            ].map((section, i) => (
-              <motion.section
-                key={i}
-                custom={i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.6 }}
-                variants={fadeInUp}
-                className="glow-block"
-              >
-                <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-                  {section.title}
-                </Typography>
-                <Typography variant="body1" style={{ lineHeight: 1.6 }}>
-                  {section.body}
-                </Typography>
-              </motion.section>
-            ))}
+            <motion.section
+              custom={0}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.6 }}
+              variants={fadeInUp}
+              className="glow-block"
+            >
+              <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+                Scan Cards with Precision 🗃️
+              </Typography>
+              <Typography variant="body1" style={{ lineHeight: 1.6 }}>
+                Utilize a powerful custom scanning algorithm that delivers fast, accurate results right in the web browser. 
+              </Typography>
+            </motion.section>
+
+            <motion.section
+              custom={1}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.6 }}
+              variants={fadeInUp}
+              className="glow-block"
+            >
+              <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+                Build Collections Effortlessly ☁️
+              </Typography>
+              <Typography variant="body1" style={{ lineHeight: 1.6 }}>
+                Add, track, and manage an unlimited number of magic cards. Add to your collections and sync them to the cloud.
+              </Typography>
+            </motion.section>
           </div>
 
           {highlightCard && cardVisible && (
@@ -156,7 +160,7 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
         </div>
 
         <motion.section
-          custom={3}
+          custom={2}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.6 }}
@@ -165,10 +169,10 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
           style={{ marginBottom: '4rem' }}
         >
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-            Export, Share, and Sync
+            Automatic Updates Every Single Day 🤯
           </Typography>
           <Typography variant="body1" style={{ lineHeight: 1.6 }}>
-            Upload your collections, store decks, and sync your cards to the cloud using the only open-source card database that updates every single day.
+            Upload your collections, and store your decks, using the only open-source card database that updates every single day.
           </Typography>
         </motion.section>
       </Container>

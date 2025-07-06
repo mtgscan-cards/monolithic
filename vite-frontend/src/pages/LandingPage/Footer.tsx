@@ -148,20 +148,34 @@ const Footer: React.FC = () => {
         </Grid>
       </Container>
 
-      <Box className={styles.footerBottom}>
-        <Typography variant="body2" className={styles.footerCredit}>
-          Made with
-          <img
-            src="/img/128.webp"
-            alt="Heart"
-            width={20}
-            height={20}
-            loading="lazy"
-            className={styles.heartIcon}
-          />
-          by players, collectors, and developers.
-        </Typography>
-      </Box>
+<Box className={styles.footerBottom}>
+  <Container maxWidth="md">
+    <Typography
+      variant="body2"
+      className={styles.footerCredit}
+      align="center"
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexWrap: 'wrap',
+        gap: 0.5,
+      }}
+    >
+      Made with
+      <img
+        src="/img/128.webp"
+        alt="Heart"
+        width={20}
+        height={20}
+        loading="lazy"
+        className={styles.heartIcon}
+        style={{ margin: '0 4px' }}
+      />
+      by players, collectors, and developers.
+    </Typography>
+  </Container>
+</Box>
     </Box>
   )
 }
