@@ -64,6 +64,10 @@ def login():
     if not email or not password or not hcaptcha_token:
         logger.warning("Missing required login fields")
         return jsonify({"message": "Missing required fields"}), 400
+    
+    if not verify_hcaptcha(hcaptcha_token, request.remote_addr):
+      logger.warning("hCaptcha verification failed during login")
+      return jsonify({"message": "Invalid captcha"}), 400
 
     conn = pg_pool.getconn()
     try:

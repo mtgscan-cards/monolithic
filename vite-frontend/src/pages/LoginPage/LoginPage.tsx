@@ -25,9 +25,9 @@ const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [errorSeverity, setErrorSeverity] = useState<'error' | 'info'>('error')
   const [hcaptchaToken, setHcaptchaToken] = useState('')
-  const [showCaptcha, setShowCaptcha] = useState(true)
-  const [captchaVerified, setCaptchaVerified] = useState(false)
+  const [showCaptcha, setShowCaptcha] = useState(false)
   const [loading, setLoading] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
@@ -45,19 +45,6 @@ const LoginPage: React.FC = () => {
     }
   }, [user, next, navigate])
 
-  // Determine if hCaptcha is required
-  useEffect(() => {
-    api.get('/auth/captcha_status')
-      .then(res => {
-        setShowCaptcha(!res.data.captcha_verified)
-        setCaptchaVerified(res.data.captcha_verified)
-      })
-      .catch(() => {
-        setShowCaptcha(true)
-        setCaptchaVerified(false)
-      })
-  }, [])
-
   // Dynamically load GSI script only on LoginPage
   useEffect(() => {
     if (!document.getElementById('gsi-script')) {
@@ -70,28 +57,32 @@ const LoginPage: React.FC = () => {
     }
   }, [])
 
-  const handleHCaptchaVerify = async (token: string) => {
-    try {
-      await api.post('/auth/verify_captcha', { token })
-      setHcaptchaToken(token)
-      setCaptchaVerified(true)
-      setShowCaptcha(false)
-    } catch {
-      setError('Unable to verify hCaptcha. Please try again.')
-    }
+  const handleHCaptchaVerify = (token: string) => {
+    setHcaptchaToken(token)
+    setError(null)
+    setErrorSeverity('error')
+    handleSubmit()
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     setError(null)
-    setLoading(true)
+    setErrorSeverity('error')
 
-    if (!captchaVerified && !hcaptchaToken) {
-      setError('Please complete the hCaptcha challenge.')
-      setLoading(false)
+    if (!hcaptchaToken && !showCaptcha) {
+      setShowCaptcha(true)
+      setError('Please complete the hCaptcha to continue.')
+      setErrorSeverity('info')
       return
     }
 
+    if (!hcaptchaToken) {
+      setError('Please complete the hCaptcha to continue.')
+      setErrorSeverity('info')
+      return
+    }
+
+    setLoading(true)
     try {
       const data: LoginResponse = await login(email, password, hcaptchaToken)
 
@@ -116,6 +107,7 @@ const LoginPage: React.FC = () => {
       } else {
         setError('Login failed')
       }
+      setErrorSeverity('error')
     } finally {
       setLoading(false)
     }
@@ -156,7 +148,7 @@ const LoginPage: React.FC = () => {
         </Typography>
 
         {error && (
-          <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
+          <Alert severity={errorSeverity} sx={{ mt: 2, width: '100%' }}>
             {error}
           </Alert>
         )}
