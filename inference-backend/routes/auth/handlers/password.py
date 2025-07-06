@@ -69,23 +69,9 @@ def login():
     try:
         cur = conn.cursor()
         cur.execute(
-            """
-            SELECT
-                id,
-                email,
-                password_hash,
-                username,
-                COALESCE(full_name, username) AS display_name,
-                COALESCE(picture_url, '')     AS avatar_url,
-                (google_sub IS NOT NULL)      AS google_linked,
-                (github_id IS NOT NULL)       AS github_linked,
-                (password_hash IS NOT NULL)   AS has_password
-            FROM users
-            WHERE email = %s;
-            """,
+            "SELECT id, email, password_hash, username, display_name, avatar_url, google_linked, github_linked, has_password FROM users WHERE email = %s",
             (email,),
         )
-
         row = cur.fetchone()
 
         if not row:
@@ -143,7 +129,7 @@ def login():
         pg_pool.putconn(conn)
 
 
-@auth_bp.route("/register", methods=["POST", "OPTIONS"])
+@auth_bp.route("/register", methods=["POST"])
 @cross_origin(**get_cors_origin())
 @limiter.limit("5 per minute; 25 per hour")
 def register():
@@ -355,21 +341,5 @@ def set_username():
         conn.rollback()
         logger.exception(f"🔥 Username update error for user_id={user_id}: {exc}")
         return jsonify({"message": "Failed to update username", "error": str(exc)}), 500
-    finally:
-        pg_pool.putconn(conn)
-
-
-@auth_bp.route("/email_available", methods=["GET"])
-@limiter.limit("10 per second; 120 per minute")
-def email_available():
-    email = request.args.get("email", "").strip().lower()
-    if not email:
-        return jsonify({"available": False}), 200
-    conn = pg_pool.getconn()
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT 1 FROM users WHERE LOWER(email) = %s LIMIT 1;", (email,))
-        taken = cur.fetchone() is not None
-        return jsonify({"available": not taken}), 200
     finally:
         pg_pool.putconn(conn)

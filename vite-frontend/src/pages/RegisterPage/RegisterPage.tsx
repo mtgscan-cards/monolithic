@@ -42,24 +42,24 @@ const RegisterPage: React.FC = () => {
   const [loading, setLoading]           = useState(false)
 
   // Debounce e-mail‐exists check
-useEffect(() => {
-  if (!email) {
-    setEmailError('');
-    return;
-  }
-  const id = window.setTimeout(async () => {
-    try {
-      const { data } = await api.get<{ available: boolean }>(
-        '/auth/email_available',
-        { params: { email } }
-      );
-      setEmailError(data.available ? '' : 'This email is already registered');
-    } catch {
-      setEmailError('Could not verify email');
+  useEffect(() => {
+    if (!email) {
+      setEmailError('')
+      return
     }
-  }, 500);
-  return () => window.clearTimeout(id);
-}, [email]);
+    const id = window.setTimeout(async () => {
+      try {
+        const { data } = await axios.get<{ exists: boolean }>(
+          `${import.meta.env.VITE_API_URL || 'https://api.mtgscan.cards'}/auth/user_exists`,
+          { params: { email }, withCredentials: true }
+        )
+        setEmailError(data.exists ? 'This email is already registered' : '')
+      } catch {
+        // ignore
+      }
+    }, 500)
+    return () => window.clearTimeout(id)
+  }, [email])
 
   // Debounce username‐format + availability check
   useEffect(() => {
