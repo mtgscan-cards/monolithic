@@ -2,7 +2,7 @@ from flask import Blueprint
 
 auth_bp = Blueprint("auth_bp", __name__, url_prefix="/auth")
 
-# Ensure all handler routes are registered before blueprint registration
+# now that handlers/ is a proper package, this will work:
 from .handlers import (
     captcha,
     user,

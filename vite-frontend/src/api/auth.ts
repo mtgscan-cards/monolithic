@@ -1,3 +1,4 @@
+// src/api/auth.ts
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.mtgscan.cards'
@@ -20,7 +21,7 @@ export const login = async (
   hcaptchaToken: string
 ): Promise<LoginResponse> => {
   const response = await axios.post<LoginResponse>(
-    `${API_URL}/auth/login`,
+    `${API_URL}/login`,
     { email, password, hcaptcha_token: hcaptchaToken },
     { withCredentials: true }
   );
@@ -33,7 +34,7 @@ export const register = async (
   hcaptchaToken: string
 ) => {
   const response = await axios.post(
-    `${API_URL}/auth/register`,
+    `${API_URL}/register`,
     { email, password, hcaptcha_token: hcaptchaToken },
     { withCredentials: true }
   );
@@ -42,8 +43,8 @@ export const register = async (
 
 export const refreshToken = async (): Promise<{ access_token: string; expires_at: string }> => {
   const response = await axios.post<{ access_token: string; expires_at: string }>(
-    `${API_URL}/auth/refresh`,
-    {},
+    `${API_URL}/refresh`,
+    {},                      // no body needed—the cookie is sent automatically
     { withCredentials: true }
   );
   return response.data;
@@ -51,17 +52,17 @@ export const refreshToken = async (): Promise<{ access_token: string; expires_at
 
 export const logout = async (): Promise<{ message: string }> => {
   const response = await axios.post<{ message: string }>(
-    `${API_URL}/auth/logout`,
-    {},
+    `${API_URL}/logout`,
+    {},                      // no body needed
     { withCredentials: true }
   );
   return response.data;
 };
 
-export const checkEmailAvailable = async (email: string): Promise<boolean> => {
-  const response = await axios.get<{ available: boolean }>(
-    `${API_URL}/auth/email_available?email=${encodeURIComponent(email)}`,
+export const checkUserExists = async (email: string): Promise<boolean> => {
+  const response = await axios.get<{ exists: boolean }>(
+    `${API_URL}/user_exists?email=${encodeURIComponent(email)}`,
     { withCredentials: true }
   );
-  return response.data.available;
+  return response.data.exists;
 };

@@ -163,39 +163,19 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
         >
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {signedIn && (
-              avatarUrl ? (
-                <Box
-                  component="img"
-                  src={avatarUrl}
-                  referrerPolicy="no-referrer"
-                  alt=""
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    mr: 1,
-                  }}
-                />
-              ) : (
-                <Box
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    backgroundColor: 'grey.700',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mr: 1,
-                  }}
-                  aria-hidden="true"
-                >
-                  <Typography variant="caption" color="grey.300">
-                    {displayName.charAt(0).toUpperCase() || '?'}
-                  </Typography>
-                </Box>
-              )
+              <Box
+                component="img"
+                src={avatarUrl}
+                referrerPolicy="no-referrer"
+                alt={`Avatar of ${displayName}`}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  mr: 1,
+                }}
+              />
             )}
             <Box>
               <Typography variant="body1" sx={{ lineHeight: 1 }}>
