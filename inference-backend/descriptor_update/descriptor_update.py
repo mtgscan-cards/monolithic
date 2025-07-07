@@ -174,22 +174,30 @@ def run_descriptor_update_pipeline():
         json.dump(id_map, f)
     logger.info(f"✅ FAISS index rebuilt with {index.ntotal} descriptors.")
 
+    # Atomic promotion after validation
     if run_inference_check():
-        for fname in ["candidate_features.h5", "faiss_ivf.index", "id_map.json"]:
-            src = os.path.join(STAGING_DIR, fname)
-            dst = os.path.join(RUN_DIR, fname)
-            shutil.copy2(src, dst)
-            logger.info(f"✅ Promoted {src} → {dst}")
-        def upload_hf_background():
-            try:
-                from .upload_to_hf import upload_descriptor_bundle_to_hf
-                upload_descriptor_bundle_to_hf()
-            except Exception as e:
-                logger.warning(f"⚠️ HF upload failed in background: {e}")
-        threading.Thread(target=upload_hf_background, daemon=True).start()
-        logger.info("🚀 Started background thread for Hugging Face upload.")
+        files_to_promote = ["candidate_features.h5", "faiss_ivf.index", "id_map.json"]
+        try:
+            for fname in files_to_promote:
+                src = os.path.join(STAGING_DIR, fname)
+                dst = os.path.join(RUN_DIR, fname)
+                shutil.copy2(src, dst)
+                logger.info(f"✅ Atomically promoted {src} → {dst}")
+
+            def upload_hf_background():
+                try:
+                    from .upload_to_hf import upload_descriptor_bundle_to_hf
+                    upload_descriptor_bundle_to_hf()
+                except Exception as e:
+                    logger.warning(f"⚠️ HF upload failed in background: {e}")
+
+            threading.Thread(target=upload_hf_background, daemon=True).start()
+            logger.info("🚀 Started background thread for Hugging Face upload.")
+
+        except Exception as e:
+            logger.error(f"❌ Atomic promotion failed: {e}")
     else:
-        logger.error("❌ Inference validation failed. Staging model discarded.")
+        logger.error("❌ Inference validation failed. Staging model discarded. Promotion and upload skipped.")
 
 if __name__ == "__main__":
     run_descriptor_update_pipeline()
