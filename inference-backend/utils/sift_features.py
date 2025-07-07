@@ -106,15 +106,15 @@ def load_faiss_index_for_testing(faiss_path, h5_path, id_map_path):
             try:
                 model_resources["hdf5_file"].close()
             except Exception as e:
-                print(f"Warning: Failed to close existing HDF5: {e}")
+                logger.warning(f"Warning: Failed to close existing HDF5: {e}")
 
         model_resources["faiss_index"] = faiss_index
         model_resources["hdf5_file"] = hf
         model_resources["id_map"] = id_map
 
-    print(f"✅ Loaded FAISS index (ntotal={faiss_index.ntotal}), "
-          f"HDF5 with {len(hf.keys())} groups, "
-          f"ID map with {len(id_map)} entries from staging for testing.")
+    logger.info(f"✅ Loaded FAISS index (ntotal={faiss_index.ntotal}), "
+                f"HDF5 with {len(hf.keys())} groups, "
+                f"ID map with {len(id_map)} entries from staging for testing.")
 
 def find_closest_card_ransac(roi_image, k=3, min_candidate_matches=1, MIN_INLIER_THRESHOLD=8, max_candidates=10):
     from .model_state import model_resources, model_lock
