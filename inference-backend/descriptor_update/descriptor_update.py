@@ -84,7 +84,14 @@ def open_h5_file_safely(file_path, backup_path, mode='a'):
             raise RuntimeError("HDF5 file unrecoverable.")
 
 def run_inference_check():
-    from utils.sift_features import find_closest_card_ransac
+    from utils.sift_features import find_closest_card_ransac, load_faiss_index_for_testing
+
+    # Explicitly load staging FAISS index, HDF5, and ID map for testing
+    staging_faiss = "resources/staging/faiss_ivf.index"
+    staging_h5 = "resources/staging/candidate_features.h5"
+    staging_id_map = "resources/staging/id_map.json"
+    load_faiss_index_for_testing(staging_faiss, staging_h5, staging_id_map)
+
     url = "https://cards.scryfall.io/large/front/3/3/3394cefd-a3c6-4917-8f46-234e441ecfb6.jpg"
     expected_ids = [
         "3394cefd-a3c6-4917-8f46-234e441ecfb6",
@@ -191,8 +198,10 @@ def run_descriptor_update_pipeline():
                 except Exception as e:
                     logger.warning(f"⚠️ HF upload failed in background: {e}")
 
-            threading.Thread(target=upload_hf_background, daemon=True).start()
-            logger.info("🚀 Started background thread for Hugging Face upload.")
+            upload_thread = threading.Thread(target=upload_hf_background)
+            upload_thread.start()
+            upload_thread.join()
+            logger.info("✅ Hugging Face upload completed.")
 
         except Exception as e:
             logger.error(f"❌ Atomic promotion failed: {e}")

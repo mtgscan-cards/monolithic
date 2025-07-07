@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 global_sift = cv2.SIFT_create(nfeatures=250)
 global_CLAHE = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
-
 def extract_features_sift(roi_image, max_features=250):
     debug_timings = {}
     overall_start = time.perf_counter()
@@ -69,14 +68,12 @@ def extract_features_sift(roi_image, max_features=250):
 
     return keypoints, descriptors, enhanced_color
 
-
 def deserialize_keypoints(kps_data):
     return [
         cv2.KeyPoint(d['pt'][0], d['pt'][1], d['size'], d['angle'],
                      d['response'], d['octave'], d['class_id'])
         for d in kps_data
     ]
-
 
 def load_candidate_features_for_card(card_id, hf):
     features = []
@@ -90,6 +87,34 @@ def load_candidate_features_for_card(card_id, hf):
             features.append((kp_serialized, des))
     return features
 
+from .model_state import model_resources, model_lock
+import faiss
+import h5py
+
+def load_faiss_index_for_testing(faiss_path, h5_path, id_map_path):
+    """
+    Load FAISS index, HDF5 file, and ID map from specified staging paths
+    into model_resources for descriptor update testing.
+    """
+    faiss_index = faiss.read_index(faiss_path)
+    hf = h5py.File(h5_path, 'r')
+    with open(id_map_path, 'r') as f:
+        id_map = json.load(f)
+
+    with model_lock:
+        if model_resources["hdf5_file"]:
+            try:
+                model_resources["hdf5_file"].close()
+            except Exception as e:
+                logger.warning(f"Warning: Failed to close existing HDF5: {e}")
+
+        model_resources["faiss_index"] = faiss_index
+        model_resources["hdf5_file"] = hf
+        model_resources["id_map"] = id_map
+
+    logger.info(f"✅ Loaded FAISS index (ntotal={faiss_index.ntotal}), "
+                f"HDF5 with {len(hf.keys())} groups, "
+                f"ID map with {len(id_map)} entries from staging for testing.")
 
 def find_closest_card_ransac(roi_image, k=3, min_candidate_matches=1, MIN_INLIER_THRESHOLD=8, max_candidates=10):
     from .model_state import model_resources, model_lock
