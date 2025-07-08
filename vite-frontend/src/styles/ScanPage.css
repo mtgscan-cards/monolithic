@@ -44,6 +44,7 @@
   padding: 4px 16px;
   border-radius: 4px;
   white-space: nowrap;
+  z-index: 1000;
 }
 
 /* Last scanned card section: centers the content */
@@ -101,5 +102,5 @@
 #root {
   display: flex;
   flex-direction: column;
-  height: 100vh;
 }
+

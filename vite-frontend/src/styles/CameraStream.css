@@ -7,7 +7,7 @@
     background: rgba(196, 196, 196, 0.329);
     opacity: 0;
     animation: flash-fade 200ms cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 10000; /* highest priority layer */
+    z-index: 9998; /* highest priority layer */
     pointer-events: none;
     border-radius: 8px;
 }

@@ -51,7 +51,7 @@ const CameraPanel: React.FC<CameraPanelProps> = ({
             position: 'absolute',
             bottom: 8,
             left: 8,
-            zIndex: 9999,
+            zIndex: 999,
             backgroundColor: 'rgba(0, 0, 0, 0.94)',
             color: 'white',
             px: 1.5,

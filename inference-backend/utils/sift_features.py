@@ -5,10 +5,11 @@ import json
 from collections import Counter
 import concurrent.futures
 import logging
+from utils.resource_manager import load_resources
 
 logger = logging.getLogger(__name__)
 
-# Pre-initialize expensive objects outside the functions.
+# Pre-initialize expensive objects
 global_sift = cv2.SIFT_create(nfeatures=250)
 global_CLAHE = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
@@ -16,35 +17,29 @@ def extract_features_sift(roi_image, max_features=250):
     debug_timings = {}
     overall_start = time.perf_counter()
 
-    # Resize image.
     start = time.perf_counter()
     resized = cv2.resize(roi_image, (256, 256))
     debug_timings['resize'] = time.perf_counter() - start
 
-    # Convert to LAB.
     start = time.perf_counter()
     lab = cv2.cvtColor(resized, cv2.COLOR_BGR2LAB)
     debug_timings['to_lab'] = time.perf_counter() - start
 
-    # Split channels and apply CLAHE.
     start = time.perf_counter()
     L, A, B = cv2.split(lab)
     L_clahe = global_CLAHE.apply(L)
     debug_timings['clahe'] = time.perf_counter() - start
 
-    # Merge back and convert to grayscale.
     start = time.perf_counter()
     lab_clahe = cv2.merge((L_clahe, A, B))
     enhanced_color = cv2.cvtColor(lab_clahe, cv2.COLOR_LAB2BGR)
     gray = cv2.cvtColor(enhanced_color, cv2.COLOR_BGR2GRAY)
     debug_timings['color_processing'] = time.perf_counter() - start
 
-    # SIFT feature extraction.
     start = time.perf_counter()
     keypoints, descriptors = global_sift.detectAndCompute(gray, None)
     debug_timings['sift_detection'] = time.perf_counter() - start
 
-    # Limit features if needed.
     if descriptors is not None and len(keypoints) > max_features:
         start = time.perf_counter()
         sorted_kp_des = sorted(zip(keypoints, descriptors), key=lambda x: -x[0].response)
@@ -52,7 +47,6 @@ def extract_features_sift(roi_image, max_features=250):
         keypoints, descriptors = list(keypoints), np.array(descriptors)
         debug_timings['feature_limit'] = time.perf_counter() - start
 
-    # Normalize descriptors.
     if descriptors is not None:
         start = time.perf_counter()
         eps = 1e-7
@@ -92,10 +86,6 @@ import faiss
 import h5py
 
 def load_faiss_index_for_testing(faiss_path, h5_path, id_map_path):
-    """
-    Load FAISS index, HDF5 file, and ID map from specified staging paths
-    into model_resources for descriptor update testing.
-    """
     faiss_index = faiss.read_index(faiss_path)
     hf = h5py.File(h5_path, 'r')
     with open(id_map_path, 'r') as f:
@@ -117,7 +107,16 @@ def load_faiss_index_for_testing(faiss_path, h5_path, id_map_path):
                 f"ID map with {len(id_map)} entries from staging for testing.")
 
 def find_closest_card_ransac(roi_image, k=3, min_candidate_matches=1, MIN_INLIER_THRESHOLD=8, max_candidates=10):
-    from .model_state import model_resources, model_lock
+    # Safely reload model if marked
+    reload_needed = False
+    with model_lock:
+        if model_resources.get("reload_needed", False):
+            reload_needed = True
+
+    if reload_needed:
+        logger.info("♻️ Reloading model resources before inference.")
+        load_resources()
+
     with model_lock:
         faiss_index = model_resources["faiss_index"]
         hf = model_resources["hdf5_file"]
@@ -126,7 +125,6 @@ def find_closest_card_ransac(roi_image, k=3, min_candidate_matches=1, MIN_INLIER
     overall_start = time.perf_counter()
     debug_info = {}
 
-    # Feature extraction
     sift_start = time.perf_counter()
     keypoints, descriptors, processed_img = extract_features_sift(roi_image, max_features=250)
     debug_info['sift_time'] = time.perf_counter() - sift_start
@@ -136,12 +134,10 @@ def find_closest_card_ransac(roi_image, k=3, min_candidate_matches=1, MIN_INLIER
         debug_info['error'] = "No descriptors found."
         return None, "Unknown", keypoints, processed_img, debug_info
 
-    # FAISS search
     start = time.perf_counter()
     distances, indices = faiss_index.search(descriptors, k)
     debug_info['faiss_search_time'] = time.perf_counter() - start
 
-    # Translate FAISS indices using id_map
     flat_indices = indices.flatten()
     candidate_ids = [id_map[i] for i in flat_indices if i < len(id_map)]
     candidate_counts = Counter(candidate_ids)

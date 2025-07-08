@@ -34,9 +34,7 @@ style.innerHTML = `
     min-height: 0 !important;
     
   }
-    body, html {
-    height: 100vh !important;
-  }
+
 `;
 document.head.appendChild(style);
 
@@ -361,6 +359,7 @@ const ScanPage: React.FC = () => {
         flexGrow: 1,
         display: 'flex',
         flexDirection: 'column',
+
       }}
     >
       <Box sx={{ position: 'fixed', top: 80, right: 16, zIndex: theme.zIndex.drawer + 1 }}>
@@ -369,39 +368,7 @@ const ScanPage: React.FC = () => {
         </IconButton>
       </Box>
 
-      <Box textAlign="center" mb={{ xs: 2, md: 4 }} px={{ xs: 1, sm: 2 }}>
-        <Typography
-          variant="h6"
-          fontWeight={600}
-          sx={{
-            fontSize: {
-              xs: '1rem',  // phones
-              sm: '1.5rem',  // small tablets
-              md: '2rem',    // desktops
-            },
-          }}
-        >
-          MTG Scanner
-        </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mt: 0.5, fontSize: { xs: '0.85rem', sm: '1rem' } }}
-        >
-          Scan cards using a phone or webcam
-        </Typography>
-      </Box>
 
-      <Box
-        sx={{
-          width: '100%',
-          borderBottom: '2px solid',
-          borderColor: 'divider',
-          my: { xs: 2, md: 3 },
-          borderRadius: 1,
-          opacity: 0.7,
-        }}
-      />
 
       <Stack spacing={2} alignItems="center" my={3}>
         <MobileScanToggleButton isOpen={mobileDropdownOpen} onClick={handleToggleMobileDropdown} />
