@@ -1,4 +1,5 @@
 import React from 'react';
+import 'keyrune/css/keyrune.css';
 
 export interface SetSymbolProps {
   setCode: string;

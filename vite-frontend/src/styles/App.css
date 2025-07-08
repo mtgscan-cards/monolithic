@@ -1,3 +1,5 @@
+@import 'keyrune/css/keyrune.css';
+
 
 html, body, #root {
   margin: 0;
@@ -31,12 +33,4 @@ canvas[data-ready="true"] {
 }
 
 
-
-div.MuiPaper-elevation0 {
-  margin-right: 20px !important;
-}
-
-.main{
-min-height: 100vh !important;
-}
 

@@ -11,7 +11,6 @@ import type { Card } from '../../components/filters/SearchResults';
 
 import { sendFilterCriteria } from '../../api/FilterBackend';
 
-import 'keyrune/css/keyrune.css';
 import '../../styles/App.css';
 
 interface FilterRequest extends FilterCriteria {
@@ -23,20 +22,25 @@ const SearchPage: React.FC = () => {
   const [results, setResults] = useState<Card[]>([]);
   const [currentCriteria, setCurrentCriteria] = useState<FilterCriteria | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [searchPerformed, setSearchPerformed] = useState(false); // ✅ added
 
-  const runNewSearch = async (criteria: FilterCriteria) => {
-    setCurrentCriteria(criteria);
-    try {
-      const requestData: FilterRequest = {
-        ...criteria,
-        limit: 18,
-      };
-      const { results: newResults } = await sendFilterCriteria(requestData);
-      setResults(newResults);
-    } catch (err) {
-      console.error('Search failed:', err);
-    }
-  };
+const runNewSearch = async (criteria: FilterCriteria) => {
+  setCurrentCriteria(criteria);
+
+  try {
+    const requestData: FilterRequest = {
+      ...criteria,
+      limit: 18,
+    };
+    const { results: newResults } = await sendFilterCriteria(requestData);
+    setResults(newResults);
+  } catch (err) {
+    console.error('Search failed:', err);
+    setResults([]); // optionally clear results on error
+  } finally {
+    setSearchPerformed(true); // ✅ mark search as performed *after* data is fetched
+  }
+};
 
   const loadMore = async () => {
     if (!currentCriteria || results.length === 0) return;
@@ -79,6 +83,7 @@ const SearchPage: React.FC = () => {
             onLoadMore={loadMore}
             loadingMore={loadingMore}
             totalResults={0}
+            searchPerformed={searchPerformed} // ✅ passed prop
           />
         </Suspense>
       </Box>

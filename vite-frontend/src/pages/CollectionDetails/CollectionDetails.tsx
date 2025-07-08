@@ -28,6 +28,7 @@ import BulkCardAdder from '../../components/cards/BulkCardAdder'
 import { AuthContext } from '../../contexts/AuthContext'
 import ToggleableImage from '../../components/cards/ToggleableImage'
 
+
 const CollectionDetails: React.FC = () => {
   const { user } = useContext(AuthContext)
   const params = useParams<{ username?: string; user_collection_id?: string }>()

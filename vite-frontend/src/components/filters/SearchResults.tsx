@@ -69,6 +69,7 @@ export interface SearchResultsProps {
   totalResults: number;
   onLoadMore: () => Promise<void>;
   loadingMore: boolean;
+  searchPerformed: boolean; // ✅ Added
 }
 
 let lastImageLoadTime = 0;
@@ -182,7 +183,12 @@ const ToggleableImage: React.FC<ToggleableImageProps> = ({ imageData, altText })
   );
 };
 
-const SearchResults: React.FC<SearchResultsProps> = ({ results, onLoadMore, loadingMore }) => {
+const SearchResults: React.FC<SearchResultsProps> = ({
+  results,
+  onLoadMore,
+  loadingMore,
+  searchPerformed, // ✅ Added
+}) => {
   const [cardMenuAnchor, setCardMenuAnchor] = useState<null | HTMLElement>(null);
   const [collectionSelectOpen, setCollectionSelectOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -310,7 +316,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, onLoadMore, load
     }
   };
 
-  if (results.length === 0) {
+  if (searchPerformed && results.length === 0) {
     return (
       <Typography variant="h6" align="center" color="text.secondary" sx={{ mt: 4 }}>
         No results found.
@@ -400,11 +406,13 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, onLoadMore, load
         ))}
       </Grid>
 
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <Button variant="outlined" onClick={onLoadMore} disabled={loadingMore}>
-          {loadingMore ? <CircularProgress size={24} /> : 'Load More'}
-        </Button>
-      </Box>
+{results.length > 0 && (
+  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+    <Button variant="outlined" onClick={onLoadMore} disabled={loadingMore}>
+      {loadingMore ? <CircularProgress size={24} /> : 'Load More'}
+    </Button>
+  </Box>
+)}
 
       <Menu anchorEl={cardMenuAnchor} open={Boolean(cardMenuAnchor)} onClose={handleCardMenuClose}>
         <MenuItem onClick={handleAddToCollection}>Add to Collection</MenuItem>
