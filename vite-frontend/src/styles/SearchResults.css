@@ -61,7 +61,7 @@
     bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 9999 !important;
+    z-index: 1000 !important;
     width: 90%;
     max-width: 400px;
   }
@@ -151,3 +151,4 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+  

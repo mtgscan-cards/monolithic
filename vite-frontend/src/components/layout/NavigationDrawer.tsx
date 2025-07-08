@@ -52,20 +52,31 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   const avatarUrl = user?.avatar_url ?? '';
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
 
-  const firstLinkRef = useRef<HTMLAnchorElement>(null);
+  const drawerRef = useRef<HTMLDivElement | null>(null);
+  const listItemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const [indicatorStyle, setIndicatorStyle] = useState<{ top: number; height: number } | null>(null);
 
-  useEffect(() => {
-    if (open && firstLinkRef.current) {
-      firstLinkRef.current.focus();
+  const closeTimeout = useRef<number | null>(null);
+
+  const [indicatorVisible, setIndicatorVisible] = useState(false);
+
+  const handleCloseWithDelay = () => {
+    if (closeTimeout.current) {
+      clearTimeout(closeTimeout.current);
     }
-  }, [open]);
+    closeTimeout.current = window.setTimeout(() => {
+      onClose();
+      closeTimeout.current = null;
+    }, 250);
+  };
 
   const handleLogout = async () => {
     try {
       await apiLogout();
     } catch {
-      // ignore logout errors
+      // ignore
     }
     localStorage.removeItem('access_token');
     localStorage.removeItem('username');
@@ -79,6 +90,36 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
     onClose();
   };
 
+const moveIndicatorToIndex = (index: number | null) => {
+  if (index === null) {
+    setIndicatorVisible(false);
+    return;
+  }
+  const element = listItemRefs.current[index];
+  const drawerRect = drawerRef.current?.getBoundingClientRect();
+
+  if (element && drawerRect) {
+    const rect = element.getBoundingClientRect();
+    const top = rect.top - drawerRect.top;
+    const height = rect.height;
+    setIndicatorStyle({ top, height });
+    setIndicatorVisible(true);
+  }
+};
+
+  useEffect(() => {
+    if (open) {
+      const activeIndex = navItems.findIndex(item =>
+        pendingPath ? pendingPath === item.path : location.pathname === item.path
+      );
+      if (activeIndex !== -1) {
+        moveIndicatorToIndex(activeIndex);
+      } else {
+        moveIndicatorToIndex(null); // hide if no active nav item
+      }
+    }
+  }, [location.pathname, pendingPath, open, navItems]);
+
   return (
     <>
       <Drawer
@@ -88,60 +129,98 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
         ModalProps={{ keepMounted: true }}
         PaperProps={{
           sx: {
-            zIndex: (theme) => theme.zIndex.appBar - 1,
+            zIndex: 9999,
             width: drawerWidth,
-            background: 'linear-gradient(180deg, #1e1e1e, #121212)',
+             background: '#1e1e1e',
             color: 'text.primary',
             borderRight: 'none',
             display: 'flex',
             flexDirection: 'column',
             position: 'relative',
           },
+          ref: drawerRef,
         }}
         role="navigation"
         aria-label="Main navigation menu"
       >
-        {/* Header */}
-        <Box
-          sx={{
-            p: 2,
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <Box sx={{ height: 30 }} />
-        </Box>
+        {/* Animated red indicator bar */}
+{indicatorStyle && (
+  <Box
+    sx={{
+      position: 'absolute',
+      top: indicatorStyle.top,
+      right: 0,
+      width: '3px',
+      height: indicatorStyle.height,
+      backgroundColor: theme.palette.primary.main,
+      borderRadius: '4px',
+      opacity: indicatorVisible ? 1 : 0,
+      transition: 'top 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+    }}
+  />
+)}
 
-        {/* Navigation items */}
+        <Box sx={{ height: 64 }} />
+
         <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
           <List disablePadding>
             {navItems.map((item, index) => {
-              const isActive = location.pathname === item.path;
+              const isActive = pendingPath
+                ? pendingPath === item.path
+                : location.pathname === item.path && pendingPath === null;
+
               return (
                 <ListItem key={item.text} disablePadding>
                   <ListItemButton
                     component={Link}
                     to={item.path}
-                    onClick={onClose}
+                    ref={el => { listItemRefs.current[index] = el; }}
+                    onClick={() => {
+                      setPendingPath(item.path);
+                      handleCloseWithDelay();
+                    }}
+                    onMouseEnter={() => moveIndicatorToIndex(index)}
+                    onMouseLeave={() => {
+                      const activeIndex = navItems.findIndex(it =>
+                        pendingPath ? pendingPath === it.path : location.pathname === it.path
+                      );
+                      if (activeIndex !== -1) {
+                        moveIndicatorToIndex(activeIndex);
+                      } else {
+                        moveIndicatorToIndex(null);
+                      }
+                    }}
                     aria-label={`Navigate to ${item.text}`}
                     aria-current={isActive ? 'page' : undefined}
-                    ref={index === 0 ? firstLinkRef : undefined}
                     sx={{
-                      borderRadius: 2,
-                      mx: 1,
-                      my: 0.5,
+                      mx: 0,
+                      px: 2,
+                      py: 1,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      backgroundColor: isActive ? 'rgba(255,255,255,0.04)' : 'transparent',
                       transition: 'background-color 0.3s ease',
-                      '&:hover': { backgroundColor: 'primary.dark' },
-                      '&:focus-visible': {
-                        outline: '2px solid',
-                        outlineColor: theme.palette.primary.main,
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.06)',
                       },
                     }}
                   >
-                    <ListItemIcon sx={{ color: 'text.primary', minWidth: 40 }}>
+                    <ListItemIcon
+                      sx={{
+                        color: isActive ? 'primary.main' : 'text.secondary',
+                        minWidth: 40,
+                        transition: 'color 0.3s ease',
+                      }}
+                    >
                       {item.icon}
                     </ListItemIcon>
-                    <ListItemText primary={item.text} />
+                    <ListItemText
+                      primary={item.text}
+                      primaryTypographyProps={{
+                        fontWeight: isActive ? 500 : 400,
+                        color: isActive ? 'primary.main' : 'text.primary',
+                      }}
+                    />
                   </ListItemButton>
                 </ListItem>
               );
@@ -151,7 +230,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
         <Divider sx={{ borderColor: 'divider' }} />
 
-        {/* User info section, bottom-aligned */}
+        {/* User info */}
         <Box
           sx={{
             px: 2,
@@ -162,67 +241,61 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {signedIn && (
-              avatarUrl ? (
-                <Box
-                  component="img"
-                  src={avatarUrl}
-                  referrerPolicy="no-referrer"
-                  alt=""
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    mr: 1,
-                  }}
-                />
-              ) : (
-                <Box
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    backgroundColor: 'grey.700',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mr: 1,
-                  }}
-                  aria-hidden="true"
-                >
-                  <Typography variant="caption" color="grey.300">
-                    {displayName.charAt(0).toUpperCase() || '?'}
-                  </Typography>
-                </Box>
-              )
+            {signedIn && avatarUrl ? (
+              <Box
+                component="img"
+                src={avatarUrl}
+                alt=""
+                referrerPolicy="no-referrer"
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  mr: 1,
+                }}
+              />
+            ) : (
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  backgroundColor: 'grey.800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mr: 1,
+                }}
+              >
+                <Typography variant="caption" color="grey.300">
+                  {displayName.charAt(0).toUpperCase() || '?'}
+                </Typography>
+              </Box>
             )}
             <Box>
-              <Typography variant="body1" sx={{ lineHeight: 1 }}>
+              <Typography variant="body2" sx={{ lineHeight: 1 }}>
                 {signedIn ? displayName : 'Not signed in'}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
                 {signedIn ? (
-                  <>
-                    Signed in –{' '}
-                    <MuiLink
-                      component={Link}
-                      to="/login"
-                      variant="caption"
-                      sx={{ p: 0, cursor: 'pointer' }}
-                      onClick={handleLogout}
-                      underline="always"
-                    >
-                      Logout
-                    </MuiLink>
-                  </>
+                  <MuiLink
+                    component={Link}
+                    to="/login"
+                    variant="caption"
+                    sx={{ cursor: 'pointer' }}
+                    onClick={handleLogout}
+                    underline="hover"
+                  >
+                    Logout
+                  </MuiLink>
                 ) : (
                   <MuiLink
                     component={Link}
                     to="/login"
                     variant="caption"
-                    sx={{ p: 0, cursor: 'pointer' }}
-                    underline="always"
+                    sx={{ cursor: 'pointer' }}
+                    underline="hover"
                   >
                     Tap “Login” to continue
                   </MuiLink>

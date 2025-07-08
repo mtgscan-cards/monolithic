@@ -12,6 +12,7 @@ import type { Card } from '../../components/filters/SearchResults';
 import { sendFilterCriteria } from '../../api/FilterBackend';
 
 import '../../styles/App.css';
+import '../../styles/SearchResults.css';
 
 interface FilterRequest extends FilterCriteria {
   limit: number;

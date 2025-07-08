@@ -1,2 +1,36 @@
-@font-face{font-family:'Material Symbols Outlined';src:url(/fonts/material-symbols/material-symbols-outlined.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap}
-.material-symbols-outlined{font:400 24px/1 'Material Symbols Outlined';display:inline-block;letter-spacing:normal;text-transform:none;white-space:nowrap;word-wrap:normal;direction:ltr}
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  src: url(/fonts/material-symbols/material-symbols-outlined.woff2) format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.material-symbols-outlined {
+  font: 400 24px/1 'Material Symbols Outlined';
+  display: inline-block;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+}
+
+/* Modern drawer hover ripple removal */
+.MuiListItemButton-root {
+  overflow: hidden;
+  position: relative;
+}
+
+.MuiListItemButton-root::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.MuiListItemButton-root:hover::after {
+  opacity: 1;
+}
