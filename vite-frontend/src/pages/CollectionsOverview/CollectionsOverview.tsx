@@ -8,11 +8,10 @@ import React, {
   useMemo,
   useContext,
   MutableRefObject,
-  FC,
   Suspense,
 } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment, useGLTF } from '@react-three/drei';
+import { OrbitControls, Environment } from '@react-three/drei';
 import { Group, Vector3 } from 'three';
 import TWEEN from '@tweenjs/tween.js';
 import { useNavigate } from 'react-router-dom';
@@ -29,12 +28,8 @@ import {
 import Model from '../../components/shared/Model';
 import { createCollection, getCollections, CollectionData } from '../../api/collections';
 import { AuthContext } from '../../contexts/AuthContext';
+import "./collectionsoverview.css"; // Assuming this file contains the necessary styles
 
-const PreloadModels: FC = () => {
-  useGLTF.preload('mtgcardstack_min.glb');
-  useGLTF.preload('compressed_box.glb');
-  return null;
-};
 
 type GroupArrayRef = MutableRefObject<Group[]>;
 
@@ -54,7 +49,10 @@ const CollectionsOverview: React.FC = () => {
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const tileRefs: GroupArrayRef = useRef([]);
 
+
+  
   useEffect(() => {
+    
     let mounted = true;
     (async () => {
       try {
@@ -148,12 +146,11 @@ const CollectionsOverview: React.FC = () => {
       sx={{
         position: 'relative',
         width: '100vw',
-        height: '100vh',
+
         overflow: 'hidden', // no scroll initially
         backgroundColor: '#111',
       }}
     >
-      <PreloadModels />
 
       <Box
         ref={canvasWrapperRef}

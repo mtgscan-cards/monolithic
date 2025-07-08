@@ -4,7 +4,7 @@ import threading
 import logging
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from .model_state import model_lock
+from .model_state import model_lock, model_resources
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -16,61 +16,50 @@ WATCHED_FILES = {
     "id_map.json"
 }
 
-DEBOUNCE_SECONDS = 2.0  # Wait this long after last change before triggering reload
+DEBOUNCE_SECONDS = 2.0  # Debounce delay to group rapid changes
 
 class ModelFileHandler(FileSystemEventHandler):
-    def __init__(self, on_change_callback):
+    def __init__(self):
         super().__init__()
-        self.on_change_callback = on_change_callback
-        self.pending_changes = set()
         self.lock = threading.Lock()
         self.debounce_timer = None
-
-    def _all_files_ready(self):
-        """
-        Ensure all watched files exist in the MODEL_DIR before reloading.
-        """
-        return all(os.path.exists(os.path.join(MODEL_DIR, fname)) for fname in WATCHED_FILES)
+        self.last_mtimes = {}  # Track last modification times
 
     def _trigger_reload(self):
-        with self.lock:
-            changed_files = self.pending_changes.copy()
-            self.pending_changes.clear()
-
-        if not self._all_files_ready():
-            logger.info(f"Model files changed: {changed_files}, but not all files are ready yet. Waiting...")
-            return  # Wait for next debounce cycle
-
-        logger.info(f"Model files changed: {changed_files}. All required files present. Triggering reload.")
+        logger.info("🔄 Watchdog marking reload_needed flag for next inference.")
         with model_lock:
-            try:
-                self.on_change_callback()
-            except Exception as e:
-                logger.error(f"❌ Reload callback failed: {e}")
+            model_resources["reload_needed"] = True
 
     def _debounce_reload(self):
-        if self.debounce_timer:
-            self.debounce_timer.cancel()
-        self.debounce_timer = threading.Timer(DEBOUNCE_SECONDS, self._trigger_reload)
-        self.debounce_timer.start()
+        with self.lock:
+            if self.debounce_timer:
+                self.debounce_timer.cancel()
+            self.debounce_timer = threading.Timer(DEBOUNCE_SECONDS, self._trigger_reload)
+            self.debounce_timer.start()
 
     def on_any_event(self, event):
         if event.is_directory:
             return
         fname = os.path.basename(event.src_path)
         if fname in WATCHED_FILES:
-            with self.lock:
-                self.pending_changes.add(fname)
-            self._debounce_reload()
+            try:
+                current_mtime = os.path.getmtime(event.src_path)
+                last_mtime = self.last_mtimes.get(fname)
 
-def start_model_file_watchdog(on_change_callback):
-    """
-    Starts the watchdog in a background daemon thread, watching for changes
-    to model files and reloading only when all files are present and stable.
-    """
-    event_handler = ModelFileHandler(on_change_callback)
+                if last_mtime != current_mtime:
+                    self.last_mtimes[fname] = current_mtime
+                    logger.info(f"✅ Model file changed: {fname} (mtime updated). Requesting reload.")
+                    self._debounce_reload()
+                else:
+                    logger.debug(f"ℹ️ Model file {fname} event detected, but mtime unchanged. Ignoring.")
+
+            except FileNotFoundError:
+                logger.warning(f"⚠️ File {event.src_path} not found during mtime check.")
+
+def start_model_file_watchdog():
+    handler = ModelFileHandler()
     observer = Observer()
-    observer.schedule(event_handler, path=MODEL_DIR, recursive=False)
+    observer.schedule(handler, path=MODEL_DIR, recursive=False)
     observer.start()
     logger.info(f"✅ Watchdog started for model directory: {MODEL_DIR}")
 

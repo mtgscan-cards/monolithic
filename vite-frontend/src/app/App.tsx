@@ -1,6 +1,6 @@
 // src/app/App.tsx
 
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense, useEffect, FC } from 'react';
 import {
   ThemeProvider,
   createTheme,
@@ -13,6 +13,7 @@ import { mountMenuButton } from '../components/layout/MenuButton';
 import { NavItem } from '../components/layout/NavigationDrawer';
 import SearchIcon from '@mui/icons-material/Search';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import { useGLTF } from '@react-three/drei';
 
 const NavigationDrawer = React.lazy(() => import('../components/layout/NavigationDrawer'));
 const LoginPage = React.lazy(() => import('../pages/LoginPage/LoginPage'));
@@ -64,6 +65,12 @@ const navItems: NavItem[] = [
   { text: 'Scan', icon: <span className="material-symbols-outlined" style={{ fontSize: 24 }}>document_scanner</span>, path: '/scan' },
 ];
 
+const PreloadModels: FC = () => {
+  useGLTF.preload('stack.glb');
+  useGLTF.preload('compressed_box.glb');
+  return null;
+};
+
 const App: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
@@ -75,6 +82,7 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={modernTheme}>
       <CssBaseline />
+      <PreloadModels />
       <Box sx={{ display: 'flex', flexDirection: 'column', pt: '64px' }}>
         <Suspense fallback={null}>
           <NavigationDrawer
@@ -90,7 +98,7 @@ const App: React.FC = () => {
             flexGrow: 1,
             display: 'flex',
             flexDirection: 'column',
-            minHeight: '100vh',
+
             overflowY: 'auto',
             paddingY: 4,
           }}

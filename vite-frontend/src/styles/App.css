@@ -2,8 +2,11 @@
 html, body, #root {
   margin: 0;
   padding: 0;
-  height: 100%;
+
   overflow-x: hidden;
+
+  overflow: visible;
+
 }
 
 main {
@@ -32,11 +35,4 @@ canvas[data-ready="true"] {
 
 
 
-div.MuiPaper-elevation0 {
-  margin-right: 20px !important;
-}
-
-.main{
-min-height: 100vh !important;
-}
 

@@ -27,7 +27,7 @@ const MtgCardStack: React.FC<MtgCardStackProps> = ({
   cardStackScale = 1,
   xOffset = 0,
 }) => {
-  const gltf = useGLTF('mtgcardstack_min.glb')
+  const gltf = useGLTF('stack.glb')
   const clonedStack = useMemo(() => SkeletonUtils.clone(gltf.scene), [gltf.scene])
 
   useEffect(() => {

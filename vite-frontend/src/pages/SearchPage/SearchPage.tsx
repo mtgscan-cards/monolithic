@@ -13,6 +13,7 @@ import { sendFilterCriteria } from '../../api/FilterBackend';
 
 import 'keyrune/css/keyrune.css';
 import '../../styles/App.css';
+import '../../styles/SearchResults.css';
 
 interface FilterRequest extends FilterCriteria {
   limit: number;
