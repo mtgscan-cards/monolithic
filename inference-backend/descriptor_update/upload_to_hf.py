@@ -11,7 +11,11 @@ def upload_descriptor_bundle_to_hf():
     hf_token = os.getenv("HF_UPLOAD_TOKEN")
     if not hf_token:
         logger.warning("HF_UPLOAD_TOKEN not set. Skipping Hugging Face upload.")
-        return
+        return {
+            "hf_upload_attempted": False,
+            "hf_upload_successful": False,
+            "error": "HF_UPLOAD_TOKEN not set."
+        }
 
     api = HfApi(token=hf_token)
     repo_id = "JakeTurner616/mtg-cards-SIFT-Features"
@@ -27,33 +31,53 @@ def upload_descriptor_bundle_to_hf():
     zip_name = "resources-nightly.zip"
     logger.info(f"📦 Starting to create {zip_name}. This may take a few minutes...")
 
-    zip_start = time.time()
-    with zipfile.ZipFile(zip_name, 'w', compression=zipfile.ZIP_DEFLATED) as zipf:
-        for local_path, arcname in files_to_zip:
-            if os.path.exists(local_path):
-                zipf.write(local_path, arcname)
-                logger.info(f"✅ Added {arcname} to {zip_name}")
-            else:
-                logger.warning(f"⚠️ Skipped {local_path} (file not found)")
-    zip_elapsed = time.time() - zip_start
-    zip_size = os.path.getsize(zip_name) / (1024 * 1024)
-    logger.info(f"✅ Finished creating {zip_name} ({zip_size:.2f} MB) in {zip_elapsed:.2f} seconds.")
+    try:
+        zip_start = time.time()
+        with zipfile.ZipFile(zip_name, 'w', compression=zipfile.ZIP_DEFLATED) as zipf:
+            for local_path, arcname in files_to_zip:
+                if os.path.exists(local_path):
+                    zipf.write(local_path, arcname)
+                    logger.info(f"✅ Added {arcname} to {zip_name}")
+                else:
+                    logger.warning(f"⚠️ Skipped {local_path} (file not found)")
+        zip_elapsed = time.time() - zip_start
+        zip_size_mb = os.path.getsize(zip_name) / (1024 * 1024)
+        logger.info(f"✅ Finished creating {zip_name} ({zip_size_mb:.2f} MB) in {zip_elapsed:.2f} seconds.")
 
-    logger.info("🚀 Starting upload to Hugging Face...")
-    upload_start = time.time()
-    api.upload_file(
-        path_or_fileobj=zip_name,
-        path_in_repo=zip_name,
-        repo_id=repo_id,
-        repo_type="dataset",
-        commit_message=commit_message,
-    )
-    upload_elapsed = time.time() - upload_start
-    logger.info(f"✅ Uploaded {zip_name} to Hugging Face in {upload_elapsed:.2f} seconds.")
-    logger.info(f"🎉 Upload complete. {zip_name} now overwrites the same path in {repo_id}.")
+        logger.info("🚀 Starting upload to Hugging Face...")
+        upload_start = time.time()
+        api.upload_file(
+            path_or_fileobj=zip_name,
+            path_in_repo=zip_name,
+            repo_id=repo_id,
+            repo_type="dataset",
+            commit_message=commit_message,
+        )
+        upload_elapsed = time.time() - upload_start
+        logger.info(f"✅ Uploaded {zip_name} to Hugging Face in {upload_elapsed:.2f} seconds.")
+        logger.info(f"🎉 Upload complete. {zip_name} now overwrites the same path in {repo_id}.")
 
-    os.remove(zip_name)
-    logger.info("🧹 Cleaned up local zip file after upload.")
+        os.remove(zip_name)
+        logger.info("🧹 Cleaned up local zip file after upload.")
+
+        return {
+            "hf_upload_attempted": True,
+            "hf_upload_successful": True,
+            "hf_repo_id": repo_id,
+            "hf_commit_message": commit_message,
+            "zip_size_mb": round(zip_size_mb, 2),
+            "zip_elapsed_sec": round(zip_elapsed, 2),
+            "upload_elapsed_sec": round(upload_elapsed, 2)
+        }
+
+    except Exception as e:
+        logger.error(f"❌ HF upload failed: {e}")
+        return {
+            "hf_upload_attempted": True,
+            "hf_upload_successful": False,
+            "error": str(e)
+        }
 
 if __name__ == "__main__":
-    upload_descriptor_bundle_to_hf()
+    result = upload_descriptor_bundle_to_hf()
+    print(result)

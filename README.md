@@ -8,12 +8,13 @@ A very simple web app for scanning and organizing MTG cards.
 
 
 [![Deploy Backend](https://github.com/mtgscan-cards/monolithic/actions/workflows/deploy-backend-prod.yml/badge.svg)](https://github.com/mtgscan-cards/monolithic/actions/workflows/deploy-backend-prod.yml)
+
 ## Stack
 
-* **Frontend**: Vite + React
-* **Backend**: Flask (modular, JWT-auth)
+* **Frontend**: Vite + React w/ TypeScript
+* **Backend**: Python Flask
 * **Database**: PostgreSQL (via `pg_pool`)
-* **Deployment**: Docker Compose, Gunicorn, Static site hosting
+* **Deployment**: Docker Compose, Gunicorn, Static Site Host
 * **CI/CD**: GitHub Actions + self-hosted runner
 
 ---
@@ -85,9 +86,6 @@ npm run dev
 
 ---
 
-## Diagram
-
-![System Diagram](https://www.mermaidchart.com/raw/dc4dca0c-b6f6-42e2-b2ef-1a04bf86788f?theme=dark&version=v0.1&format=svg)
 
 ## LICENSE
 
