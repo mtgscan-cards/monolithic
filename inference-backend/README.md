@@ -44,7 +44,7 @@ Create a `.env` file in the `inference-backend/` directory with the following pl
 POSTGRES_USER=mtguser
 POSTGRES_PASSWORD=mtgpass
 POSTGRES_DB=mtgdb
-POSTGRES_HOST=localhost
+POSTGRES_HOST=mtg-db
 POSTGRES_PORT=5432
 
 JWT_SECRET=super-secret-key
