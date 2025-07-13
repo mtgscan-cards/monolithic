@@ -23,7 +23,7 @@ import sys
 from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager
 from extensions import limiter
-from flask_limiter.util import get_remote_address
+from pytz import timezone
 
 load_dotenv()  # Reads variables from .env
 
@@ -482,8 +482,9 @@ scheduler.add_job(
     id='daily_scryfall_update',
     func=run_scryfall_then_descriptors,
     trigger='cron',
-    hour=0,
-    minute=0
+    hour=12,
+    minute=0,
+    timezone=timezone('America/Denver')
 )
 
 
