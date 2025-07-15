@@ -13,7 +13,6 @@ from utils.resource_manager import load_resources
 from db.postgres_pool import pg_pool
 from utils.cors import get_cors_origin
 import logging
-from extensions import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,8 @@ faiss_index, hf, id_map = load_resources()
     },
     'security': [{'BearerAuth': []}]
 })
-@limiter.limit("60 per minute")
+
+
 def mobile_infer_create():
     session_id = str(uuid.uuid4())
     user_id = get_jwt_identity()

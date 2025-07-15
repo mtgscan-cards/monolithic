@@ -1,0 +1,12 @@
+venv
+resources
+.env
+scryfall-all_prints.json
+scryfall_update/__pycache__
+routes/__pycache__
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+scryfall_data/scryfall-all_prints.json
+logs/
