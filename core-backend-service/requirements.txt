@@ -1,0 +1,10 @@
+Flask
+flask_cors
+psycopg2
+python-dotenv
+flask_apscheduler
+flask_jwt_extended
+flasgger
+requests
+flask-limiter[redis]
+google-auth

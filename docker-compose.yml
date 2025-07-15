@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   mtg-db:
     build:
@@ -15,22 +17,42 @@ services:
     networks:
       - backend-net
 
-  inference-api:
+  core-api:
+    container_name: core-api
     build:
-      context: ./inference-backend
-    container_name: inference-api
+      context: ./core-backend-service
     restart: unless-stopped
     depends_on:
       - mtg-db
       - redis
     env_file:
-      - ./inference-backend/.env
-    ports:
-      - "5000:5000"
+      - ./core-backend-service/.env
     volumes:
-      - ./inference-backend/resources:/app/resources  # Mount local resources folder
+      - ./core-backend-service/resources:/app/resources
       - scryfall_data:/app/data
-      - ./inference-backend/logs:/app/logs   # backend logs
+      - ./core-backend-service/logs:/app/logs
+    ports:
+      - "5000:5000" 
+    networks:
+      - backend-net
+
+
+  descriptor-infer-service:
+    build:
+      context: ./inference-service
+    container_name: descriptor-infer-service
+    restart: unless-stopped
+    depends_on:
+      - mtg-db
+      - redis
+    env_file:
+      - ./inference-service/.env
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./inference-service/resources:/app/resources
+      - scryfall_data:/app/data
+      - ./inference-service/logs:/app/logs
     networks:
       - backend-net
 

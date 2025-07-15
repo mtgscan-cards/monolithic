@@ -62,11 +62,16 @@ export const sendROIToBackend = async (dataUrl: string): Promise<InferenceResult
   const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
   try {
-    const response = await fetch(`${API_BASE_URL}/infer`, {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal,
-    });
+const accessToken = localStorage.getItem('access_token'); // or however you store it
+const response = await fetch(`${API_BASE_URL}/infer`, {
+  method: 'POST',
+  body: formData,
+  signal: controller.signal,
+  credentials: 'include',
+  headers: {
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  },
+});
 
     if (!response.ok) {
       throw new Error(`Backend inference failed: ${response.statusText}`);

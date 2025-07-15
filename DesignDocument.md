@@ -3,7 +3,9 @@
 ## Stack Overview
 
 * **Frontend**: React + Vite (static SPA)
-* **Backend**: Flask (JWT auth, FAISS descriptor matching, database search, collection management)
+* **Backend**:
+  - `core-api`: Flask (auth, collections, search, proxy)
+  - `descriptor-infer-service`: Flask (FAISS descriptor matching, Scryfall + descriptor updates)
 * **Database**: PostgreSQL (Users, Collections, Cards)
 * **Auth**: OAuth (Google/GitHub), JWT (access + refresh cookies)
 * **Deployment**: GitHub Actions → Self-hosted runner → Docker Compose
@@ -16,25 +18,22 @@
 ### Backend Deployment
 
 * **Target:** Self-hosted production server
-* **Triggered by:** Manual `workflow_dispatch` with input confirmation (`deploy backend`)
-* **Branch:** Deploys **`main` → `prod`** (forced update before deployment)
+* **Triggered by:** Manual `workflow_dispatch` (`deploy backend`)
+* **Branch:** Deploys `main` → `prod` (forced update before deployment)
 * **Runner:** `prod-runner` (self-hosted)
 * **Steps:**
 
-  1. Force-reset `prod` to match `main`
-  2. Pull and rebuild backend services:
-
-     ```bash
-     git pull origin prod
-     docker-compose down
-     docker-compose up -d --build
-     ```
+  ```bash
+  git pull origin prod
+  docker-compose down
+  docker-compose up -d --build
+  ````
 
 * **Deploys:**
 
-  * Flask API (`/auth`, `/collections`, `/infer`, `/search`)
+  * Flask API (`/auth`, `/collections`, `/search`, `/infer` \[proxy only])
+  * Descriptor inference service (`/infer` internal only)
   * PostgreSQL database (`mtg-db`)
-  * Background jobs (e.g., `scryfall_update.py`)
   * Volumes: `pg_data`, `scryfall_data`
 
 ---
@@ -42,24 +41,20 @@
 ### Frontend Deployment
 
 * **Target:** Cloudflare Pages
-* **Triggered by:** Manual `workflow_dispatch` with input confirmation (`deploy frontend`)
-* **Branch:** Deploys from `prod` branch (after manual sync with `main`)
-* **Runner:** GitHub-hosted runner (`ubuntu-latest`)
+
+* **Triggered by:** Manual `workflow_dispatch` (`deploy frontend`)
+
+* **Branch:** Deploys from `prod`
+
+* **Runner:** GitHub-hosted
+
 * **Steps:**
 
-  1. Checkout the `prod` branch
-  2. Build the frontend using Vite:
-
-     ```bash
-     npm install
-     npm run build
-     ```
-
-  3. Deploy using Wrangler CLI:
-
-     ```bash
-     wrangler pages deploy vite-frontend/dist
-     ```
+  ```bash
+  npm install
+  npm run build
+  wrangler pages deploy vite-frontend/dist
+  ```
 
 * **Deploys:**
 
@@ -70,114 +65,100 @@
 
 ## Backup Strategy
 
-* The `cards` table is excluded from regular SQL dumps due to its size.
-* Backup is performed manually using:
+* `cards` table excluded from SQL dumps (too large)
+* Manual backup:
 
 ```bash
 docker exec mtg-db pg_dump -U mtguser mtgdb --exclude-table=public.cards > backup/mtgdb_$(date +%F).sql
-tar -czf backup/data_$(date +%F).tar.gz inference-backend/data
-````
+tar -czf backup/data_$(date +%F).tar.gz inference-service/data
+```
+
+---
+
+## Inference Service
+
+All descriptor-based inference has been factored into its own microservice for independent horizontal scaling:
+
+### `descriptor-infer-service` (Port 5001)
+
+**Responsibilities:**
+
+* Scheduled Scryfall + descriptor update pipeline
+* Internal `/infer` endpoint (FAISS descriptor matching)
+* Descriptor file watching + live reloading
+* Uses Redis lock to avoid duplicated updates
+
+**Proxy access only via** `/infer` route on `core-api`, which adds:
+
+* JWT protection
+* CORS
+* Rate limiting
+* File size enforcement (<200MB)
+
+**Docker volume mounts:**
+
+* `/app/resources`
+* `/app/data` (Scryfall JSONs and sets)
+* `/app/logs`
+
+**Not externally exposed.**
 
 ---
 
 ## Keypoint Regression System
 
-This system detects the four corners of MTG cards in user-submitted or live webcam frames, allowing perspective rectification before descriptor-based backend matching.
+Detects MTG card corners in webcam frames (TF.js + heatmaps) → rectifies ROI.
 
-* **Repo**: [simple-mtg-keypoint-regression](https://github.com/JakeTurner616/simple-mtg-keypoint-regression)
-* **Export**: TensorFlow\.js model embedded in the frontend
-
-### Functionality
-
-* Generates synthetic training data using Scryfall images with random:
-
-  * Backgrounds
-  * Perspective distortions
-  * Scaling and rotation
-* Trains on a **MobileNetV2-based lightweight heatmap regression architecture with SoftArgmax decoding**
-* Outputs normalized (0–1024) card corner coordinates
-* Uses **TensorFlow\.js** for in-browser inference
-
-### Role in Production
+* **Model**: MobileNetV2 → Heatmap → SoftArgmax
+* **Frontend Inference**: TF.js (browser-side)
 
 ```text
-[Input Image or Webcam Frame]
-        ↓
-[Keypoint Prediction (TF.js in browser)]
-        ↓
-[Perspective-rectified ROI]
-        ↓
-[Descriptor Extraction + FAISS Matching (Backend)]
-        ↓
-[Matched Scryfall Card ID]
+[Webcam Frame]
+    ↓
+[TF.js Keypoint Prediction]
+    ↓
+[Rectified ROI]
+    ↓
+[Server-side descriptor matching]
 ```
 
 ---
 
-## Card Descriptor Matching System
+## Descriptor-Based Matching
 
-The backend provides server-side card ID prediction using **FAISS-based nearest-neighbor descriptor matching with RANSAC post-filtering** for geometric consistency.
+Descriptor matching pipeline powered by FAISS IVF-PQ + RootSIFT descriptors.
 
-* **Repo \[`production` branch]**: [simple-mtg-feature-extraction](https://github.com/JakeTurner616/simple-mtg-feature-extraction/blob/production)
-* **Model Files Hosted On**: [Hugging Face Dataset Page](https://huggingface.co/datasets/JakeTurner616/mtg-cards-SIFT-Features)
-
-> Note: The descriptor resource bundle updated and promoted to production nightly alongside the card database.
-
+* **Repo**: [`simple-mtg-feature-extraction`](https://github.com/JakeTurner616/simple-mtg-feature-extraction/blob/production)
+* **Model Assets** hosted on HuggingFace
+* **Triggered Nightly After Scryfall Sync**
 
 ---
 
 ### Responsibilities
 
-* Download card images from Scryfall to memory
-* Preprocess (CLAHE → grayscale)
-* Extract SIFT features and normalize with RootSIFT
-* Store all descriptors into `HDF5` and `.npy` temp batches
-* Build and train FAISS IVF-PQ index
-* Predict cards using vector similarity searching
-
----
-
-### Resources Used
-
-| File                    | Description                                               |
-| ----------------------- | --------------------------------------------------------- |
-| `candidate_features.h5` | Stores descriptor + keypoint data per card                |
-| `faiss_ivf.index`       | Trained FAISS index with IVF-PQ                           |
-| `id_map.json`           | List of Scryfall card IDs aligned to descriptors in index |
-
----
-
-### Extraction & Indexing Pipeline
-
-1. **Read card metadata** from PostgreSQL
-2. **Download and CLAHE-process** images
-3. **Extract SIFT features + RootSIFT normalization**
-4. **Batch features** into memory-efficient `.npy` temp files
-5. **Store keypoints/descriptors** in `HDF5` using gzip compression
-6. **Write mapping to `id_map.json`**
-7. **Build FAISS index** if missing or incomplete
+* CLAHE + grayscale → RootSIFT
+* Store descriptors in `HDF5`
+* Write `id_map.json` for UUID to index mapping
+* Build FAISS IVF-PQ index
 
 ---
 
 ### Inference Flow
 
-Backend exposes an internal function for top-K card ID prediction given a URL or ROI input image.
-
 ```text
-Input: Rectified ROI (256x256) image
-   ↓
-CLAHE + RootSIFT Feature Extraction
-   ↓
-FAISS Search (kNN over IVF-PQ index)
-   ↓
-Return most frequent card ID among matches
+Rectified ROI Image (256x256)
+    ↓
+CLAHE + RootSIFT descriptor
+    ↓
+FAISS kNN Search
+    ↓
+Return best-matching Scryfall card UUID
 ```
 
-#### Example Output
+**Example output:**
 
 ```json
 {
-  "input": "https://cards.scryfall.io/large/front/3/3/3394cefd.jpg",
   "top_prediction": "710160a6-43b4-4ba7-9dcd-93e01befc66f",
   "top_k_matches": [
     ["710160a6-43b4-4ba7-9dcd-93e01befc66f", 52],
@@ -190,36 +171,22 @@ Return most frequent card ID among matches
 
 ## Descriptor Update & Promotion System
 
-This system ensures that FAISS descriptors are updated **only after Scryfall data is refreshed** and **only if test inferences validate the new model**.
-
-### Trigger Flow
-
 ```text
-Scheduled Daily Cron (00:00)
-       ↓
-[scryfall_update.py]
-       ↓
-[descriptor_update.py]
-       ↓
-Sanity Check Passes?
-   ├─ Yes → Promote to /resources/run
-   └─ No  → Keep old model active
+Daily Cron (02:00)
+    ↓
+[Scryfall Import → PostgreSQL]
+    ↓
+[Descriptor Update Pipeline]
+    ↓
+[Staging Directory]
+    ↓
+[Sanity Check Image]
+   ├─ Pass → Promote to /resources/run
+   └─ Fail → Retain existing descriptors
 ```
 
-### Key Components
-
-* `resources/staging/` — temporary storage for new HDF5, index, and ID map
-* `resources/run/` — actively loaded by inference backend
-* `watchdog_monitor.py` — backend file system watcher that:
-
-  * Uses `model_lock` to queue inference during overwrite
-  * Reloads resources after all writes complete (debounced)
-
-### Safety Mechanism
-
-* Descriptors are **never** written directly to `resources/run/`.
-* A known ground-truth image is used to verify inference after new descriptor generation.
-* If validation fails, `resources/run/` remains untouched and inference continues uninterrupted.
+* Files: `candidate_features.h5`, `faiss_ivf.index`, `id_map.json`
+* Watchdog + locking ensures no mid-write inference
 
 ---
 
@@ -228,7 +195,6 @@ Sanity Check Passes?
 ```mermaid
 graph LR
 
-%% === CLIENT (LEFT) ===
 User["User"]
 SPA["SPA (React + Vite)"]
 Worker["WebWorker (OpenCV + TF.js)"]
@@ -238,25 +204,24 @@ FrontendHost["Cloudflare Pages"]
 User --> SPA --> Worker --> Model
 SPA -->|Static Assets| FrontendHost
 
-%% === BACKEND API ===
-API["Flask API: /auth /collections /infer /search"]
-Utils["utils.py (CORS, JWT, SIFT)"]
+API["Flask API: /auth /collections /search /infer (proxy)"]
+Utils["utils.py (CORS, JWT, proxy, limiter)"]
 API --> Utils
 
-SPA -->|REST API| API
-
-%% === DATABASE ===
 PG[(PostgreSQL DB)]
 Pool["pg_pool.py"]
 API --> Pool --> PG
 
-%% === BACKGROUND JOB ===
+Infer["descriptor-infer-service (Flask @ 5001)"]
+Infer --> PG
+API -->|Proxy| Infer
+
 ScryfallJob["scryfall_update.py"]
 DescriptorJob["descriptor_update.py"]
-ScryfallJob -->|Import Cards| PG
+ScryfallJob --> PG
 ScryfallJob --> DescriptorJob
+DescriptorJob --> Infer
 
-%% === EXTERNAL ===
 OAuthGoogle["Google OAuth"]
 OAuthGitHub["GitHub OAuth"]
 hCaptcha["hCaptcha"]
@@ -267,7 +232,6 @@ API --> OAuthGitHub
 API --> hCaptcha
 ScryfallJob --> Scryfall
 
-%% === CI/CD + INFRA (RIGHT) ===
 CI["GitHub Actions"]
 Runner["Self-Hosted Runner (Backend)"]
 RunnerCF["GitHub-Hosted Runner (Frontend)"]
@@ -278,9 +242,9 @@ CI --> Runner --> Compose
 CI -->|Push to main| RunnerCF -->|Deploy| FrontendHost
 Compose --> API
 Compose --> PG
+Compose --> Infer
 Maint --> PG
 
-%% === STYLES ===
 classDef client fill:#5dade2,stroke:#1b4f72,color:#000;
 classDef backend fill:#ffd966,stroke:#7d6608,color:#000;
 classDef db fill:#f5b041,stroke:#873600,color:#000;
@@ -289,8 +253,43 @@ classDef infra fill:#aab7b8,stroke:#2c3e50,color:#000;
 classDef frontend fill:#58d68d,stroke:#145a32,color:#000;
 
 class User,SPA,Worker,Model,FrontendHost client;
-class API,Utils backend;
+class API,Utils,Infer backend;
 class Pool,PG db;
 class OAuthGoogle,OAuthGitHub,hCaptcha,Scryfall external;
 class CI,Runner,RunnerCF,Compose,Maint infra;
+```
+
+---
+
+## Docker Compose Summary
+
+```yaml
+services:
+  mtg-db:
+    build: ./postgres-docker-backend/mtg-database
+    ports: ["5432:5432"]
+    volumes: [pg_data:/var/lib/postgresql/data]
+
+  core-api:
+    build: ./core-backend-service
+    ports: ["5000:5000"]
+    volumes:
+      - ./core-backend-service/resources:/app/resources
+      - scryfall_data:/app/data
+      - ./core-backend-service/logs:/app/logs
+
+  descriptor-infer-service:
+    build: ./inference-service
+    ports: ["5001:5001"]
+    volumes:
+      - ./inference-service/resources:/app/resources
+      - scryfall_data:/app/data
+      - ./inference-service/logs:/app/logs
+
+  redis:
+    image: redis:alpine
+
+volumes:
+  pg_data:
+  scryfall_data:
 ```
