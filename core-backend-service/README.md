@@ -9,8 +9,7 @@ This is the backend module of the monorepo. It powers authentication, collection
 * **Framework**: Flask (Python 3.11)
 * **Database**: PostgreSQL 15
 * **Authentication**: JWT (access + refresh cookies), OAuth (Google + GitHub)
-* **Image Matching**: OpenCV + RootSIFT + FAISS IVF-PQ
-* **Background Jobs**: Flask-APScheduler (e.g. daily Scryfall, descriptor sync)
+* **Background Jobs**: Flask-APScheduler (price snapshots)
 * **Docs**: Flasgger (Swagger/OpenAPI)
 
 ---
@@ -60,9 +59,6 @@ FLASK_ENV=development
 
 LOG_FILE_PATH=/app/logs/app.log
 LOG_LEVEL=INFO
-
-# HF Token for uploading newly uploaded models to Hugging Face
-HF_UPLOAD_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ---
@@ -84,5 +80,6 @@ docker-compose up -d --build
 
 ## LICENSE
 
-This project is licensed under the GNU General Public License v3.0.
-See the [LICENSE](../LICENSE) file for full details.
+This core microservice is part of the `mtgscan-cards/monolithic` repository
+Licensed under the GNU General Public License v3.0
+See [LICENSE](../LICENSE) for details.

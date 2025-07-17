@@ -40,7 +40,7 @@ VITE_GITHUB_APP_CLIENT_ID=0987654321
 VITE_FRONTEND_URL=http://localhost:5173
 ```
 
-#### Backend (`/inference-backend/.env`)
+#### Backend (`/core-backend-service/.env`)
 
 ```env
 POSTGRES_USER=dbuser
@@ -68,9 +68,30 @@ FLASK_SECRET_KEY=replace-this-with-a-secure-key
 FLASK_ENV=development
 LOG_FILE_PATH=/app/logs/app.log
 LOG_LEVEL=INFO
+
+INFER_SERVICE_URL=http://descriptor-infer-service:5001
 ```
 
-### 3. Deploy
+#### Backend (`/inference-service/.env`)
+
+```env
+POSTGRES_USER=mtguser
+POSTGRES_PASSWORD=mtgpass
+POSTGRES_DB=mtgdb
+POSTGRES_HOST=mtg-db
+POSTGRES_PORT=5432
+
+# Scheduler & Redis lock support
+REDIS_HOST=mtg-redis
+
+# Optional log config
+LOG_FILE_PATH=/app/logs/app.log
+LOG_LEVEL=INFO
+
+HF_UPLOAD_TOKEN=hf_xxxx
+```
+
+### 3. Deployment
 
 ```bash
 docker-compose up --build
@@ -89,5 +110,6 @@ npm run dev
 
 ## LICENSE
 
-This project is licensed under the GNU General Public License v3.0.  
-See the [LICENSE](https://raw.githubusercontent.com/mtgscan-cards/monolithic/refs/heads/main/LICENSE) file for full details.
+This Project: `mtgscan-cards/monolithic` Is
+Licensed under the GNU General Public License v3.0
+See [LICENSE](../LICENSE) for details.

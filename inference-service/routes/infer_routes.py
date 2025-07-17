@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 import cv2
 import numpy as np
 import time
+from flasgger import swag_from
 from utils.sift_features import find_closest_card_ransac
 from utils.resource_manager import load_resources
 from db.postgres_pool import pg_pool
@@ -14,6 +15,58 @@ infer_bp = Blueprint('infer_bp', __name__)
 faiss_index, hf, id_map = load_resources()
 
 @infer_bp.route('/infer', methods=['POST'])
+@swag_from({
+    'summary': 'Predict MTG card from cropped ROI image',
+    'description': 'Uses SIFT + RANSAC to find the closest matching Magic: The Gathering card.',
+    'consumes': ['multipart/form-data'],
+    'parameters': [
+        {
+            'name': 'roi_image',
+            'in': 'formData',
+            'type': 'file',
+            'required': True,
+            'description': 'Cropped ROI image (JPEG/PNG)'
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Successfully matched a card',
+            'examples': {
+                'application/json': {
+                    "predicted_card_id": "e5a30b6a-dfd5-4b4b-b4ff-9de81d36e9fd",
+                    "predicted_card_name": "Lightning Bolt",
+                    "finishes": ["nonfoil", "foil"],
+                    "set": "M11",
+                    "set_name": "Magic 2011",
+                    "prices": {"usd": "3.50"},
+                    "image_uris": {
+                        "normal": "https://cards.scryfall.io/normal/front/e/5/e5a30b6a-dfd5-4b4b-b4ff-9de81d36e9fd.jpg"
+                    },
+                    "collector_number": "150"
+                }
+            }
+        },
+        400: {
+            'description': 'Missing or invalid image',
+            'examples': {
+                'application/json': {'error': 'No ROI image uploaded.'}
+            }
+        },
+        404: {
+            'description': 'No matching card found',
+            'examples': {
+                'application/json': {'error': 'No matching card found.'}
+            }
+        },
+        500: {
+            'description': 'Internal server error',
+            'examples': {
+                'application/json': {'error': 'Error fetching card details'}
+            }
+        }
+    },
+    'tags': ['Inference']
+})
 def infer():
     overall_start = time.perf_counter()
 

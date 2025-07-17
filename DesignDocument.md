@@ -77,7 +77,7 @@ tar -czf backup/data_$(date +%F).tar.gz inference-service/data
 
 ## Inference Service
 
-All descriptor-based inference has been factored into its own microservice for independent horizontal scaling:
+All descriptor-based inference has been factored into its own internal microservice for independent horizontal scaling:
 
 ### `descriptor-infer-service` (Port 5001)
 
