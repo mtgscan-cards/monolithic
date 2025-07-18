@@ -9,19 +9,35 @@ interface Particle {
   orbitRadius: number
   orbitSpeed: number
   z: number
-  opacity: number
   pulse: number
   pulseSpeed: number
-  age: number
   flickerOffset: number
-  connections: number
 }
 
-const rgba = (r: number, g: number, b: number, a: number) => `rgba(${r},${g},${b},${a})`
+type Link = [i: number, j: number, alpha: number]
+
+const rgba = (r: number, g: number, b: number, a: number) =>
+  `rgba(${r},${g},${b},${a})`
+
+const CONFIG = {
+  baseParticleCount: 40,
+  orbitRadiusRange: [6, 12],
+  orbitSpeedRange: [0.001, 0.003],
+  pulseSpeedRange: [0.02, 0.035],
+  maxLinkDistance: 140,
+  maxLinksPerParticle: 3,
+  frameRateLimit: 1000 / 30,
+  poissonMinDist: 0.09,
+  poissonMaxAttempts: 30,
+}
 
 const ParticleNetwork: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const particles = useRef<Particle[]>([])
+  const positions = useRef<[number, number][]>([])
+  const cachedLinks = useRef<Link[]>([])
 
   const targetMouse = useRef({ x: 0, y: 0 })
   const smoothedMouse = useRef({ x: 0, y: 0 })
@@ -32,10 +48,13 @@ const ParticleNetwork: React.FC = () => {
     const container = containerRef.current
     if (!canvas || !ctx || !container) return
 
-    requestAnimationFrame(() => {
-      canvas.classList.add('fade-canvas', 'visible')
-      canvas.setAttribute('data-ready', 'true')
-    })
+canvas.classList.remove('fade-canvas', 'visible')
+canvas.removeAttribute('data-ready')
+
+requestAnimationFrame(() => {
+  canvas.classList.add('fade-canvas', 'visible')
+  canvas.setAttribute('data-ready', 'true')
+})
 
     const resize = () => {
       canvas.width = container.offsetWidth
@@ -46,177 +65,163 @@ const ParticleNetwork: React.FC = () => {
     const observer = new ResizeObserver(resize)
     observer.observe(container)
 
-    const onMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect()
       targetMouse.current.x = (e.clientX - rect.left) / rect.width - 0.5
       targetMouse.current.y = (e.clientY - rect.top) / rect.height - 0.5
     }
 
-    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mousemove', handleMouseMove)
 
-    // Scale particle limits based on resolution
-    const scaleFactor = Math.min(window.innerWidth, window.innerHeight) / 1080
-    const MAX_PARTICLES = Math.floor(60 + scaleFactor * 60)
-    const MAX_DISTANCE = 170 * scaleFactor
-    const MAX_DISTANCE_SQ = MAX_DISTANCE * MAX_DISTANCE
-    const MAX_ACTIVE_LINKS = Math.floor(100 * scaleFactor)
-    const particles: Particle[] = []
+    const scale = Math.min(window.innerWidth, window.innerHeight) / 1080
+    const count = Math.floor(CONFIG.baseParticleCount + scale * CONFIG.baseParticleCount)
 
-    const spawnParticle = () => {
-  if (particles.length >= MAX_PARTICLES) return
+    const newParticles: Particle[] = []
+    const placed: [number, number][] = []
+    const distSqThreshold = CONFIG.poissonMinDist * CONFIG.poissonMinDist
 
-  // Uniform -1 to 1 range for both axes
-  const offsetX = (Math.random() - 0.5) * 2
-  const offsetY = (Math.random() - 0.5) * 2
+    while (newParticles.length < count) {
+      let attempts = 0
+      let valid = false
+      let fx = 0, fy = 0
 
-  particles.push({
-    offsetX,
-    offsetY,
-    angle: Math.random() * Math.PI * 2,
-    orbitRadius: 6 + Math.random() * 8,
-    orbitSpeed: 0.002 + Math.random() * 0.004,
-    z: Math.random(),
-    opacity: 1,
-    pulse: Math.random() * Math.PI * 2,
-    pulseSpeed: 0.04 + Math.random() * 0.02,
-    age: 1000,
-    flickerOffset: Math.random() * 10,
-    connections: 0,
-  })
-}
-    const SPAWN_INTERVAL = 120
-    const interval = setInterval(spawnParticle, SPAWN_INTERVAL)
+      while (attempts++ < CONFIG.poissonMaxAttempts && !valid) {
+        fx = Math.random() * 2 - 1
+        fy = Math.random() * 2 - 1
 
-    const draw = () => {
-      requestAnimationFrame(draw)
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      const time = performance.now()
+        if (Math.abs(fx) > 1 || Math.abs(fy) > 1) continue
 
-      const centerX = canvas.width / 2
-      const centerY = canvas.height / 2
-      const scale = Math.min(canvas.width, canvas.height) * 0.5
+        valid = true
+        for (const [px, py] of placed) {
+          const dx = fx - px
+          const dy = fy - py
+          if (dx * dx + dy * dy < distSqThreshold) {
+            valid = false
+            break
+          }
+        }
+      }
+
+      if (valid) {
+        placed.push([fx, fy])
+        newParticles.push({
+          offsetX: fx,
+          offsetY: fy,
+          angle: Math.random() * Math.PI * 2,
+          orbitRadius: CONFIG.orbitRadiusRange[0] +
+                       Math.random() * (CONFIG.orbitRadiusRange[1] - CONFIG.orbitRadiusRange[0]),
+          orbitSpeed: CONFIG.orbitSpeedRange[0] +
+                      Math.random() * (CONFIG.orbitSpeedRange[1] - CONFIG.orbitSpeedRange[0]),
+          z: Math.random(),
+          pulse: Math.random() * Math.PI * 2,
+          pulseSpeed: CONFIG.pulseSpeedRange[0] +
+                      Math.random() * (CONFIG.pulseSpeedRange[1] - CONFIG.pulseSpeedRange[0]),
+          flickerOffset: Math.random() * 500,
+        })
+      }
+    }
+
+    particles.current = newParticles
+    positions.current = new Array(newParticles.length).fill([0, 0])
+
+    const cx = canvas.width / 2
+    const cy = canvas.height / 2
+    const scaleFactor = Math.min(canvas.width, canvas.height) * 0.5
+    const maxDistSq = CONFIG.maxLinkDistance * CONFIG.maxLinkDistance
+    const links: Link[] = []
+
+    for (let i = 0; i < newParticles.length; i++) {
+      const pi = newParticles[i]
+      const xi = cx + pi.offsetX * scaleFactor
+      const yi = cy + pi.offsetY * scaleFactor
+
+      let linksCount = 0
+      for (let j = i + 1; j < newParticles.length; j++) {
+        const pj = newParticles[j]
+        const xj = cx + pj.offsetX * scaleFactor
+        const yj = cy + pj.offsetY * scaleFactor
+
+        const dx = xi - xj
+        const dy = yi - yj
+        const distSq = dx * dx + dy * dy
+
+        if (distSq < maxDistSq) {
+          const alpha = 1 - distSq / maxDistSq
+          links.push([i, j, alpha])
+          if (++linksCount >= CONFIG.maxLinksPerParticle) break
+        }
+      }
+    }
+
+    cachedLinks.current = links
+
+    let lastFrame = 0
+
+    const render = (t: number) => {
+      requestAnimationFrame(render)
+      if (t - lastFrame < CONFIG.frameRateLimit) return
+      lastFrame = t
+
+      const w = canvas.width, h = canvas.height
+      const cx = w / 2, cy = h / 2
+      const scaleFactor = Math.min(w, h) * 0.5
 
       smoothedMouse.current.x += (targetMouse.current.x - smoothedMouse.current.x) * 0.05
       smoothedMouse.current.y += (targetMouse.current.y - smoothedMouse.current.y) * 0.05
-
       const mx = smoothedMouse.current.x * 40
       const my = smoothedMouse.current.y * 40
 
-      particles.forEach(p => {
-        p.connections = 0
-        p.age += 1
-        p.pulse += p.pulseSpeed
+      ctx.clearRect(0, 0, w, h)
+
+      const ps = particles.current
+      const pos = positions.current
+
+      for (let i = 0; i < ps.length; i++) {
+        const p = ps[i]
         p.angle += p.orbitSpeed
-      })
+        p.pulse += p.pulseSpeed
 
-      const neighborMap: number[][] = particles.map(() => [])
-      const connectionList: { ax: number, ay: number, bx: number, by: number, alpha: number, phase: number }[] = []
+        const baseX = cx + p.offsetX * scaleFactor
+        const baseY = cy + p.offsetY * scaleFactor
+        const zStretch = 1 + p.z * 2.5
+        const x = baseX + Math.cos(p.angle) * p.orbitRadius * zStretch + mx * p.z
+        const y = baseY + Math.sin(p.angle) * p.orbitRadius * zStretch + my * p.z
 
-      for (let i = 0; i < particles.length; i++) {
-        const a = particles[i]
-        const axBase = centerX + a.offsetX * scale
-        const ayBase = centerY + a.offsetY * scale
-
-        const dists: { index: number; distSq: number }[] = []
-
-        for (let j = 0; j < particles.length; j++) {
-          if (i === j) continue
-          const b = particles[j]
-          const bxBase = centerX + b.offsetX * scale
-          const byBase = centerY + b.offsetY * scale
-
-          const dx = axBase - bxBase
-          const dy = ayBase - byBase
-          const distSq = dx * dx + dy * dy
-          if (distSq < MAX_DISTANCE_SQ) {
-            dists.push({ index: j, distSq })
-          }
-        }
-
-        dists.sort((a, b) => a.distSq - b.distSq)
-        neighborMap[i] = dists.slice(0, 4).map(n => n.index)
-        a.connections = neighborMap[i].length
+        pos[i] = [x, y]
       }
 
-      for (let i = 0; i < particles.length; i++) {
-        const a = particles[i]
-        if (a.connections < 2) continue
-
-        for (const j of neighborMap[i]) {
-          const b = particles[j]
-          if (b.connections < 2) continue
-
-          const axBase = centerX + a.offsetX * scale
-          const ayBase = centerY + a.offsetY * scale
-          const bxBase = centerX + b.offsetX * scale
-          const byBase = centerY + b.offsetY * scale
-
-          const dx = axBase - bxBase
-          const dy = ayBase - byBase
-          const dist = Math.sqrt(dx * dx + dy * dy)
-          const alpha = (1 - dist / MAX_DISTANCE) * a.opacity * b.opacity
-
-          const ax = axBase + Math.cos(a.angle) * a.orbitRadius + mx * a.z
-          const ay = ayBase + Math.sin(a.angle) * a.orbitRadius + my * a.z
-          const bx = bxBase + Math.cos(b.angle) * b.orbitRadius + mx * b.z
-          const by = byBase + Math.sin(b.angle) * b.orbitRadius + my * b.z
-
-          const gradient = ctx.createLinearGradient(ax, ay, bx, by)
-          gradient.addColorStop(0, rgba(255, 80, 80, alpha * 0.25))
-          gradient.addColorStop(1, rgba(255, 0, 100, alpha * 0.25))
-          ctx.strokeStyle = gradient
-          ctx.lineWidth = 1
-          ctx.beginPath()
-          ctx.moveTo(ax, ay)
-          ctx.lineTo(bx, by)
-          ctx.stroke()
-
-          connectionList.push({ ax, ay, bx, by, alpha, phase: i + j })
-        }
-      }
-
-      for (let k = 0; k < Math.min(MAX_ACTIVE_LINKS, connectionList.length); k++) {
-        const { ax, ay, bx, by, alpha, phase } = connectionList[k]
-        const t = (Math.sin(time / 300 + phase) + 1) * 0.5
-        const px = ax + (bx - ax) * t
-        const py = ay + (by - ay) * t
-        ctx.fillStyle = rgba(255, 255, 255, alpha * 0.25)
+      ctx.lineWidth = 1
+      for (const [i, j, alpha] of cachedLinks.current) {
+        const [x1, y1] = pos[i]
+        const [x2, y2] = pos[j]
+        ctx.strokeStyle = rgba(255, 80, 80, alpha * 0.25)
         ctx.beginPath()
-        ctx.arc(px, py, 1.5, 0, Math.PI * 2)
-        ctx.fill()
+        ctx.moveTo(x1, y1)
+        ctx.lineTo(x2, y2)
+        ctx.stroke()
       }
 
-      for (const p of particles) {
-        if (p.connections < 2) continue
+      ctx.shadowColor = 'rgba(255,60,60,0.4)'
+      ctx.shadowBlur = 8
 
-        const flicker = 0.8 + 0.2 * Math.sin(time / 200 + p.flickerOffset)
-        const r = 2.5 + Math.sin(p.pulse) * 1.2
-        const baseX = centerX + p.offsetX * scale
-        const baseY = centerY + p.offsetY * scale
-        const x = baseX + Math.cos(p.angle) * p.orbitRadius + mx * p.z
-        const y = baseY + Math.sin(p.angle) * p.orbitRadius + my * p.z
-
-        const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 4)
-        glow.addColorStop(0, rgba(255, 60, 60, 0.4 * p.opacity * flicker))
-        glow.addColorStop(1, rgba(0, 0, 0, 0))
-        ctx.fillStyle = glow
-        ctx.beginPath()
-        ctx.arc(x, y, r * 4, 0, Math.PI * 2)
-        ctx.fill()
-
-        ctx.fillStyle = rgba(255, 80, 80, p.opacity)
+      for (let i = 0; i < ps.length; i++) {
+        const [x, y] = pos[i]
+        const r = 2.5 + Math.sin(ps[i].pulse) * 1.2
+        const flicker = 0.85 + 0.15 * Math.sin(t / 200 + ps[i].flickerOffset)
+        ctx.fillStyle = rgba(255, 80, 80, flicker)
         ctx.beginPath()
         ctx.arc(x, y, r, 0, Math.PI * 2)
         ctx.fill()
       }
+
+      ctx.shadowBlur = 0
     }
 
-    draw()
+    requestAnimationFrame(render)
 
     return () => {
-      clearInterval(interval)
       observer.disconnect()
-      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mousemove', handleMouseMove)
     }
   }, [])
 
@@ -237,6 +242,7 @@ const ParticleNetwork: React.FC = () => {
           width: '100%',
           height: '100%',
           display: 'block',
+          opacity: '1',
           transform: 'translateZ(0)',
           willChange: 'transform, opacity',
         }}
