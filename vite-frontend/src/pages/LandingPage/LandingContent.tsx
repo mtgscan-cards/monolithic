@@ -172,7 +172,7 @@ const LandingContent: React.FC<LandingContentProps> = ({ highlightCard, onCardCl
             Automatic Updates Every Single Day 🤯
           </Typography>
           <Typography variant="body1" style={{ lineHeight: 1.6 }}>
-            Upload your collections, and store your decks, using the only open-source card database that updates every single day.
+            Upload your collections, and store your decks, using the only open-source card scanning database that updates every single day.
           </Typography>
         </motion.section>
       </Container>

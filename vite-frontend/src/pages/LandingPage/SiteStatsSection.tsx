@@ -1,9 +1,8 @@
 // src/pages/LandingPage/SiteStatsSection.tsx
 
-import React, { useMemo, useState, useEffect, Suspense } from 'react'
+import React, { useMemo, useState, useEffect, Suspense, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { useInView } from 'react-intersection-observer'
-import { a, useSpring } from '@react-spring/three'
 import * as THREE from 'three'
 import './SiteStatsSection.css'
 
@@ -143,13 +142,12 @@ const BlobMesh = () => {
   })
 
   return (
-    <group position={[0, 1.1, 0]}>
-      <mesh
-        onPointerOver={() => !isMobile && setHovered(true)}
-        onPointerOut={() => !isMobile && setHovered(false)}
-      >
-        <sphereGeometry args={[3.7, isMobile ? 12 : 32, isMobile ? 12 : 32]} />
-        <shaderMaterial
+    <mesh
+      onPointerOver={() => !isMobile && setHovered(true)}
+      onPointerOut={() => !isMobile && setHovered(false)}
+    >
+      <sphereGeometry args={[3.7, isMobile ? 12 : 32, isMobile ? 12 : 32]} />
+      <shaderMaterial
           vertexShader={`
 varying float vDistort;
 varying vec3 vNormal;
@@ -225,43 +223,71 @@ void main() {
           depthWrite={false}
         />
       </mesh>
-    </group>
+
   )
 }
+
+
 
 interface PopInSceneProps {
   visible: boolean
 }
 
+// Reference: https://easings.net/#easeOutBack
+const easeOutBack = (t: number): number => {
+  const s = 1.70158
+  return 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2)
+}
+
+
 const PopInScene: React.FC<PopInSceneProps> = ({ visible }) => {
   const [ready, setReady] = useState(false)
-  const [showMetaballs, setShowMetaballs] = useState(false)
+  const [warmedUp, setWarmedUp] = useState(false)
+  const meshRef = useRef<THREE.Group>(null)
+  const animationStart = useRef<number | null>(null)
+  const frameCount = useRef(0)
   const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 600
 
-  const { scale, opacity } = useSpring({
-    from: { scale: 0.8, opacity: 0 },
-    to: { scale: visible ? 1 : 0.8, opacity: visible ? 1 : 0 },
-    config: { tension: 60, friction: 30 },
-  })
-
   useEffect(() => {
-    if (visible) {
-      const t1 = setTimeout(() => setReady(true), 100)
-      const t2 = setTimeout(() => setShowMetaballs(true), 500)
-      return () => {
-        clearTimeout(t1)
-        clearTimeout(t2)
-      }
-    }
+    if (visible) setReady(true)
   }, [visible])
 
+  useFrame(() => {
+    if (!meshRef.current || !ready) return
+
+    if (!warmedUp) {
+      // count frames until shader is stable
+      frameCount.current++
+      if (frameCount.current >= 2) {
+        setWarmedUp(true)
+      }
+      return
+    }
+
+    // shader warmed, now animate in
+    const now = performance.now()
+    if (animationStart.current === null) animationStart.current = now
+    const elapsed = (now - animationStart.current) / 1000
+    const duration = 3.0
+    const t = Math.min(elapsed / duration, 1)
+    const eased = easeOutBack(t)
+    meshRef.current.scale.set(eased, eased, eased)
+  })
+
   return (
-    <a.group scale={scale} visible={opacity.to(o => o > 0)}>
-      <a.group scale={scale} position={[0, 0, 0]}>
-        {ready && <BlobMesh />}
-        {showMetaballs && !isSmallScreen && <FullscreenMetaball />}
-      </a.group>
-    </a.group>
+    <group>
+      {ready && (
+        <group
+          ref={meshRef}
+          position={[0, 1.1, 0]}
+          scale={[0, 0, 0]}
+          visible
+        >
+          <BlobMesh />
+        </group>
+      )}
+      {ready && !isSmallScreen && <FullscreenMetaball />}
+    </group>
   )
 }
 
@@ -271,29 +297,43 @@ const SiteStatsSection: React.FC = () => {
 
   return (
     <div className="site-stats-wrapper" ref={ref}>
-      <Canvas
-        camera={{ position: [0, 4, 7], fov: 70 }}
+      <div
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           width: '100%',
           height: '800px',
+          backgroundColor: '#111111',
           zIndex: 0,
-          background: '#111111',
-          pointerEvents: 'none', // ✅ ensures selectable overlay
+          pointerEvents: 'none',
         }}
-        gl={{ alpha: false, antialias: true }}
-        onCreated={({ gl }) => {
-          gl.setClearColor(new THREE.Color('#111111'), 1.0)
-          gl.domElement.setAttribute('data-ready', 'true')
-          setCanvasReady(true)
-        }}
-      >
-        <Suspense fallback={null}>
-          <PopInScene visible={inView} />
-        </Suspense>
-      </Canvas>
+      />
+
+      {inView && (
+        <Canvas
+          camera={{ position: [0, 4, 7], fov: 70 }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '800px',
+            zIndex: 0,
+            pointerEvents: 'none',
+          }}
+          gl={{ alpha: true, antialias: true }}
+          onCreated={({ gl }) => {
+            gl.setClearColor(new THREE.Color('#111111'), 0.0)
+            gl.domElement.setAttribute('data-ready', 'true')
+            setCanvasReady(true)
+          }}
+        >
+          <Suspense fallback={null}>
+            <PopInScene visible={inView} />
+          </Suspense>
+        </Canvas>
+      )}
 
       <div className="stats-overlay" style={{ userSelect: 'text', position: 'relative', zIndex: 1 }}>
         <div className="stat-block">
@@ -314,3 +354,5 @@ const SiteStatsSection: React.FC = () => {
 }
 
 export default SiteStatsSection
+
+
