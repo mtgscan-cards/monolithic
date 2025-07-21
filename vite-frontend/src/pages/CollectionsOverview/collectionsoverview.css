@@ -1,0 +1,10 @@
+/* vite-frontend/src/pages/CollectionsOverview/collectionsoverview.css */
+
+canvas {
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+}
+
+canvas.visible {
+  opacity: 1;
+}

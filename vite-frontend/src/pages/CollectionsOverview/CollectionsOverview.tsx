@@ -1,3 +1,5 @@
+// vite-frontend/src/pages/CollectionsOverview/CollectionsOverview.tsx
+
 import React, { Suspense, useContext, useRef } from 'react';
 import { Box } from '@mui/material';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -5,7 +7,7 @@ import { CanvasScene } from './CanvasScene';
 import { FullOverlay, Banner, NavButton } from './OverlayControls';
 import { CreateCollectionForm } from './CreateCollectionForm';
 import { useCollectionsState } from './useCollectionsState';
-//import './collectionsoverview.css';
+import './collectionsoverview.css';
 
 const CollectionsOverview: React.FC = () => {
   const { user } = useContext(AuthContext);
@@ -46,24 +48,24 @@ const CollectionsOverview: React.FC = () => {
       </Box>
 
       {isLoading && <FullOverlay><></></FullOverlay>}
-      {!isLoading && collections.length === 0 && (
-        <Banner>
-          No collections yet. Create one below to get started!
-        </Banner>
+      {!isLoading && collections.length === 0 && <Banner>No collections yet. Create one below to get started!</Banner>}
+
+      {readyToRender3D && (
+        <>
+          <NavButton disabled={atStart} onClick={prev}>◀</NavButton>
+          <NavButton right disabled={atEnd} onClick={next}>▶</NavButton>
+
+          <CreateCollectionForm
+            label={label}
+            topColor={topColor}
+            bottomColor={bottomColor}
+            setLabel={setLabel}
+            setTopColor={setTopColor}
+            setBottomColor={setBottomColor}
+            handleAdd={handleAdd}
+          />
+        </>
       )}
-
-      <NavButton disabled={atStart} onClick={prev}>◀</NavButton>
-      <NavButton right disabled={atEnd} onClick={next}>▶</NavButton>
-
-      <CreateCollectionForm
-        label={label}
-        topColor={topColor}
-        bottomColor={bottomColor}
-        setLabel={setLabel}
-        setTopColor={setTopColor}
-        setBottomColor={setBottomColor}
-        handleAdd={handleAdd}
-      />
     </Box>
   );
 };

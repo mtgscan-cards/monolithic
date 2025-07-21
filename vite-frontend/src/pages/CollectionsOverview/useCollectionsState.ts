@@ -1,3 +1,5 @@
+// vite-frontend/src/pages/CollectionsOverview/useCollectionsState.ts
+
 import { useEffect, useState, useCallback, RefObject } from 'react';
 import { createCollection, getCollections, CollectionData } from '../../api/collections';
 
@@ -28,8 +30,8 @@ export function useCollectionsState(canvasWrapperRef: RefObject<HTMLDivElement |
     }, []);
 
     useEffect(() => {
-        const timeout = setTimeout(() => setReadyToRender3D(true), 0);
-        return () => clearTimeout(timeout);
+        const id = requestIdleCallback(() => setReadyToRender3D(true), { timeout: 100 });
+        return () => cancelIdleCallback(id);
     }, []);
 
     useEffect(() => {
