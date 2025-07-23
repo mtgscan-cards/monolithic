@@ -94,7 +94,7 @@ HF_UPLOAD_TOKEN=hf_xxxx
 ### 3. Deployment
 
 ```bash
-docker-compose up --build
+docker-compose up -d --build
 ```
 
 ```bash
