@@ -21,14 +21,7 @@ A very simple web app for scanning and organizing MTG cards.
 
 ## Setup
 
-### 1. Clone
-
-```bash
-git clone https://github.com/mtgscan-cards/monolithic.git
-cd monolithic
-```
-
-### 2. Configure Environment Variables
+### 1. Configure Environment Variables
 
 #### Frontend (`/vite-frontend/.env`)
 
@@ -91,7 +84,7 @@ LOG_LEVEL=INFO
 HF_UPLOAD_TOKEN=hf_xxxx
 ```
 
-### 3. Deployment
+### 2. Deployment
 
 ```bash
 docker-compose up -d --build
